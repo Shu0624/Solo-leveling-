@@ -22,6 +22,7 @@ const ResumeAnalysis = () => {
   const [fileUrl, setFileUrl] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [myTopResumes, setMyTopResumes] = useState([]);
+  const [versionHistory, setVersionHistory] = useState([]);
 
   // Fetch resume history on mount
   useEffect(() => {
@@ -149,11 +150,11 @@ const ResumeAnalysis = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       
       {/* Header */}
-      <header className="mb-12 text-center max-w-3xl mx-auto mt-4">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-indigo-500 to-indigo-800 pb-1">
-          Smart feedback for your dream job
+      <header className="mb-8 text-center max-w-2xl mx-auto mt-2">
+        <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-indigo-500 to-indigo-800 pb-1">
+          Resume Analyzer
         </h1>
-        <p className="text-lg text-muted-foreground font-medium">Drop your resume for an ATS score and improvement tips.</p>
+        <p className="text-base text-muted-foreground font-medium">Upload your resume to get an ATS score and improvement tips.</p>
       </header>
 
       <AnimatePresence mode="wait">
@@ -163,47 +164,47 @@ const ResumeAnalysis = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="max-w-2xl mx-auto w-full flex flex-col gap-6"
+            className="max-w-md mx-auto w-full flex flex-col gap-4"
           >
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-muted-foreground ml-1">Company Name</label>
               <input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="PixelForge Studio"
-                className="w-full bg-background/50 glass-morphism border border-border/60 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                placeholder="Enter target company"
+                className="w-full bg-background/50 glass-morphism border border-border/60 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-muted-foreground ml-1">Job Title</label>
               <input
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="Full Stack Developer"
-                className="w-full bg-background/50 glass-morphism border border-border/60 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                placeholder="Enter target role"
+                className="w-full bg-background/50 glass-morphism border border-border/60 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-muted-foreground ml-1">Job Description <span className="text-destructive">*</span></label>
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the target job description here. Our team thrives on curiosity, clean code..."
-                className="w-full h-32 bg-background/50 glass-morphism border border-border/60 rounded-2xl px-5 py-4 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                placeholder="Paste the target job description here..."
+                className="w-full h-24 bg-background/50 glass-morphism border border-border/60 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
               />
             </div>
 
-            <div className="flex flex-col gap-2 mt-4">
+            <div className="flex flex-col gap-1 mt-1">
               <label className="text-sm font-semibold text-muted-foreground ml-1">Upload Resume</label>
               <div 
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative bg-gradient-to-br from-background/50 to-secondary/30 glass-morphism rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent
+                className={`relative bg-gradient-to-br from-background/50 to-secondary/30 glass-morphism rounded-2xl p-6 text-center transition-all duration-300 cursor-pointer overflow-hidden border-2 border-transparent
                   ${isDragging ? 'shadow-[0_0_0_2px_hsl(var(--primary))] bg-primary/5 scale-[1.02]' : 'hover:shadow-[0_0_0_2px_hsl(var(--border))]'}
                   ${file ? 'shadow-[0_0_0_2px_hsl(var(--success)/0.5)] bg-success/5' : ''}
                 `}
@@ -219,22 +220,22 @@ const ResumeAnalysis = () => {
                   onChange={handleFileChange} 
                 />
                 
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-700 text-white rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
-                    <span className="font-serif italic font-bold text-2xl">i</span>
+                <div className="flex flex-col items-center justify-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-700 text-white rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
+                    <span className="font-serif italic font-bold text-lg">i</span>
                   </div>
                   
                   {file ? (
-                    <div className="inline-flex items-center gap-2 bg-primary/10 text-primary font-bold px-4 py-2 rounded-full mt-2">
+                    <div className="inline-flex items-center gap-2 bg-primary/10 text-primary font-bold px-3 py-1.5 rounded-full mt-2 text-sm">
                        <FileText size={16} /> {file.name}
                     </div>
                   ) : (
-                    <div className="text-center mt-2">
-                      <h3 className="text-[15px] font-bold text-foreground mb-1">
+                    <div className="text-center mt-1">
+                      <h3 className="text-[14px] font-bold text-foreground mb-1">
                         Click to upload or drag and drop
                       </h3>
-                      <p className="text-muted-foreground text-sm">
-                        PDF (max. 20 MB)
+                      <p className="text-muted-foreground text-xs">
+                        PDF (max. 5 MB)
                       </p>
                     </div>
                   )}
@@ -251,12 +252,12 @@ const ResumeAnalysis = () => {
             <button 
               onClick={handleUpload}
               disabled={!file || !jobDescription.trim() || analyzing}
-              className="mt-6 w-full py-4 rounded-xl bg-slate-900 dark:bg-primary text-white font-bold text-lg shadow-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="mt-3 w-full py-3 rounded-xl bg-slate-900 dark:bg-primary text-white font-bold text-sm shadow-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {analyzing ? (
-                <><Activity className="animate-pulse" size={20} /> Analyzing Resume...</>
+                <><Activity className="animate-pulse" size={16} /> Analyzing...</>
               ) : (
-                <><BarChart3 size={20} /> Generate Smart Feedback</>
+                <><BarChart3 size={16} /> Generate Feedback</>
               )}
             </button>
 
@@ -506,6 +507,89 @@ const ResumeAnalysis = () => {
           </div>
         </div>
 
+      </motion.div>
+
+      {/* Complete Upload History Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mt-12 max-w-7xl mx-auto"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+            <History size={24} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-foreground">Complete Upload History</h2>
+            <p className="text-sm text-muted-foreground font-medium">Record of all your previously analyzed resumes</p>
+          </div>
+        </div>
+
+        <div className="bg-card glass-morphism border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[800px]">
+              <thead className="bg-muted/95 border-b border-border/50">
+                <tr className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Filename / Job Target</th>
+                  <th className="px-6 py-4 text-center">ATS Score</th>
+                  <th className="px-6 py-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {versionHistory.length > 0 ? (
+                  // Sort newest first
+                  [...versionHistory].sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)).map((item, index) => (
+                    <tr key={index} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-foreground">
+                          {new Date(item.uploadedAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {new Date(item.uploadedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-bold text-secondary-foreground text-sm flex items-center gap-2">
+                          <FileText size={16} className="text-muted-foreground" />
+                          {item.fileUrl?.split('/').pop() || 'Resume Document'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-bold text-sm
+                          ${item.score >= 75 ? 'bg-success/10 text-success' : item.score >= 50 ? 'bg-warning/10 text-warning' : 'bg-destructive/10 text-destructive'}
+                        `}>
+                          {item.score}%
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        {item.fileUrl && item.fileUrl.startsWith('http') ? (
+                          <a 
+                            href={item.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-foreground text-xs font-bold rounded-lg hover:bg-secondary/80 transition-colors"
+                          >
+                            View PDF <ArrowRight size={14} />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">File unavailable</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-12 text-center text-muted-foreground font-medium">
+                      No previous upload history found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </motion.div>
 
     </div>

@@ -141,36 +141,48 @@ router.get('/classrooms', protect, authorize(...adminRoles), scopeData, async (r
       }
     });
 
-    // If no snapshots, compute live
+    // If no snapshots, compute live using grouped aggregation (NOT per-classroom loops)
     if (Object.keys(latestMap).length === 0) {
-      const liveData = [];
-      for (const code of classroomCodes) {
+      const allIds = students.map(s => s._id);
+
+      // Single aggregation grouped by classroomCode — eliminates N+1 query
+      const actAgg = await Activity.aggregate([
+        { $match: { user: { $in: allIds } } },
+        { $group: { _id: '$user', totalSeconds: { $sum: '$duration' } } },
+      ]);
+      const actMap = {};
+      actAgg.forEach(a => { actMap[a._id.toString()] = a.totalSeconds; });
+
+      const quizAgg = await QuizAttempt.aggregate([
+        { $match: { user: { $in: allIds } } },
+        { $group: { _id: '$user', avg: { $avg: '$percentage' } } },
+      ]);
+      const quizMap = {};
+      quizAgg.forEach(q => { quizMap[q._id.toString()] = q.avg; });
+
+      const liveData = classroomCodes.map(code => {
         const classStudents = students.filter(s => s.classroomCode === code);
-        const ids = classStudents.map(s => s._id);
+        let totalSeconds = 0;
+        let quizScores = [];
+        classStudents.forEach(s => {
+          totalSeconds += actMap[s._id.toString()] || 0;
+          if (quizMap[s._id.toString()] !== undefined) quizScores.push(quizMap[s._id.toString()]);
+        });
 
-        const actAgg = await Activity.aggregate([
-          { $match: { user: { $in: ids } } },
-          { $group: { _id: null, total: { $sum: '$duration' } } },
-        ]);
-        const quizAgg = await QuizAttempt.aggregate([
-          { $match: { user: { $in: ids } } },
-          { $group: { _id: null, avg: { $avg: '$percentage' } } },
-        ]);
-
-        liveData.push({
+        return {
           classroomCode: code,
           department: classStudents[0]?.department || '',
           metrics: {
             totalStudents: classStudents.length,
-            totalStudyHours: Math.round((actAgg[0]?.total || 0) / 3600),
-            averageQuizScore: Math.round(quizAgg[0]?.avg || 0),
+            totalStudyHours: Math.round(totalSeconds / 3600),
+            averageQuizScore: quizScores.length ? Math.round(quizScores.reduce((s, v) => s + v, 0) / quizScores.length) : 0,
             activeStudents: 0,
             averageStreak: Math.round(
               classStudents.reduce((s, st) => s + (st.streak?.current || 0), 0) / classStudents.length
             ),
           },
-        });
-      }
+        };
+      });
       return res.json(liveData);
     }
 
@@ -251,36 +263,54 @@ router.get('/compare', protect, authorize(...adminRoles), scopeData, async (req,
       return res.status(400).json({ message: 'At least 2 classroom codes required' });
     }
 
-    const results = [];
-    for (const code of codes) {
-      const students = await User.find({ classroomCode: code, role: 'student' }).select('_id streak');
-      const ids = students.map(s => s._id);
+    // Batch: fetch all students for all codes in one query
+    const allStudents = await User.find({ classroomCode: { $in: codes }, role: 'student' }).select('_id streak classroomCode');
+    const allIds = allStudents.map(s => s._id);
 
-      const actAgg = await Activity.aggregate([
-        { $match: { user: { $in: ids } } },
-        { $group: { _id: null, total: { $sum: '$duration' } } },
-      ]);
-      const quizAgg = await QuizAttempt.aggregate([
-        { $match: { user: { $in: ids } } },
-        { $group: { _id: null, avg: { $avg: '$percentage' }, count: { $sum: 1 } } },
-      ]);
-      const resumeAgg = await Resume.aggregate([
-        { $match: { user: { $in: ids }, 'analysis.score': { $gt: 0 } } },
-        { $group: { _id: null, avg: { $avg: '$analysis.score' } } },
-      ]);
+    // Two aggregations instead of (codes.length * 3)
+    const actAgg = await Activity.aggregate([
+      { $match: { user: { $in: allIds } } },
+      { $group: { _id: '$user', totalSeconds: { $sum: '$duration' } } },
+    ]);
+    const actMap = {};
+    actAgg.forEach(a => { actMap[a._id.toString()] = a.totalSeconds; });
 
-      results.push({
-        classroomCode: code,
-        students: students.length,
-        studyHours: Math.round((actAgg[0]?.total || 0) / 3600),
-        avgQuizScore: Math.round(quizAgg[0]?.avg || 0),
-        quizAttempts: quizAgg[0]?.count || 0,
-        avgResumeScore: Math.round(resumeAgg[0]?.avg || 0),
-        avgStreak: students.length
-          ? Math.round(students.reduce((s, st) => s + (st.streak?.current || 0), 0) / students.length)
-          : 0,
+    const quizAgg = await QuizAttempt.aggregate([
+      { $match: { user: { $in: allIds } } },
+      { $group: { _id: '$user', avg: { $avg: '$percentage' }, count: { $sum: 1 } } },
+    ]);
+    const quizMap = {};
+    quizAgg.forEach(q => { quizMap[q._id.toString()] = q; });
+
+    const resumeAgg = await Resume.aggregate([
+      { $match: { user: { $in: allIds }, 'analysis.score': { $gt: 0 } } },
+      { $group: { _id: '$user', avg: { $avg: '$analysis.score' } } },
+    ]);
+    const resumeMap = {};
+    resumeAgg.forEach(r => { resumeMap[r._id.toString()] = r.avg; });
+
+    const results = codes.map(code => {
+      const codeStudents = allStudents.filter(s => s.classroomCode === code);
+      let totalSeconds = 0, quizAvgs = [], quizAttempts = 0, resumeAvgs = [];
+      codeStudents.forEach(s => {
+        const sid = s._id.toString();
+        totalSeconds += actMap[sid] || 0;
+        if (quizMap[sid]) { quizAvgs.push(quizMap[sid].avg); quizAttempts += quizMap[sid].count; }
+        if (resumeMap[sid]) resumeAvgs.push(resumeMap[sid]);
       });
-    }
+
+      return {
+        classroomCode: code,
+        students: codeStudents.length,
+        studyHours: Math.round(totalSeconds / 3600),
+        avgQuizScore: quizAvgs.length ? Math.round(quizAvgs.reduce((s, v) => s + v, 0) / quizAvgs.length) : 0,
+        quizAttempts,
+        avgResumeScore: resumeAvgs.length ? Math.round(resumeAvgs.reduce((s, v) => s + v, 0) / resumeAvgs.length) : 0,
+        avgStreak: codeStudents.length
+          ? Math.round(codeStudents.reduce((s, st) => s + (st.streak?.current || 0), 0) / codeStudents.length)
+          : 0,
+      };
+    });
 
     res.json(results);
   } catch (err) {

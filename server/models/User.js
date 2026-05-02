@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,10})+$/,
         'Please add a valid email',
       ],
     },
@@ -61,6 +61,16 @@ const userSchema = new mongoose.Schema(
         date: Date,
       }
     ],
+    enrollmentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    employeeId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     profilePicture: {
       type: String,
       default: 'default.jpg',
@@ -78,6 +88,11 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Performance indexes for admin dashboards and analytics scoping
+userSchema.index({ classroomCode: 1, role: 1 });
+userSchema.index({ college: 1, department: 1, role: 1 });
+userSchema.index({ role: 1 });
 
 const User = mongoose.model('User', userSchema);
 export default User;

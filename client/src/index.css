@@ -127,3 +127,54 @@
   transform: translateY(4px);
   box-shadow: 0 0 0 transparent;
 }
+
+/* Global Input Fields & Select Dropdowns */
+.input-field {
+  @apply bg-secondary border border-border/50 text-foreground px-4 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm transition-all;
+}
+
+/* Force native <select> and <option> to match theme */
+select,
+select option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+select option:checked,
+select option:hover {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+select option:disabled {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* RESPONSIVE UTILITIES                                          */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* Bottom safe area for iOS devices with home indicator */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Page content needs bottom padding on mobile to clear the tab bar */
+@media (max-width: 767px) {
+  main, .page-content {
+    padding-bottom: 5rem;
+  }
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 1023px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Exclude inline text links and small icon buttons */
+  a:not([class*="rounded"]):not([class*="px-"]) {
+    min-height: unset;
+    min-width: unset;
+  }
+}

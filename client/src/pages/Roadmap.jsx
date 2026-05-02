@@ -1,33 +1,47 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Rocket, CalendarDays, TrendingUp, CheckCircle2, AlertTriangle, ChevronRight, Loader2, RotateCcw, Zap, Target, BookOpen, FileText } from 'lucide-react';
+import { Rocket, CalendarDays, TrendingUp, CheckCircle2, AlertTriangle, ChevronRight, Loader2, RotateCcw, Zap, Target, BookOpen, FileText, Square, CheckSquare, Code, Book, MessageCircle, Play } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Roadmap = () => {
   const { api } = useAuth();
   const [targetRole, setTargetRole] = useState('');
   const [targetMonths, setTargetMonths] = useState(3);
   const [experienceLevel, setExperienceLevel] = useState('Beginner');
+  const [companyType, setCompanyType] = useState('indian-product');
   const [specificGoals, setSpecificGoals] = useState('');
   const [roadmap, setRoadmap] = useState(null);
   const [loading, setLoading] = useState(false);
   const [resumeSkills, setResumeSkills] = useState([]);
   const [resumeScore, setResumeScore] = useState(null);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [completedWeeklyTasks, setCompletedWeeklyTasks] = useState([]);
+  const navigate = useNavigate();
 
-  // Auto-fetch resume skills on mount
+  // Auto-fetch resume skills & existing roadmap on mount
   useEffect(() => {
-    const fetchResumeData = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get('/resume/history');
-        if (res.data.current) {
-          setResumeSkills(res.data.current.skills || []);
-          setResumeScore(res.data.current.score || null);
+        const resumeRes = await api.get('/resume/history');
+        if (resumeRes.data.current) {
+          setResumeSkills(resumeRes.data.current.skills || []);
+          setResumeScore(resumeRes.data.current.score || null);
         }
-      } catch (e) {
-        // No resume yet — fine
-      }
+      } catch (e) {}
+
+      try {
+        const roadmapRes = await api.get('/ai/roadmap/current');
+        if (roadmapRes.data.roadmap) {
+          setRoadmap(roadmapRes.data.roadmap);
+          setTargetRole(roadmapRes.data.roadmap.targetRole);
+          setCompanyType(roadmapRes.data.roadmap.companyType || 'indian-product');
+          setCompletedTasks(roadmapRes.data.roadmap.completedTasks || []);
+          setCompletedWeeklyTasks(roadmapRes.data.roadmap.completedWeeklyTasks || []);
+        }
+      } catch (e) {}
     };
-    fetchResumeData();
+    fetchData();
   }, [api]);
 
   const generatePlan = async () => {
@@ -36,12 +50,30 @@ const Roadmap = () => {
     }
     setLoading(true);
     try {
-      const res = await api.post('/ai/roadmap', { targetRole, targetMonths, experienceLevel, specificGoals });
+      const res = await api.post('/ai/roadmap', { targetRole, targetMonths, experienceLevel, specificGoals, companyType });
       setRoadmap(res.data.roadmap);
+      setCompletedTasks([]);
+      setCompletedWeeklyTasks([]);
     } catch (err) {
       alert('Failed to generate roadmap. Make sure you are logged in.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleTask = async (taskId, isWeekly = false) => {
+    try {
+      // Optimistic UI update
+      if (isWeekly) {
+        setCompletedWeeklyTasks(prev => prev.includes(taskId) ? prev.filter(t => t !== taskId) : [...prev, taskId]);
+      } else {
+        setCompletedTasks(prev => prev.includes(taskId) ? prev.filter(t => t !== taskId) : [...prev, taskId]);
+      }
+      
+      // Async save
+      await api.put('/ai/roadmap/task', { taskId, isWeekly });
+    } catch (e) {
+      console.error('Failed to toggle task');
     }
   };
 
@@ -60,9 +92,9 @@ const Roadmap = () => {
         <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4 text-primary">
           <Rocket size={32} />
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-foreground">AI Career Roadmap</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-foreground">Career Roadmap</h1>
         <p className="text-muted-foreground">
-          Get a personalized study plan generated from your resume analysis, goals, and target role.
+          Get a personalized study plan based on your resume, goals, and target role.
         </p>
       </header>
 
@@ -78,16 +110,31 @@ const Roadmap = () => {
             <div className="glass-morphism rounded-3xl p-8 md:p-10">
               <h2 className="text-2xl font-bold mb-8 text-center text-foreground">Configure Your Plan</h2>
 
-              {/* Role Selection */}
-              <div className="mb-6">
-                <label className="text-sm font-medium text-muted-foreground mb-3 block uppercase tracking-wider">What is your Target Role?</label>
-                <input 
-                  type="text"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder="e.g. Senior iOS Engineer, AI Architect, Product Manager"
-                  className="w-full bg-background/50 glass-morphism border border-border/80 rounded-2xl px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
-                />
+              {/* Role & Company Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-3 block uppercase tracking-wider">What is your Target Role?</label>
+                  <input 
+                    type="text"
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                    placeholder="Enter your target role"
+                    className="w-full bg-background/50 glass-morphism border border-border/80 rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-3 block uppercase tracking-wider">Target Company Tier</label>
+                  <select
+                    value={companyType}
+                    onChange={(e) => setCompanyType(e.target.value)}
+                    className="w-full bg-background/50 border border-border/80 rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium appearance-none"
+                  >
+                    <option value="indian-services">IT Services (TCS, Infosys, Wipro, etc.)</option>
+                    <option value="indian-product">Product-Based & Startups</option>
+                    <option value="faang">Top Tier Tech / FAANG</option>
+                    <option value="remote-mnc">Remote / Global MNCs</option>
+                  </select>
+                </div>
               </div>
 
               {/* Experience & Timeline */}
@@ -99,10 +146,10 @@ const Roadmap = () => {
                     onChange={(e) => setExperienceLevel(e.target.value)}
                     className="w-full bg-background/50 border border-border/80 rounded-xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium appearance-none"
                   >
-                    <option value="Beginner">Beginner (0-1 years)</option>
-                    <option value="Intermediate">Intermediate (1-3 years)</option>
-                    <option value="Advanced">Advanced (3-5+ years)</option>
-                    <option value="Professional">Professional (5+ years)</option>
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Professional">Professional</option>
                   </select>
                 </div>
                 <div>
@@ -131,7 +178,7 @@ const Roadmap = () => {
                 <textarea 
                   value={specificGoals}
                   onChange={(e) => setSpecificGoals(e.target.value)}
-                  placeholder="e.g. I already know Python but want to master System Design. I want to pass FAANG interviews."
+                  placeholder="Enter your background, current skills, and specific goals..."
                   className="w-full h-24 resize-none bg-background/50 glass-morphism border border-border/80 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
                 />
               </div>
@@ -265,8 +312,13 @@ const Roadmap = () => {
                     <ul className="space-y-3">
                       {phase.tasks.map((task, j) => (
                         <li key={j} className="flex items-start gap-3 text-sm text-foreground">
-                          <ChevronRight size={16} className="text-primary mt-0.5 flex-shrink-0" />
-                          <span className="leading-relaxed">{task}</span>
+                          <button 
+                            onClick={() => toggleTask(`${i}-${j}`)}
+                            className="text-primary mt-0.5 flex-shrink-0 hover:scale-110 transition-transform"
+                          >
+                            {completedTasks.includes(`${i}-${j}`) ? <CheckSquare size={18} /> : <Square size={18} className="opacity-50" />}
+                          </button>
+                          <span className={`leading-relaxed ${completedTasks.includes(`${i}-${j}`) ? 'line-through opacity-50' : ''}`}>{task}</span>
                         </li>
                       ))}
                     </ul>
@@ -281,14 +333,101 @@ const Roadmap = () => {
                 <CalendarDays className="text-accent" size={22} /> Suggested Weekly Plan
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-                {Object.entries(roadmap.weeklyPlan).map(([day, activity]) => (
-                  <div key={day} className="bg-background/50 border border-border/50 rounded-xl p-4 hover:border-primary/30 transition-colors">
-                    <div className="font-bold text-primary text-sm capitalize mb-2">{day}</div>
-                    <div className="text-xs text-muted-foreground leading-relaxed">{activity}</div>
+                {roadmap.weeklyPlan && Object.entries(roadmap.weeklyPlan).map(([day, activity]) => (
+                  <div 
+                    key={day} 
+                    onClick={() => toggleTask(day, true)}
+                    className={`bg-background/50 border rounded-xl p-4 transition-all cursor-pointer ${
+                      completedWeeklyTasks.includes(day) ? 'border-success/50 opacity-60' : 'border-border/50 hover:border-primary/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                       <span className="font-bold text-primary text-sm capitalize">{day}</span>
+                       {completedWeeklyTasks.includes(day) && <CheckCircle2 size={14} className="text-success" />}
+                    </div>
+                    <div className={`text-xs leading-relaxed ${completedWeeklyTasks.includes(day) ? 'text-muted-foreground' : 'text-foreground'}`}>{activity}</div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* NEW: Portfolio Projects */}
+            {roadmap.portfolioProjects && roadmap.portfolioProjects.length > 0 && (
+              <div className="glass-morphism rounded-3xl p-8">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-foreground">
+                  <Code className="text-primary" size={22} /> Recommended Portfolio Projects
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {roadmap.portfolioProjects.map((p, i) => (
+                    <div key={i} className="bg-background/50 border border-border/50 rounded-2xl p-5 hover:border-primary/30 transition-all flex flex-col">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-bold text-base">{p.name}</h4>
+                        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 bg-secondary rounded-md">{p.difficulty}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-4 flex-1">{p.description}</p>
+                      <div className="pt-4 border-t border-border/50">
+                        <span className="text-[11px] font-mono text-primary bg-primary/10 px-2 py-1 rounded inline-block">
+                          {p.techStack}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* NEW: Learning Resources */}
+            {roadmap.recommendedResources && roadmap.recommendedResources.length > 0 && (
+              <div className="glass-morphism rounded-3xl p-8">
+                <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-foreground">
+                  <Book className="text-accent" size={22} /> Recommended Resources
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {roadmap.recommendedResources.map((res, i) => (
+                    <div key={i} className="flex gap-4 items-start p-4 bg-background/50 border border-border/30 rounded-xl hover:bg-secondary/20 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
+                        <BookOpen size={18} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm mb-1">{res.name}</h4>
+                        <p className="text-xs text-muted-foreground mb-2">{res.description}</p>
+                        <span className="text-[10px] bg-secondary px-2 py-0.5 rounded text-secondary-foreground uppercase">{res.type}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* NEW: Interview Focus */}
+            {roadmap.interviewFocus && roadmap.interviewFocus.length > 0 && (
+              <div className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-3xl p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+                  <MessageCircle size={150} />
+                </div>
+                <div className="relative z-10 w-full md:w-2/3">
+                  <h2 className="text-2xl font-bold mb-3 flex items-center gap-2 text-foreground">
+                    Interview Focus Topics
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Based on your targeted company type, these are the core topics you will almost certainly be tested on. Add these to your active flashcards and mock interviews.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {roadmap.interviewFocus.map((topic, i) => (
+                      <span key={i} className="px-3 py-1.5 bg-background shadow-sm border border-border/50 rounded-lg text-sm font-medium">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => navigate('/interview', { state: { autoStartTopic: roadmap.interviewFocus[0] } })}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+                  >
+                    <Play size={18} fill="currentColor" /> Let's practice now
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Reset Button */}
             <button

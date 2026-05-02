@@ -11,6 +11,22 @@ const attendanceSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    // Subject-wise tracking (DBATU/CSMSS style)
+    subject: {
+      type: String,
+      default: 'General',
+    },
+    // Lecture type: theory or practical
+    lectureType: {
+      type: String,
+      enum: ['theory', 'practical'],
+      default: 'theory',
+    },
+    // Lecture slot number for the day (L1, L2, L3...)
+    lectureSlot: {
+      type: Number,
+      default: 1,
+    },
     markedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -36,8 +52,8 @@ const attendanceSchema = new mongoose.Schema(
   }
 );
 
-// Prevent duplicate attendance records for the same class on the same day
-attendanceSchema.index({ classroomCode: 1, date: 1 }, { unique: true });
+// Allow multiple attendance entries per day per classroom (different subjects/slots)
+attendanceSchema.index({ classroomCode: 1, date: 1, subject: 1, lectureSlot: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 export default Attendance;

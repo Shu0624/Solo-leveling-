@@ -65,7 +65,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="name@example.com"
+                  placeholder="Enter your email address"
                   required
                 />
               </div>
@@ -74,7 +74,7 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-sm font-medium text-foreground">Password</label>
-                <Link to="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                <span className="text-xs text-muted-foreground/50 cursor-default" title="Contact your administrator to reset your password">Forgot password?</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -83,7 +83,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   required
                 />
               </div>

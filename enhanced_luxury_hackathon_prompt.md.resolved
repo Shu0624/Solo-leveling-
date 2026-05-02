@@ -1,0 +1,372 @@
+# 💎 Enhanced Luxury Hackathon Builder Prompt — V2.0
+
+> **Context:** This prompt is purpose-built for **8-hour hackathons** where visual polish and "wow factor" are the primary differentiators. The original had 11 sections designed for 24-48hr events — fatally mismatched for an 8hr sprint.
+
+---
+
+## Before vs After Comparison
+
+| Issue | Original (V1) | Enhanced (V2) |
+|---|---|---|
+| Time calibration | Template says 24-48hr, user says 8hr | Fully optimized for 8-hour sprint |
+| Sections | 11 (massive overlap) | 7 (zero redundancy) |
+| Design system | Vague "glassmorphism + gradient" | Exact CSS tokens, hex codes, ready to paste |
+| Framer Motion | Generic "fade + slide" | Copy-paste animation configs with easing curves |
+| War plan | 7 phases for 48hrs | 5 phases precisely timed for 8hrs |
+| Scope control | "3-5 features" (too many for 8hrs) | Hard cap at 3 features + explicit kill list |
+| Demo strategy | Separate from pitch | Unified "Pitch-Demo Fusion" (saves 1 section) |
+| Output size | No limit (AI rambles) | 1200-1500 word cap |
+
+---
+
+## ✅ THE ENHANCED PROMPT (Copy-Paste Ready)
+
+```
+You are operating as THREE simultaneous expert personas:
+
+1. **Luxury Product Designer** (ex-Apple, ex-Linear, ex-Vercel design team) — Every pixel must feel intentional. You think in design systems, not individual screens. You know that in an 8-hour hackathon, visual polish IS the product.
+2. **Speed-Optimized CTO** (shipped 10+ MVPs in under 8 hours) — You know exactly what to cut. You treat every feature as guilty until proven demo-worthy. Your mantra: "If it's not in the demo script, it doesn't exist."
+3. **Hackathon Judge** (judged 500+ projects at national/international levels) — You know that judges spend 3 minutes per team. First 15 seconds decide everything. You optimize for INSTANT visual impact.
+
+---
+
+## INPUT (Fill every field — specificity = quality)
+
+**Problem Statement:**
+[PASTE EXACT PROBLEM STATEMENT HERE]
+
+**Hackathon Context:**
+- Competition Name: [name]
+- Level: [college / national / international]
+- Time Limit: 8 hours
+- Judging Criteria (if known): [innovation / impact / UI / feasibility / presentation]
+- Theme/Track (if any): [e.g., HealthTech, FinTech, Social Impact, Open]
+- Special Constraints: [any mandated APIs, datasets, or tools]
+
+**Team Profile:**
+- Team Size: [number]
+- Members:
+  - [Name] — [Frontend / UI animations]
+  - [Name] — [Backend / DB / API]
+  - [Name] — [AI/ML integration]
+  - [Name] — [Design / Pitch / Demo prep]
+- Preferred Stack: React + Vite + Framer Motion + Recharts + Flask + MongoDB + AI (Groq/Gemini/OpenAI)
+- Team Weakness: [e.g., slow at CSS, no design eye, first hackathon]
+
+---
+
+## OUTPUT RULES
+
+- Total response: **1200–1500 words**. Dense. Zero filler.
+- Every suggestion must be **buildable in 8 hours by this specific team**.
+- For every design suggestion, provide **exact values** (hex codes, px, rem, easing curves) — not vague descriptions.
+- Do NOT suggest any feature that takes >90 minutes to build end-to-end.
+- Do NOT suggest authentication, settings pages, admin panels, or email flows.
+
+---
+
+## MODULE 1: PROBLEM → PRODUCT (150 words max)
+
+**Problem Deconstruction:**
+- Rewrite the problem in 1 sharp sentence a 10-year-old would understand.
+- Target user persona: [age, role, specific daily pain point, one scenario where they suffer most]
+- Root cause: What systemic failure creates this problem? (NOT the surface symptom)
+- Why existing tools fail: Name 2-3 real competitors and their SPECIFIC weakness.
+
+**Product Identity:**
+- **Product Name** — Must sound like a funded startup. Test: would you put this on a business card? (Reject generic names like "SmartTrack" or "EduHelper")
+- **Tagline** — Max 8 words. Must convey both the problem and the premium feel.
+  → Format: "[Action verb] + [outcome] + [emotional hook]"
+  → Example: "Navigate your career. Zero guesswork." / "Your health data. Finally beautiful."
+- **Design Philosophy (1 sentence):** Why does this product FEEL premium? What emotion should users feel?
+
+---
+
+## MODULE 2: PREMIUM DESIGN SYSTEM (300 words max)
+
+> This is the HIGHEST-PRIORITY module. In an 8-hour hackathon, design IS your competitive advantage. Judges see the UI before they hear your pitch.
+
+### Color System (provide exact values):
+
+```css
+:root {
+  /* --- PRIMARY PALETTE --- */
+  --bg-primary: #______;        /* Main background */
+  --bg-secondary: #______;      /* Card/section background */
+  --bg-glass: rgba(__, __, __, 0.__);  /* Glassmorphism panels */
+
+  /* --- ACCENT COLORS --- */
+  --accent-primary: #______;    /* CTAs, highlights */
+  --accent-gradient: linear-gradient(135deg, #______, #______);
+  --accent-glow: 0 0 20px rgba(__, __, __, 0.3);  /* Glow effect */
+
+  /* --- TEXT --- */
+  --text-primary: #______;      /* Headlines */
+  --text-secondary: #______;    /* Body text */
+  --text-muted: #______;        /* Captions, labels */
+
+  /* --- BORDERS & EFFECTS --- */
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.__);
+  --glass-blur: blur(__px);
+  --radius-sm: __px;
+  --radius-md: __px;
+  --radius-lg: __px;
+}
+```
+
+### Typography:
+- Font stack: [Google Font name] — provide exact import URL
+- Heading scale: h1 (`__rem`), h2 (`__rem`), h3 (`__rem`)
+- Body: `__rem`, line-height: `__`
+- Font weights: headings (`__`), body (`__`), captions (`__`)
+
+### Component Design Specs:
+
+**Navbar:** Height `__px`, background `var(--bg-glass)`, backdrop-filter `var(--glass-blur)`, border-bottom `var(--border-subtle)`, position `sticky`. Logo uses `var(--accent-gradient)` as text gradient.
+
+**Cards:** Background `var(--bg-secondary)`, border `var(--border-subtle)`, border-radius `var(--radius-lg)`, padding `__rem`. On hover: translateY(-__px), box-shadow `var(--accent-glow)`, transition `0.__s ease-out`.
+
+**Buttons (Primary):** Background `var(--accent-gradient)`, border-radius `var(--radius-md)`, padding `__rem __rem`, font-weight `600`. On hover: scale(1.0__), brightness(1.__). On click: scale(0.9__).
+
+**Dashboard Charts:** Use Recharts with custom colors matching palette. Animated entry with `<AnimatePresence>`. Tooltip styled with glassmorphism.
+
+---
+
+### Framer Motion Preset Library (copy-paste ready):
+
+```javascript
+// Page transition wrapper
+const pageTransition = {
+  initial: { opacity: 0, y: __ },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.__, ease: [0.__, 0.__, 0.__, 0.__] } },
+  exit: { opacity: 0, y: -__, transition: { duration: 0.__ } }
+};
+
+// Card hover effect
+const cardHover = {
+  rest: { scale: 1, boxShadow: "0 0 0 rgba(0,0,0,0)" },
+  hover: { scale: 1.0__, y: -__, boxShadow: "var(--accent-glow)", transition: { duration: 0.__, ease: "easeOut" } }
+};
+
+// Stagger children (for grids/lists)
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.__ } }
+};
+const staggerItem = {
+  initial: { opacity: 0, y: __ },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.__, ease: "easeOut" } }
+};
+
+// Number counter (for dashboard stats)
+// Use framer-motion's useMotionValue + useTransform + animate
+
+// Loading skeleton
+const shimmer = {
+  initial: { backgroundPosition: "-200% 0" },
+  animate: { backgroundPosition: "200% 0", transition: { repeat: Infinity, duration: 1.5, ease: "linear" } }
+};
+```
+
+---
+
+## MODULE 3: ARCHITECTURE + DATA FLOW (200 words max)
+
+**System diagram:**
+```
+[User] → [React + Vite Frontend] → [Flask REST API] → [MongoDB]
+                                          ↓
+                                    [AI Service: Groq/Gemini]
+                                          ↓
+                                    [Structured JSON response]
+```
+
+**Frontend routes** — List MAX 4 pages. For each: URL path, purpose, key components.
+
+**Backend endpoints** — List MAX 6 APIs. For each: `METHOD /route` → purpose → response shape.
+
+**MongoDB collections** — MAX 3 collections. Key fields only.
+
+**AI integration spec:**
+- Model: [exact model name]
+- Input: [what user data is sent]
+- Prompt template: [1-2 sentence summary of system prompt]
+- Output: [exact JSON structure returned]
+- Fallback: [what happens if AI API fails during demo — hardcoded response? cached result?]
+
+**User journey (5 steps max):**
+1. User lands → sees [what]
+2. User clicks → [action]
+3. System processes → [what happens]
+4. User sees → [result]
+5. User gets → [value/insight]
+
+---
+
+## MODULE 4: MVP SCOPE — RUTHLESS EDITION (100 words max)
+
+**8-HOUR RULE: You can build exactly 3 features well. Not 4. Not 5. Three.**
+
+| # | Feature | Build Time | Demo Impact | Owner |
+|---|---------|-----------|-------------|-------|
+| 1 | [Core feature] | ~__hr | ⭐⭐⭐⭐⭐ | [role] |
+| 2 | [AI feature] | ~__hr | ⭐⭐⭐⭐ | [role] |
+| 3 | [Visual feature] | ~__hr | ⭐⭐⭐⭐ | [role] |
+
+**KILL LIST (do NOT build):**
+- ❌ [Tempting but time-wasting feature 1]
+- ❌ [Tempting but time-wasting feature 2]
+- ❌ [Tempting but time-wasting feature 3]
+- ❌ Authentication / Login flows
+- ❌ Settings / Profile pages
+- ❌ Any admin functionality
+
+---
+
+## MODULE 5: 8-HOUR WAR PLAN (300 words max)
+
+> Every minute counts. This plan has ZERO slack time built in — that's intentional. If you finish a phase early, move to UI polish.
+
+| Phase | Time | Duration | Focus |
+|-------|------|----------|-------|
+| ⚡ SPRINT 1: Setup | 0:00 – 0:30 | 30 min | Repo, Vite scaffold, Flask boilerplate, MongoDB connection, folder structure, design tokens CSS file |
+| 🔨 SPRINT 2: Core Build | 0:30 – 3:30 | 3 hr | Backend APIs + DB ∥ Frontend pages + components ∥ AI prompt engineering |
+| 🔗 SPRINT 3: Integration | 3:30 – 5:00 | 1.5 hr | Connect frontend ↔ backend ↔ AI, end-to-end golden path works |
+| ✨ SPRINT 4: Polish | 5:00 – 6:30 | 1.5 hr | Framer Motion animations, chart animations, responsive fixes, seed demo data, glassmorphism effects |
+| 🎤 SPRINT 5: Demo Prep | 6:30 – 8:00 | 1.5 hr | Demo script rehearsal, pitch deck (MAX 5 slides), backup video recording, bug fixes, final git push |
+
+**For each sprint, specify:**
+
+| Sprint | Frontend Dev | Backend Dev | AI Dev | Design/Pitch |
+|--------|-------------|-------------|--------|-------------|
+| 1 | [exact task] | [exact task] | [exact task] | [exact task] |
+| 2 | [exact task] | [exact task] | [exact task] | [exact task] |
+| 3 | [exact task] | [exact task] | [exact task] | [exact task] |
+| 4 | [exact task] | [exact task] | [exact task] | [exact task] |
+| 5 | [exact task] | [exact task] | [exact task] | [exact task] |
+
+**Phase gates (must be TRUE before moving on):**
+- After Sprint 1: ✅ App runs locally, API returns test response, DB connected
+- After Sprint 2: ✅ All 3 features work independently (even if ugly)
+- After Sprint 3: ✅ Golden path works end-to-end (user → input → AI → result displayed)
+- After Sprint 4: ✅ App looks premium, animations smooth, demo data loaded
+- After Sprint 5: ✅ Pitch rehearsed 2x, backup video exists, team knows click sequence
+
+---
+
+## MODULE 6: PITCH-DEMO FUSION (200 words max)
+
+> In an 8-hour hackathon, you get 3 minutes. Judges are tired. Your PRODUCT must do the talking.
+
+**The 3-Minute Script:**
+
+| Time | Action | Say | Show |
+|------|--------|-----|------|
+| 0:00–0:15 | HOOK | "[Shocking stat]. [Emotional question]." | Title slide OR product landing page |
+| 0:15–0:30 | PROBLEM | "Today, [user] faces [pain]. Existing tools [fail because]." | Nothing — pure eye contact |
+| 0:30–0:45 | INTRODUCE | "[Product Name]: [tagline]." | Click into app — hero section visible |
+| 0:45–2:00 | LIVE DEMO | Walk through golden path. Narrate every result. | Pre-loaded data, smooth transitions |
+| 2:00–2:30 | TECH | "Under the hood: [stack]. AI does [specific thing]." | Architecture slide (1 slide, clean) |
+| 2:30–2:45 | IMPACT | "At scale, this reaches [N people] across [context]." | Impact numbers slide |
+| 2:45–3:00 | CLOSE | "[Power line — callback to opening hook]." | Product logo + tagline on screen |
+
+**Demo failure protocol:**
+1. Golden path pre-loaded with seed data (never type live — all inputs pre-filled)
+2. Screen recording backup on phone (if app crashes, play video: "Let me show you what this looks like in action")
+3. Test on presentation laptop 30 min before pitch
+4. Keep dev server running locally — never depend on deployment/internet
+
+**3 power closing lines (pick best fit):**
+- "[Product] doesn't predict the future — it builds it, one [user] at a time."
+- "We built this in 8 hours. Imagine what [N users] could do with it in a year."
+- "[Problem] has been unsolved for [X years]. [Product] changes that today."
+
+---
+
+## MODULE 7: WINNING PSYCHOLOGY (150 words max)
+
+**What wins 8-hour hackathons (different from 24-48hr events):**
+
+1. **Visual polish wins over feature count.** With 8 hours, a team that builds 2 beautiful features beats a team with 5 ugly ones. Every time.
+2. **Pre-built design system = 2 hours saved.** Have your CSS variables, Framer Motion presets, and component shells ready BEFORE the hackathon (if rules allow templates).
+3. **Demo data is your secret weapon.** A dashboard with 50 realistic data points looks infinitely more impressive than one with 3 test entries.
+4. **The "one thing" rule.** Judges remember ONE feature per team. Make sure yours is unforgettable — either visually stunning or intellectually surprising.
+5. **Energy management.** 8 hours = no breaks longer than 10 min. Eat while coding. Designate one person to handle ALL non-coding tasks (pitch, demo data, slides) from hour 5 onward.
+
+**Top 5 fatal mistakes in short hackathons:**
+1. Debating the idea past 20 minutes
+2. Building auth (zero demo value, 1+ hour cost)
+3. Deploying to cloud during hackathon (use localhost)
+4. All 4 members coding until minute 0 — nobody prepared the pitch
+5. Showing empty/default UI in demo — seed realistic data EARLY
+
+---
+
+## ANTI-PATTERNS (HARD RULES FOR YOUR RESPONSE)
+
+- ❌ Do NOT suggest more than 3 MVP features for an 8-hour hackathon
+- ❌ Do NOT provide vague design advice — every visual suggestion must include exact values (hex, px, rem, seconds)
+- ❌ Do NOT recommend any feature that takes >90 minutes to build
+- ❌ Do NOT suggest deployment during an 8-hour hackathon — localhost only
+- ❌ Do NOT write animation descriptions without Framer Motion config objects
+- ❌ Do NOT suggest "use Tailwind" — this prompt uses vanilla CSS with design tokens
+- ❌ Do NOT give generic pitch advice — provide exact words to say
+- ❌ Do NOT suggest more than 4 frontend pages or 6 backend endpoints
+```
+
+---
+
+## 🔗 FOLLOW-UP PROMPTS (Use in Sequence After Initial Output)
+
+### Follow-up 1: Design System Code
+```
+Generate the complete, copy-paste-ready code for:
+1. `design-tokens.css` — All CSS custom properties from Module 2
+2. `animations.js` — All Framer Motion presets from Module 2
+3. `components/Card.jsx` — Reusable card with hover glow effect
+4. `components/Navbar.jsx` — Glassmorphism navbar with gradient logo
+5. `components/StatCard.jsx` — Animated stat card with number counter
+Use React + Framer Motion. Zero Tailwind. Import design tokens via CSS variables.
+```
+
+### Follow-up 2: Complete Flask Backend
+```
+Generate production-ready Flask code for:
+1. `app.py` — Main app with CORS, error handling, all routes
+2. `models.py` — MongoDB schemas using PyMongo
+3. `ai_service.py` — AI integration with exact prompt templates and fallback responses
+4. `seed_data.py` — Script to populate MongoDB with 30-50 realistic demo entries
+Include error handling, input validation, and proper HTTP status codes.
+```
+
+### Follow-up 3: Frontend Pages
+```
+Generate complete React page components for all [N] pages in the MVP:
+1. Each page uses the design system from Follow-up 1
+2. Each page includes Framer Motion page transitions
+3. Charts use Recharts with custom colors matching the design system
+4. All data fetching uses fetch() with loading states (shimmer animation)
+5. All demo data is pre-seeded — no empty states visible
+```
+
+### Follow-up 4: Demo Script + Pitch Deck Content
+```
+Generate:
+1. Exact 3-minute pitch script with [CLICK], [PAUSE], [GESTURE] markers
+2. Content for 5 pitch slides (text + layout description):
+   - Slide 1: Title + tagline + team name
+   - Slide 2: Problem (1 stat + 1 visual)
+   - Slide 3: Solution screenshot (annotated)
+   - Slide 4: Architecture (simple diagram)
+   - Slide 5: Impact + future scope
+3. Top 10 judge questions with killer 1-sentence answers
+```
+
+### Follow-up 5: Stress Test
+```
+Act as the harshest hackathon judge who has seen 100 projects today and is tired.
+1. What would make you scroll past this project?
+2. Where does the demo most likely break?
+3. What's the most obvious "it's just a wrapper around [X]" criticism?
+4. If you had to reject this — what reason would you give?
+5. Rewrite the weakest part of our pitch to make it unjectable.
+```

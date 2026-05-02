@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Square, CalendarClock, Trophy, StickyNote, 
   Plus, Trash2, Rocket, PieChart as PieChartIcon, Clock, 
-  Flame, History, X, Target, BrainCircuit, FileSearch, Users, Activity
+  Flame, History, X, Target, BrainCircuit, FileSearch, Users, Activity, FileDown, Globe, ExternalLink, Calendar
 } from 'lucide-react';
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, BarChart, Bar, Legend } from 'recharts';
 import ProgressRing from '../components/dashboard/ProgressRing';
 import { useActivity, ACTIVITY_CATEGORIES } from '../context/ActivityContext';
 import confetti from 'canvas-confetti';
 import BinauralBeatsPlayer from '../components/dashboard/BinauralBeatsPlayer';
 import TaskChecklist from '../components/dashboard/TaskChecklist';
+import { generateReadinessReport } from '../utils/generateReport';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
@@ -24,6 +25,7 @@ const StudentDashboard = () => {
   const [streakData, setStreakData] = useState(null);
   const [lastActiveModule, setLastActiveModule] = useState(null);
   const [moduleProgress, setModuleProgress] = useState(0);
+  const [programs, setPrograms] = useState([]);
 
   // Global Timer state
   const {
@@ -36,8 +38,15 @@ const StudentDashboard = () => {
 
   // History & Analytics
   const [activityHistory, setActivityHistory] = useState([]);
+  const [selectedStreakDate, setSelectedStreakDate] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timerId);
+  }, []);
 
   // Notes form
   const [showNoteForm, setShowNoteForm] = useState(false);
@@ -50,6 +59,7 @@ const StudentDashboard = () => {
     fetchNotes();
     fetchHistory();
     loadAnalyticsData();
+    fetchPrograms();
     
     // Listen for global timer saves to refresh history
     const handleActivityLog = () => {
@@ -106,6 +116,13 @@ const StudentDashboard = () => {
   const fetchNotes = async () => {
     try { const res = await api.get('/dashboard/notes'); setNotes(res.data || []); }
     catch (err) { console.error(err); }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const res = await api.get('/discover/programs');
+      setPrograms(res.data.active || []);
+    } catch (e) { console.error('Failed to fetch programs:', e); }
   };
 
   const fetchHistory = async () => {
@@ -167,6 +184,7 @@ const StudentDashboard = () => {
       const key = d.toISOString().split('T')[0];
       const found = analytics.daily.find(r => r._id === key);
       data.push({
+        dateStr: key,
         name: d.toLocaleDateString('en', { weekday: 'short' }),
         minutes: found ? Math.round(found.totalSeconds / 60) : 0
       });
@@ -184,478 +202,554 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
-      {/* Dynamic Background Blurs */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in min-h-screen font-sans">
+      {/* Dynamic Background Blurs for Dark Neon Vibe */}
+      <div className="fixed inset-0 z-[-1] bg-[#09090b]"></div>
+      <div className="fixed top-[-20%] left-[-10%] w-[50vh] h-[50vh] bg-purple-600/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[60vh] h-[60vh] bg-blue-600/10 rounded-full blur-[150px] -z-10 pointer-events-none" />
+      <div className="fixed top-[40%] left-[50%] w-[80vw] h-[40vh] bg-indigo-500/5 rounded-full blur-[150px] -z-10 pointer-events-none -translate-x-1/2" />
 
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1 text-foreground">
-            Welcome back, {user?.name?.split(' ')[0]}
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium">Your career preparation command center.</p>
+          <div className="flex items-center gap-4 mb-2">
+             <h1 className="text-3xl font-bold tracking-tight text-white">
+               Welcome back, {user?.name?.split(' ')[0]}
+             </h1>
+             <div className="hidden sm:flex px-4 py-1.5 bg-[#121215]/80 border border-white/10 rounded-full items-center gap-2 shadow-inner backdrop-blur-md">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+               <span className="text-xs font-bold text-white/80 font-mono tracking-widest leading-none mt-0.5">{currentTime.toLocaleTimeString()}</span>
+             </div>
+          </div>
+          <p className="text-white/60 text-sm font-medium">Let's make today productive and meaningful.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button 
             onClick={openAnalyticsModal} 
-            className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-xl text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white/10 backdrop-blur-md rounded-xl text-sm font-medium transition-colors"
           >
             <PieChartIcon size={16} /> Analytics
           </button>
-          <Link 
-            to="/roadmap" 
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20 rounded-xl text-sm font-medium transition-all"
+          <button 
+            onClick={async () => {
+              try {
+                const btn = document.getElementById('report-btn');
+                if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+                const res = await api.get('/dashboard/report-data');
+                generateReadinessReport(res.data);
+                if (btn) { btn.disabled = false; btn.textContent = ''; }
+              } catch (err) {
+                alert('Failed to generate report. Try again.');
+                const btn = document.getElementById('report-btn');
+                if (btn) { btn.disabled = false; }
+              }
+            }}
+            id="report-btn"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 border border-emerald-500/50 text-white hover:opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.3)] rounded-xl text-sm font-medium transition-all disabled:opacity-50 backdrop-blur-md"
           >
-            <Rocket size={16} /> AI Roadmap
-          </Link>
+            <FileDown size={16} /> Download Report
+          </button>
         </div>
       </header>
 
-      {/* ====================== GLOBAL TIME SUMMARY ====================== */}
-      {analytics && (
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="glass-morphism rounded-2xl p-6 border border-primary/20 bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Clock size={16} className="text-primary" /> Time Spent Today
-              </div>
-              <div className="text-4xl font-black text-foreground font-mono tracking-tighter">
-                {formatDuration(analytics.today?.totalSeconds || 0)}
-              </div>
-              <div className="text-xs font-semibold text-muted-foreground mt-2">
-                Across {analytics.today?.sessions || 0} active sessions
-              </div>
-            </div>
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary/40 hidden sm:flex">
-               <Activity size={32} />
-            </div>
-          </div>
-          <div className="glass-morphism rounded-2xl p-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 to-transparent flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-                <CalendarClock size={16} className="text-emerald-500" /> Last 7 Days Summary
-              </div>
-              <div className="text-4xl font-black text-foreground font-mono tracking-tighter">
-                {formatDuration(analytics.daily?.reduce((sum, d) => sum + (d.totalSeconds || 0), 0) || 0)}
-              </div>
-              <div className="text-xs font-semibold text-muted-foreground mt-2">
-                From {analytics.daily?.reduce((sum, d) => sum + (d.sessions || 0), 0) || 0} active sessions
-              </div>
-            </div>
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500/40 hidden sm:flex">
-               <PieChartIcon size={32} />
-            </div>
-          </div>
-        </section>
-      )}
+      {/* 1. TOP SECTION (ACTION ROW) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left: Today's Tasks */}
+        <div className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 shadow-xl flex flex-col min-h-[350px] overflow-hidden">
+             <div className="mb-4 shrink-0 flex justify-between items-center">
+               <h2 className="text-lg font-bold text-white flex items-center gap-2"><Target size={18} className="text-blue-400" /> Your Tasks</h2>
+             </div>
+             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <TaskChecklist />
+             </div>
+        </div>
 
-      {/* ====================== MAIN GRID ====================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column (Wider) */}
-        <div className="lg:col-span-2 space-y-8">
-        
-          {/* Continue Learning Card */}
-          {lastActiveModule && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-morphism rounded-2xl p-6 border border-primary/20 bg-primary/5 flex flex-col md:flex-row items-center justify-between gap-6"
-            >
-              <div className="flex items-center gap-4 w-full md:w-auto">
-                <div className="w-16 h-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                  <Play size={28} className="translate-x-0.5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-1">Continue Learning</h3>
-                  <h2 className="text-xl font-bold text-foreground line-clamp-1">{lastActiveModule.title}</h2>
-                  <div className="flex items-center gap-3 mt-2">
-                     <div className="w-32 bg-secondary h-2 rounded-full overflow-hidden">
-                       <div className="bg-primary h-full transition-all" style={{ width: `${moduleProgress}%` }}></div>
-                     </div>
-                     <span className="text-xs font-semibold text-muted-foreground">{moduleProgress}%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <Link 
-                to={`/modules/${lastActiveModule.slug}`}
-                className="w-full md:w-auto px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-center"
-              >
-                Resume Module
-              </Link>
-            </motion.div>
-          )}
+        {/* Right: Binaural Beats */}
+        <div className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 shadow-xl flex flex-col min-h-[350px] relative overflow-hidden group">
+           <div className="absolute top-0 right-0 p-6 text-white/5 group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+              <BrainCircuit size={100} />
+           </div>
+           <div className="relative z-10 w-full h-full">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4"><Play size={18} className="text-purple-400" /> Binaural Beats</h2>
+              <BinauralBeatsPlayer />
+           </div>
+        </div>
+      </div>
 
-          {/* Active Study Timer */}
-          <section className="glass-morphism rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 text-primary/5 rotate-12 pointer-events-none">
-              <Clock size={200} />
-            </div>
-            
-            <div className="flex justify-between items-center mb-6 relative z-10">
-              <h2 className="text-lg font-bold flex items-center gap-2"><Clock className="text-primary" size={20}/> Focus Session</h2>
-              <div className="flex bg-background/50 p-1 rounded-lg border border-border/50">
+      {/* 2. FOCUS & PROGRESS SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+         
+         {/* LEFT: FOCUS ZONE */}
+         <div className="lg:col-span-5 xl:col-span-5 border border-white/10 bg-[#121217]/60 backdrop-blur-3xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[440px]">
+             {/* Glowing Orbs for the Hero */}
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none line-glow"></div>
+             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+
+             <div className="relative z-10 flex justify-between items-center w-full mb-4">
+               <h2 className="text-xl font-bold flex items-center gap-3 text-white">
+                 <div className="p-2 rounded-xl bg-primary/20 border border-primary/30"><Target className="text-blue-400" size={20}/></div>
+                 Focus Zone
+               </h2>
+               
+               <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 backdrop-blur-md shadow-inner">
                 {['stopwatch', 'countdown'].map(mode => (
                   <button 
                     key={mode} 
                     onClick={() => { if (!timerRunning) setTimerMode(mode); }}
-                    className={`px-3 py-1 rounded-md text-xs font-medium capitalize transition-all ${
-                      timerMode === mode ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all duration-300 ${
+                      timerMode === mode ? 'bg-primary/90 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'text-white/50 hover:text-white'
                     }`}
                   >
                     {mode}
                   </button>
-                ))}
-              </div>
-            </div>
+                 ))}
+               </div>
+             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
-              
-              {/* Timer Config */}
-              <div className="flex flex-col gap-3 w-full md:w-1/3">
-                <select 
-                  value={timerCategory} 
-                  onChange={e => setTimerCategory(e.target.value)} 
-                  disabled={timerRunning}
-                  className="bg-background/80 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none transition-all disabled:opacity-50"
-                >
-                  {ACTIVITY_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-                <input 
-                  value={timerLabel} 
-                  onChange={e => setTimerLabel(e.target.value)} 
-                  placeholder="What are you working on?" 
-                  disabled={timerRunning}
-                  className="bg-background/80 border border-border rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/50 outline-none transition-all disabled:opacity-50" 
-                />
-                {timerMode === 'countdown' && (
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="number" min="1" max="480" 
-                      value={countdownMinutes} 
-                      onChange={e => setCountdownMinutes(parseInt(e.target.value) || 1)} 
-                      disabled={timerRunning}
-                      className="w-20 bg-background/80 border border-border rounded-xl px-3 py-2 text-center text-sm focus:ring-2 focus:ring-primary/50 outline-none disabled:opacity-50" 
-                    />
-                    <span className="text-muted-foreground text-sm font-medium">minutes</span>
-                  </div>
-                )}
-              </div>
+             {/* The Big Timer */}
+             <div className="flex flex-col items-center justify-center flex-1 relative w-full">
+                {/* Neon Ring Background */}
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[240px] rounded-full border border-white/5 pointer-events-none ${timerRunning ? 'animate-[spin_10s_linear_infinite]' : ''}`}>
+                    <div className="absolute top-0 left-1/2 w-2 h-2 bg-primary rounded-full shadow-[0_0_20px_rgba(59,130,246,1)] -translate-x-1/2 -translate-y-1/2"></div>
+                </div>
 
-              {/* Timer Display */}
-              <div className="flex flex-col items-center">
-                <div className={`text-6xl md:text-7xl font-light font-mono tracking-tighter tabular-nums transition-colors duration-500 ${
-                  timerRunning ? 'text-primary' : 'text-foreground'
+                <div className={`text-[4.5rem] sm:text-[5rem] md:text-[5.5rem] md:tracking-tighter tabular-nums transition-colors duration-700 drop-shadow-[0_0_25px_rgba(255,255,255,0.1)] relative z-10 font-[600] font-sans ${
+                  timerRunning ? 'text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/60' : 'text-white'
                 }`}>
                   {timerMode === 'countdown' ? formatTime(Math.max((countdownMinutes * 60) - timerSeconds, 0)) : formatTime(timerSeconds)}
                 </div>
-                <div className="text-xs font-medium text-muted-foreground mt-2 uppercase tracking-widest">
-                  {timerRunning ? `Studying ${ACTIVITY_CATEGORIES.find(c => c.value === timerCategory)?.label}` : 'Ready to start'}
+
+                <div className="mt-4 mb-2 relative z-20 text-white/50 text-sm font-semibold tracking-widest uppercase">
+                  {timerRunning ? 'Session Active' : 'Ready'}
                 </div>
-                
-                <div className="flex items-center justify-center gap-4 mt-6">
+             </div>
+
+             {/* Sub Controls & Start Button */}
+             <div className="relative z-20 flex flex-col items-center gap-4 mt-auto w-full">
+                <div className="flex w-full gap-2">
+                   <select 
+                    value={timerCategory} 
+                    onChange={e => setTimerCategory(e.target.value)} 
+                    disabled={timerRunning}
+                    className="flex-1 bg-[#18181b]/80 border border-white/10 text-white rounded-2xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary/50 outline-none transition-all disabled:opacity-50 appearance-none text-center shadow-lg backdrop-blur-md hover:bg-white/5 truncate"
+                   >
+                    {ACTIVITY_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                   </select>
+
+                   {timerMode === 'countdown' && (
+                    <div className="flex items-center justify-center bg-[#18181b]/80 border border-white/10 rounded-2xl px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-primary/50 transition-all shadow-lg backdrop-blur-md w-24">
+                       <input 
+                        type="number" min="1" max="480" 
+                        value={countdownMinutes} 
+                        onChange={e => setCountdownMinutes(parseInt(e.target.value) || 1)} 
+                        disabled={timerRunning}
+                        className="w-full bg-transparent text-white text-center outline-none disabled:opacity-50 font-bold" 
+                      />
+                      <span className="text-white/50 font-medium text-xs">m</span>
+                    </div>
+                   )}
+                 </div>
+
+                 <div className="w-full">
                   {!timerRunning ? (
                     <button 
                       onClick={startTimer} 
-                      className="w-14 h-14 rounded-full bg-success text-success-foreground shadow-lg shadow-success/20 flex items-center justify-center hover:scale-105 transition-transform"
+                      className="w-full relative py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm overflow-hidden transition-all duration-300 shadow-[0_0_20px_rgba(79,70,229,0.3)] border border-white/20 flex items-center justify-center gap-2"
                     >
-                      <Play fill="currentColor" size={20} className="ml-1" />
+                      <div className="absolute inset-0 bg-white/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                      <Play fill="currentColor" size={18} /> START FOCUS
                     </button>
                   ) : (
-                    <>
+                    <div className="flex w-full gap-2">
                       <button 
                         onClick={pauseTimer} 
-                        className="w-12 h-12 rounded-full bg-warning text-warning-foreground shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+                        className="flex-1 py-4 rounded-2xl bg-warning/20 border border-warning/50 text-warning flex items-center justify-center transition-all backdrop-blur-md hover:bg-warning/30"
                       >
-                        <Pause fill="currentColor" size={18} />
+                        <Pause fill="currentColor" size={20} />
                       </button>
                       <button 
                         onClick={stopAndSaveTimer} 
-                        className="w-12 h-12 rounded-full bg-destructive text-destructive-foreground shadow-md flex items-center justify-center hover:scale-105 transition-transform"
+                        className="flex-[2] py-4 rounded-2xl bg-destructive/10 border border-destructive/50 text-destructive-foreground font-black text-sm flex items-center justify-center gap-2 transition-all backdrop-blur-md hover:bg-destructive/20"
                       >
-                        <Square fill="currentColor" size={16} />
+                        <Square fill="currentColor" size={16} /> END SESSION
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
-              </div>
+             </div>
+         </div>
 
-              {/* Today's Summary */}
-              <div className="flex md:flex-col gap-3 w-full md:w-auto">
-                <div className="glass-morphism rounded-xl px-5 py-4 text-center w-full min-w-[120px]">
-                  <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Today</div>
-                  <div className="text-xl font-bold text-foreground">
-                    {formatDuration(activityHistory.filter(a => new Date(a.date).toDateString() === new Date().toDateString()).reduce((sum, a) => sum + a.duration, 0))}
+         {/* RIGHT: PROGRESS */}
+         <div className="lg:col-span-7 xl:col-span-7 border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[440px]">
+             
+             <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <PieChartIcon size={20} className="text-purple-400" /> Progress
+                </h2>
+                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-white/50 text-xs font-bold uppercase cursor-pointer hover:bg-white/10 transition">Today v</div>
+             </div>
+
+             {/* FOCUS STREAK & STATS (Replaces 3 min-cards) */}
+             <div className="bg-[#121215]/80 backdrop-blur-md rounded-2xl p-6 border border-white/5 shadow-inner relative overflow-hidden mb-6 group shrink-0">
+                <div className="absolute right-0 top-0 translate-x-1/4 -translate-y-1/4 opacity-10 group-hover:scale-110 transition-transform"><Flame size={120} className="text-orange-500" /></div>
+                
+                <div className="flex justify-between items-start mb-6 relative z-10">
+                   <div>
+                     <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest flex items-center gap-2 mb-2">
+                       <div className="w-6 h-6 rounded bg-orange-500/20 text-orange-400 flex items-center justify-center"><Flame size={14}/></div>
+                       Focus Streak
+                     </h3>
+                     <div className="text-3xl font-black text-white">{streakData?.current || 0} <span className="text-lg text-white/50 font-semibold tracking-normal">Days</span></div>
+                     <p className="text-xs font-semibold text-orange-400 mt-1">Keep it up! 🔥</p>
+                   </div>
+                   
+                   <div className="flex gap-2 sm:gap-3">
+                      <div className="bg-black/40 border border-white/5 p-2 sm:p-3 rounded-xl min-w-[70px] sm:min-w-[80px]">
+                         <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Today</div>
+                         <div className="font-bold text-white shadow-sm text-sm sm:text-base">{formatDuration(analytics?.today?.totalSeconds || 0)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 p-2 sm:p-3 rounded-xl min-w-[70px] sm:min-w-[80px]">
+                         <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Week</div>
+                         <div className="font-bold text-white shadow-sm text-sm sm:text-base">{formatDuration(dailyChartData.reduce((acc, d) => acc + d.minutes * 60, 0))}</div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* 7 Days Circles */}
+                <div className="flex items-center justify-between gap-1 sm:gap-2 relative z-10 pt-4 border-t border-white/5">
+                   {dailyChartData.map((day, idx) => {
+                      const isToday = idx === 6;
+                      const hasStudied = day.minutes > 0;
+                      return (
+                        <button 
+                          key={day.dateStr} 
+                          onClick={() => setSelectedStreakDate(selectedStreakDate === day.dateStr ? null : day.dateStr)}
+                          className="flex flex-col items-center gap-2 hover:scale-110 transition-transform group/btn"
+                        >
+                           <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shadow-lg transition-colors ${selectedStreakDate === day.dateStr ? 'ring-2 ring-primary ring-offset-2 ring-offset-[#121215]' : ''} ${hasStudied ? 'bg-primary/20 text-primary-400' : (isToday ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/20')} `}>
+                              {hasStudied ? <Target size={14} className="opacity-80"/> : <Flame size={14} className={isToday ? 'opacity-80' : 'opacity-40'}/>}
+                           </div>
+                           <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-white' : 'text-white/40'} group-hover/btn:text-white transition-colors`}>
+                             {day.name}
+                           </span>
+                        </button>
+                      );
+                   })}
+                </div>
+
+                {/* Active Day Info */}
+                <AnimatePresence>
+                {selectedStreakDate && (
+                   <motion.div 
+                     initial={{ height: 0, opacity: 0 }} 
+                     animate={{ height: 'auto', opacity: 1 }} 
+                     exit={{ height: 0, opacity: 0 }}
+                     className="overflow-hidden mt-4 bg-black/30 rounded-xl"
+                   >
+                      <div className="p-4 border border-white/5 rounded-xl text-left">
+                         <div className="text-xs font-bold text-white/60 mb-2">Study Sessions for {new Date(selectedStreakDate).toLocaleDateString()}</div>
+                         <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                           {activityHistory.filter(h => h.date.split('T')[0] === selectedStreakDate).length === 0 ? (
+                              <div className="text-[11px] text-white/30 italic">No activity logged on this day.</div>
+                           ) : activityHistory.filter(h => h.date.split('T')[0] === selectedStreakDate).map(hist => (
+                              <div key={hist._id} className="flex justify-between items-center text-xs bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+                                 <span className="text-white/80 font-medium">{hist.label || ACTIVITY_CATEGORIES.find(c => c.value === hist.category)?.label || hist.category}</span>
+                                 <span className="text-white/50">{formatDuration(hist.duration)}</span>
+                              </div>
+                           ))}
+                         </div>
+                      </div>
+                   </motion.div>
+                )}
+                </AnimatePresence>
+             </div>
+
+         </div>
+      </div>
+
+      {/* 2.5 EXTENDED INSIGHTS SECTION */}
+      <div className="mb-10 border border-white/10 bg-[#121217]/60 backdrop-blur-3xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
+         <div className="flex justify-between items-center mb-6 relative z-10">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Activity size={20} className="text-blue-400" /> Focus Time - Last 7 Days
+            </h2>
+            <span className="text-[10px] bg-white/5 cursor-pointer hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 text-white/40 font-bold uppercase tracking-wider">Minutes ▼</span>
+         </div>
+         <div className="h-[250px] sm:h-[320px] w-full relative z-10">
+            {dailyChartData.some(d => d.minutes > 0) ? (
+               <ResponsiveContainer width="100%" height="100%">
+                 <AreaChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                   <defs>
+                     <linearGradient id="colorBlueDark" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="5%" stopColor="#818cf8" stopOpacity={0.6}/>
+                       <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                     </linearGradient>
+                   </defs>
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} dy={10} />
+                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
+                   <Tooltip 
+                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', border: '1px solid #3f3f46', color: '#fff', fontSize: '12px' }}
+                     itemStyle={{ color: '#fff' }}
+                   />
+                   <Area type="monotone" dataKey="minutes" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#colorBlueDark)" />
+                 </AreaChart>
+               </ResponsiveContainer>
+             ) : (
+               <div className="h-full flex items-center justify-center text-white/30 text-sm border-dashed border-white/10 border rounded-2xl bg-black/20">No study history for the last 7 days.</div>
+             )}
+         </div>
+      </div>
+
+      {/* 4. SMART ACTIONS */}
+      <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2"><Rocket size={24} className="text-emerald-400" /> Quick Actions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {[
+            { to: '/interview', title: 'Mock Interview', desc: 'Practice technical and behavioral questions', icon: <Users size={24} />, bg: 'bg-indigo-500/10', color: 'text-indigo-400', border: 'border-indigo-500/20' },
+            { to: '/resume', title: 'Resume Analyzer', desc: resumeScore ? `Current Score: ${resumeScore}/100` : 'Get instant ATS feedback', icon: <FileSearch size={24} />, bg: 'bg-blue-500/10', color: 'text-blue-400', border: 'border-blue-500/20' },
+            { to: '/modules', title: 'Learning Hub', desc: lastActiveModule ? `Continue: ${lastActiveModule.title}` : 'Start your technical modules', icon: <Rocket size={24} />, bg: 'bg-emerald-500/10', color: 'text-emerald-400', border: 'border-emerald-500/20' },
+          ].map((action, i) => (
+            <Link 
+              key={i} 
+              to={action.to} 
+              className={`group flex items-start gap-4 ${action.bg} ${action.border} border backdrop-blur-md p-6 rounded-[2rem] hover:bg-white/10 transition-all duration-300 relative overflow-hidden shadow-lg`}
+            >
+              <div className={`p-4 rounded-2xl bg-black/40 ${action.color} border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300`}>
+                {action.icon}
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-bold text-white group-hover:text-white/80 transition-colors">{action.title}</h4>
+                <p className="text-sm text-white/50 mt-1 line-clamp-2 leading-relaxed">{action.desc}</p>
+                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-white/40 group-hover:text-white/80 transition-colors uppercase tracking-widest">
+                  Get Started <Target size={12} />
+                </div>
+              </div>
+            </Link>
+          ))}
+      </div>
+
+      {/* 4.5 PROGRAMS & OPPORTUNITIES (HORIZONTAL SCROLL) */}
+      <div className="mb-10">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Globe size={24} className="text-blue-400" /> Programs & Opportunities
+          </h2>
+          <Link to="/activities" className="text-xs font-bold px-3 py-1 bg-white/5 border border-white/10 rounded-full text-white/60 hover:bg-white/10 transition-colors">
+            View All
+          </Link>
+        </div>
+        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x w-full">
+          {programs.slice(0, 5).map((program, i) => (
+            <div key={program._id || i} className="min-w-[300px] md:min-w-[350px] shrink-0 border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg snap-start hover:bg-white/10 transition-colors flex flex-col justify-between relative group">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm bg-white/10">
+                      {program.logo || '🏢'}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">{program.company}</p>
+                      <h4 className="text-base font-bold text-white leading-snug line-clamp-1">{program.title}</h4>
+                    </div>
                   </div>
                 </div>
-                <div className="glass-morphism rounded-xl px-5 py-4 text-center w-full min-w-[120px]">
-                  <div className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">Sessions</div>
-                  <div className="text-xl font-bold text-foreground">
-                    {activityHistory.filter(a => new Date(a.date).toDateString() === new Date().toDateString()).length}
+                {program.isExpiringSoon && (
+                  <div className="absolute top-4 right-4 text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30 whitespace-nowrap font-bold uppercase tracking-wider">
+                    Expiring Soon
                   </div>
-                </div>
+                )}
+                <p className="text-sm text-white/60 mb-4 line-clamp-2 mt-2 leading-relaxed">{program.description}</p>
               </div>
-
+              <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/10">
+                <span className="text-xs font-bold text-white/40 flex items-center gap-1">
+                  <Calendar size={14} className="text-white/30" /> {program.deadline}
+                </span>
+                {program.link && (
+                  <a href={program.link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 group-hover:underline">
+                    Apply <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
             </div>
-          </section>
+          ))}
+          {programs.length === 0 && (
+            <div className="w-full text-center py-10 text-white/40 border border-dashed border-white/10 rounded-[2rem] bg-black/20">
+              No active programs found at the moment.
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Activity History */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><History className="text-accent" size={20}/> Recent Activity</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {/* 5. LOWER SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <div className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 shadow-lg">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2"><History className="text-accent" size={20}/> Recent Activity</h3>
+              <span className="text-xs font-bold px-3 py-1 bg-white/5 border border-white/10 rounded-full text-white/60 cursor-pointer hover:bg-white/10 transition-colors">View All</span>
+            </div>
+            
+            <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
               {activityHistory.length === 0 ? (
-                <div className="col-span-full py-6 text-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-                  No sessions yet. Start the timer above!
-                </div>
-              ) : activityHistory.slice(0, 6).map((a, i) => {
+                <div className="py-8 text-center text-white/30 text-sm border border-dashed border-white/10 rounded-2xl relative z-10 bg-[#09090b]/50 backdrop-blur-sm">No sessions yet. Hit start above!</div>
+              ) : activityHistory.slice(0, 4).map((a, i) => {
                 const cat = ACTIVITY_CATEGORIES.find(c => c.value === a.category);
                 return (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    key={i} 
-                    className="flex items-center gap-4 bg-background/50 border border-border/50 p-4 rounded-xl hover:border-border transition-colors duration-300"
-                  >
-                    <div className="w-1.5 h-10 rounded-full" style={{ background: cat?.color || '#6b7280' }}></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate text-foreground">{a.label || cat?.label}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {formatDuration(a.duration)} • {new Date(a.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
-                      </div>
-                    </div>
-                  </motion.div>
+                  <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active py-4">
+                     {/* Timeline Node */}
+                     <div className="flex items-center justify-center w-10 h-10 rounded-full border-[3px] border-[#121215] bg-white text-slate-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 relative z-10 hover:scale-110 transition-transform" style={{ backgroundColor: cat?.color || '#3b82f6' }}>
+                       <Target size={14} className="text-white" />
+                     </div>
+                     {/* Timeline Content */}
+                     <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white/5 border border-white/10 backdrop-blur-md p-4 rounded-2xl shadow-lg hover:border-white/20 transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                           <div>
+                             <div className="font-bold text-white text-base leading-tight">{a.label || cat?.label}</div>
+                             <div className="text-xs font-medium text-white/50 mt-1.5 capitalize">{cat?.label} • {formatDuration(a.duration)}</div>
+                           </div>
+                           <div className="text-xs font-bold text-white/30 whitespace-nowrap bg-black/20 px-2 py-1 rounded-md">
+                             {new Date(a.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           </div>
+                        </div>
+                     </div>
+                  </div>
                 );
               })}
             </div>
-          </section>
+          </div>
 
-          {/* Daily Task Checklist */}
-          <TaskChecklist />
-        </div>
-
-        {/* Right Column (Sidebar) */}
-        <div className="space-y-8">
-          
-          {/* Streak Box */}
-          {streakData && (
-            <section className="glass-morphism rounded-2xl p-6 relative overflow-hidden bg-gradient-to-br from-background to-orange-500/5">
-              <div className="absolute right-0 top-0 translate-x-1/4 -translate-y-1/4 opacity-10">
-                <Flame size={120} className="text-orange-500" />
-              </div>
-              <div className="flex items-center gap-4 relative z-10">
-                <div className="w-16 h-16 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center shadow-inner border border-orange-500/30">
-                  <Flame size={32} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-foreground">{streakData.current} Day Streak!</h2>
-                  <p className="text-sm font-medium text-muted-foreground mt-0.5">Longest: {streakData.longest} days</p>
-                </div>
-              </div>
-              {streakData.current >= 7 && (
-                <div className="mt-4 p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-sm font-medium text-orange-500 text-center relative z-10 animate-pulse">
-                  🔥 You're on fire! Keep going! 🔥
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Quick Actions */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="text-lg font-bold mb-5 flex items-center gap-2"><Target className="text-blue-500" size={20}/> Next Steps</h2>
-            <div className="space-y-3">
-              {[
-                { to: '/interview', title: 'AI Mock Interview', desc: 'Practice technical questions', icon: <Users size={16} />, color: 'var(--primary)' },
-                { to: '/resume', title: 'Resume Analyzer', desc: resumeScore ? `Score: ${resumeScore}/100` : 'Optimize your CV', icon: <FileSearch size={16} />, color: 'var(--accent)' },
-                { to: '/modules', title: 'Learning Hub', desc: 'Continue technical modules', icon: <BrainCircuit size={16} />, color: 'var(--success)' },
-              ].map((action, i) => (
-                <Link 
-                  key={i} 
-                  to={action.to} 
-                  className="group flex justify-between items-center bg-background/50 border border-border/50 p-4 rounded-xl hover:bg-secondary/50 transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-background shadow-sm border border-border text-primary group-hover:scale-110 transition-transform">
-                      {action.icon}
-                    </div>
-                    <div>
-                      <h4 className="m-0 text-sm font-semibold text-foreground">{action.title}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">{action.desc}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+          {/* Upcoming Events */}
+          <div className="border border-white/10 bg-white/5 backdrop-blur-xl rounded-[2rem] p-8 shadow-lg">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2"><CalendarClock className="text-blue-400" size={20}/> Upcoming Events</h2>
+              <span className="text-xs font-bold px-3 py-1 bg-white/5 border border-white/10 rounded-full text-white/60 cursor-pointer hover:bg-white/10 transition-colors">View All</span>
             </div>
-          </section>
-
-          {/* Events */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><CalendarClock className="text-success" size={20}/> Upcoming Events</h2>
-            <div className="space-y-3">
+            
+            <div className="space-y-4">
               {events.length === 0 ? (
-                <div className="py-6 text-center text-muted-foreground text-sm border border-dashed border-border rounded-xl">
-                  No upcoming hackathons or tests.
+                <div className="py-12 text-center text-white/30 text-sm border border-dashed border-white/10 rounded-2xl bg-[#09090b]/50 backdrop-blur-sm">
+                  No upcoming events scheduled.
                 </div>
               ) : events.slice(0, 4).map(event => {
                 const { month, day } = formatDate(event.date);
                 return (
-                  <div key={event._id} className="flex flex-row items-center gap-4 bg-background/30 p-3 rounded-xl border border-transparent hover:border-border/50 transition-colors">
-                    <div className="flex flex-col items-center justify-center bg-secondary w-12 h-14 rounded-lg shadow-inner">
-                      <span className="text-[10px] font-bold text-primary uppercase">{month}</span>
-                      <span className="text-lg font-bold leading-none text-foreground">{day}</span>
+                  <div key={event._id} className="flex gap-5 bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-white/20 transition-all group shadow-sm">
+                    <div className="flex flex-col items-center justify-center bg-white/5 border border-white/10 w-[72px] h-[72px] rounded-xl shadow-inner group-hover:bg-primary/20 transition-colors">
+                      <span className="text-[10px] font-black tracking-widest text-white/50 uppercase">{month}</span>
+                      <span className="text-2xl font-black leading-none text-white my-0.5">{day}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{event.title}</div>
-                      <span className="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 bg-background border border-border rounded-full capitalize text-muted-foreground">
-                        {event.type}
-                      </span>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <div className="font-bold text-white text-base group-hover:text-primary-300 transition-colors">{event.title}</div>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="inline-block text-[10px] font-bold px-2.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full capitalize">
+                          {event.type}
+                        </span>
+                        <span className="text-xs font-medium text-white/40 flex items-center gap-1">
+                          <Clock size={10} /> {new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          </section>
-
-          {/* Binaural Beats */}
-          <BinauralBeatsPlayer />
-
-        </div>
+          </div>
       </div>
 
-      {/* ====================== ANALYTICS MODAL ====================== */}
+      {/* Legacy Analytics Modal (If triggered by top button) */}
       <AnimatePresence>
         {showAnalytics && analytics && (
-          <motion.div 
+           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 bg-[#09090b]/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 sm:p-6"
             onClick={(e) => { if (e.target === e.currentTarget) setShowAnalytics(false); }}
           >
-            <motion.div 
+             <motion.div 
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
               transition={{ type: "spring", bounce: 0.15 }}
-              className="w-full max-w-5xl max-h-[90vh] overflow-y-auto glass-morphism rounded-3xl shadow-2xl p-6 md:p-10 relative"
+              className="w-full max-w-lg overflow-y-auto bg-[#121215] border border-white/10 rounded-3xl shadow-2xl p-6 md:p-10 relative"
             >
-              <button 
+               <button 
                 onClick={() => setShowAnalytics(false)} 
-                className="absolute top-6 right-6 p-2 bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                className="absolute top-6 right-6 p-2 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors backdrop-blur-md z-10"
               >
                 <X size={20} />
               </button>
               
-              <div className="mb-10 text-center">
-                <h2 className="text-3xl font-bold tracking-tight text-foreground flex justify-center items-center gap-3">
-                  <PieChartIcon className="text-primary" size={28} /> Performance Analytics
-                </h2>
-                <p className="text-muted-foreground mt-2">Insights on your learning consistency.</p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-10">
-                {[
-                  { label: "Today's Focus", value: formatDuration(analytics.today.totalSeconds || 0), icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-                  { label: "Monthly Time", value: formatDuration(analytics.monthly.totalSeconds || 0), icon: CalendarClock, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                  { label: "Sessions", value: analytics.monthly.sessions || 0, icon: History, color: "text-purple-500", bg: "bg-purple-500/10" },
-                  { label: "Day Streak", value: `${analytics.streak || 0} 🔥`, icon: Flame, color: "text-orange-500", bg: "bg-orange-500/10" },
-                ].map((s, i) => (
-                  <div key={i} className="bg-background/60 border border-border/50 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm">
-                    <div className={`p-3 rounded-xl ${s.bg} ${s.color} mb-4`}>
-                      <s.icon size={24} strokeWidth={2.5} />
+              <div className="mb-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-primary/20 text-primary-400 border border-primary/30 rounded-2xl flex items-center justify-center">
+                    <PieChartIcon size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-white">
+                      Detailed Analytics
+                    </h2>
+                    <p className="text-white/60 text-sm font-medium">Your study habits and performance data.</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Pie Chart for Categories */}
+                  <div className="bg-black/30 border border-white/10 rounded-2xl p-5 flex flex-col items-center shadow-inner">
+                    <h3 className="text-sm font-bold text-white/70 mb-4 w-full text-center tracking-wide uppercase">Time by Category</h3>
+                    <div className="h-[200px] w-full">
+                      {categoryChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={categoryChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                              {categoryChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-white/30 text-xs text-center border border-dashed border-white/5 rounded-xl">No category data yet</div>
+                      )}
                     </div>
-                    <div className="text-3xl font-bold text-foreground tracking-tight">{s.value}</div>
-                    <div className="text-sm font-medium text-muted-foreground mt-1">{s.label}</div>
                   </div>
-                ))}
-              </div>
-
-              {/* Charts Layer */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                {/* Category Pie */}
-                <div className="bg-background/60 border border-border/50 p-6 rounded-2xl shadow-sm">
-                  <h3 className="text-lg font-semibold mb-6 flex items-baseline gap-2">Time Distribution</h3>
-                  <div className="h-64">
-                    {categoryChartData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                            itemStyle={{ color: 'hsl(var(--foreground))' }}
-                          />
-                          <Pie data={categoryChartData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={4} dataKey="value">
-                            {categoryChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm border-dashed border-border border rounded-xl">No category data logged</div>
-                    )}
+                  
+                  {/* Bar Chart for Daily Minutes */}
+                  <div className="bg-black/30 border border-white/10 rounded-2xl p-5 flex flex-col items-center shadow-inner">
+                    <h3 className="text-sm font-bold text-white/70 mb-4 w-full text-center tracking-wide uppercase">Daily Focus (Mins)</h3>
+                    <div className="h-[200px] w-full">
+                      {dailyChartData.some(d => d.minutes > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} dy={5} />
+                            <YAxis tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
+                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
+                            <Bar dataKey="minutes" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-white/30 text-xs text-center border border-dashed border-white/5 rounded-xl">No daily data yet</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* 7-Day Trend */}
-                <div className="bg-background/60 border border-border/50 p-6 rounded-2xl shadow-sm">
-                  <h3 className="text-lg font-semibold mb-6 flex items-baseline gap-2">7-Day Consistency</h3>
-                  <div className="h-64">
-                    {dailyChartData.some(d => d.minutes > 0) ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="colorBlue" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} dy={10} />
-                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '12px' }}
-                            itemStyle={{ color: 'hsl(var(--foreground))' }}
-                          />
-                          <Area type="monotone" dataKey="minutes" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBlue)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm border-dashed border-border border rounded-xl">No study history for the last 7 days.</div>
-                    )}
+                
+                <div className="bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-indigo-500/30 rounded-2xl p-6 flex justify-between items-center mb-2 shadow-lg">
+                  <div>
+                    <div className="text-xs text-indigo-200/70 uppercase tracking-widest font-bold mb-1">Total Focus Time</div>
+                    <div className="text-2xl font-black text-white">{formatDuration(analytics?.overall?.totalSeconds || 0)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-indigo-200/70 uppercase tracking-widest font-bold mb-1">Total Sessions</div>
+                    <div className="text-2xl font-black text-white">{analytics?.overall?.sessionCount || 0}</div>
                   </div>
                 </div>
               </div>
-
-              {/* AI Coaching Tips */}
-              <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 text-primary/10 -translate-y-1/4 translate-x-1/4">
-                  <BrainCircuit size={150} />
-                </div>
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-primary relative z-10"><BrainCircuit size={20} /> AI Study Recommendations</h3>
-                <ul className="space-y-3 relative z-10">
-                  {analytics.byCategory.length === 0 && (
-                    <li className="flex items-start gap-3"><div className="mt-1 flex-shrink-0 w-2 h-2 rounded-full bg-primary/50"></div><p className="text-muted-foreground font-medium text-sm">Start tracking sessions using the dashboard timer to build your profile.</p></li>
-                  )}
-                  {analytics.byCategory.length > 0 && !analytics.byCategory.find(c => c._id === 'dsa') && (
-                    <li className="flex items-start gap-3"><div className="mt-1 flex-shrink-0 w-2 h-2 rounded-full bg-orange-400"></div><p className="text-foreground text-sm">We noticed zero <strong className="font-semibold">DSA Practice</strong> time recently. 60% of technical rounds test DSA. We suggest a 45-min session tomorrow.</p></li>
-                  )}
-                  {analytics.streak < 3 && (
-                    <li className="flex items-start gap-3"><div className="mt-1 flex-shrink-0 w-2 h-2 rounded-full bg-blue-400"></div><p className="text-foreground text-sm">Consistency builds mastery. Try logging just <strong className="font-semibold">30 minutes everyday</strong> to build momentum.</p></li>
-                  )}
-                  {analytics.today.totalSeconds > 0 && (
-                    <li className="flex items-start gap-3"><div className="mt-1 flex-shrink-0 w-2 h-2 rounded-full bg-success"></div><p className="text-foreground text-sm">Great job logging time today. Make sure to review your <Link to="/roadmap" className="text-primary hover:underline">Career Roadmap</Link> to ensure you're studying the right topics.</p></li>
-                  )}
-                </ul>
-              </div>
-
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 };

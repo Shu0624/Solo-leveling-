@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, Languages, History, Database, Globe, Server, Layout } from 'lucide-react';
+import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, History, Database, Globe, Server, Layout } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LanguageLearning from '../components/learning/LanguageLearning';
+import LanguageHubEmbed from '../components/learning/LanguageHubEmbed';
+import InterviewHistory from './InterviewHistory';
 
 const InterviewLobby = () => {
   const navigate = useNavigate();
   const { api } = useAuth();
-  const [mode, setMode] = useState('ai'); // 'ai' or 'peer'
+  const [mode, setMode] = useState('ai'); // 'ai', 'peer', or 'history'
   const [roomId, setRoomId] = useState('');
 
   // AI Chat state
@@ -40,7 +42,7 @@ const InterviewLobby = () => {
     { value: 'os', label: 'Operating Systems', icon: <Server size={20}/>, desc: 'Memory, Processes, Threads' },
     { value: 'dbms', label: 'DBMS', icon: <Database size={20}/>, desc: 'ACID, Normalization, Transactions' },
     { value: 'cn', label: 'Computer Networks', icon: <Globe size={20}/>, desc: 'OSI Model, TCP/IP, Protocols' },
-    { value: 'project', label: 'Project Deep Dive', icon: <Code2 size={20}/>, desc: 'Submit summary, get grilled on architecture' },
+    { value: 'project', label: 'Project Demo', icon: <Layout size={20}/>, desc: 'Submit project summary, get grilled on architecture & design decisions' },
   ];
 
   const scrollToBottom = () => {
@@ -64,7 +66,7 @@ const InterviewLobby = () => {
     setChatLoading(true);
 
     try {
-      const res = await api.post('/chat', { topic, message: userMsg, questionIndex, projectDescription });
+      const res = await api.post('/chat', { topic, message: userMsg, questionIndex, projectDescription, history: messages });
       setMessages(prev => [...prev, { role: 'ai', text: res.data.message }]);
       setQuestionIndex(res.data.nextQuestionIndex);
     } catch (err) {
@@ -80,7 +82,16 @@ const InterviewLobby = () => {
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = accent;
+    
+    // Find a matching voice for the selected accent to prevent silent failure
+    const voices = window.speechSynthesis.getVoices();
+    const voiceMatch = voices.find(v => v.lang === accent) || voices.find(v => v.lang.startsWith(accent.split('-')[0]));
+    if (voiceMatch) {
+      utterance.voice = voiceMatch;
+    } else {
+      utterance.lang = accent;
+    }
+
     utterance.rate = 0.95;
     utterance.pitch = 1;
     window.speechSynthesis.speak(utterance);
@@ -99,32 +110,17 @@ const InterviewLobby = () => {
     recognition.lang = accent;
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
-      setListening(false);
-      // Auto-send after transcription
-      setTimeout(() => {
-        setInput(prev => {
-          if (prev.trim()) {
-            // Trigger send with this value
-            const userMsg = prev.trim();
-            setInput('');
-            setMessages(msgs => [...msgs, { role: 'user', text: userMsg }]);
-            setChatLoading(true);
-            api.post('/chat', { topic, message: userMsg, questionIndex, projectDescription })
-              .then(res => {
-                setMessages(msgs => [...msgs, { role: 'ai', text: res.data.message }]);
-                setQuestionIndex(res.data.nextQuestionIndex);
-                speakText(res.data.message);
-              })
-              .catch(() => {
-                setMessages(msgs => [...msgs, { role: 'ai', text: 'Connection interrupted. Please try again.' }]);
-              })
-              .finally(() => setChatLoading(false));
-          }
-          return '';
-        });
-      }, 200);
+      let currentTranscript = '';
+      // Accumulate all transcript pieces (works better across Chrome/Edge edge-cases)
+      for (let i = 0; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      setInput(currentTranscript);
+      
+      // Stop listening automatically if the browser dictates this is the final result
+      if (event.results[0] && event.results[0].isFinal) {
+        setListening(false);
+      }
     };
 
     recognition.onerror = () => setListening(false);
@@ -183,69 +179,74 @@ const InterviewLobby = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in relative">
+    <div className={`animate-fade-in relative ${mode === 'ai' && chatStarted ? 'h-[calc(100vh-64px)] flex flex-col px-2 sm:px-4 py-2' : 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       {/* Dynamic Background Blurs */}
       <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
       
-      <header className="mb-10 text-center max-w-2xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Interview Studio</h1>
-        <p className="text-muted-foreground mb-4">Master your communication skills with our AI Mentor or practice live with a peer.</p>
-        <Link to="/interview/history" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline transition-colors">
-          <History size={16} /> View Practice History
-        </Link>
-      </header>
+      {!(mode === 'ai' && chatStarted) && (
+        <header className="mb-10 text-center max-w-2xl mx-auto">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Interview Studio</h1>
+          <p className="text-muted-foreground mb-4">Practice your communication skills with mock interviews or peer-to-peer video sessions.</p>
+        </header>
+      )}
 
-      {/* Mode Tabs */}
-      <div className="flex justify-center mb-10">
-        <div className="flex bg-background/50 p-1.5 rounded-2xl border border-border/50 shadow-sm backdrop-blur-md">
-          {[
-            { key: 'ai', label: 'AI Mock Interview', icon: <Bot size={18} /> },
-            { key: 'peer', label: 'Peer Video Room', icon: <Users size={18} /> }
-          ].map(m => (
-            <button 
-              key={m.key} 
-              onClick={() => setMode(m.key)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
-                mode === m.key 
-                  ? 'bg-primary text-primary-foreground shadow-md' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-              }`}
-            >
-              {m.icon} {m.label}
-            </button>
-          ))}
+      {!(mode === 'ai' && chatStarted) && (
+        <div className="flex justify-center mb-10">
+          <div className="flex bg-background/50 p-1.5 rounded-2xl border border-border/50 shadow-sm backdrop-blur-md">
+            {[
+              { key: 'ai', label: 'Mock Interview', icon: <Bot size={18} /> },
+              { key: 'peer', label: 'Peer Video Room', icon: <Users size={18} /> },
+              { key: 'history', label: 'Practice History', icon: <History size={18} /> }
+            ].map(m => (
+              <button 
+                key={m.key} 
+                onClick={() => setMode(m.key)}
+                className={`flex items-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                  mode === m.key 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                {m.icon} <span className="hidden sm:inline">{m.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ===== AI INTERVIEW MODE ===== */}
       {mode === 'ai' && !chatStarted && (
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl mx-auto"
+          className="max-w-5xl mx-auto w-full"
         >
           <div className="glass-morphism rounded-3xl p-8 md:p-12 text-center">
             <h2 className="text-2xl font-bold mb-3">Select Your Domain</h2>
             <p className="text-muted-foreground mb-8">Choose a topic to begin a simulated technical or behavioral screening.</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {topics.map(t => (
                 <button 
                   key={t.value} 
                   onClick={() => setTopic(t.value)}
-                  className={`text-left p-6 rounded-2xl border-2 transition-all duration-300 ${
+                  className={`text-left p-5 flex items-start gap-4 rounded-2xl border-2 transition-all duration-300 ${
+                    t.value === 'project' ? 'md:col-span-2 lg:col-span-4' : ''
+                  } ${
                     topic === t.value 
                       ? 'border-primary bg-primary/5 shadow-md shadow-primary/10 scale-[1.02]' 
-                      : 'border-border/50 bg-background/50 hover:border-primary/50'
+                      : 'border-border/50 bg-background/50 hover:border-primary/50 hover:-translate-y-0.5'
                   }`}
                 >
-                  <div className={`p-3 rounded-xl inline-flex mb-4 transition-colors ${
+                  <div className={`p-3 rounded-xl shrink-0 transition-colors ${
                     topic === t.value ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'
                   }`}>
                     {t.icon}
                   </div>
-                  <h3 className="text-lg font-bold mb-1">{t.label}</h3>
-                  <p className="text-sm text-muted-foreground">{t.desc}</p>
+                  <div>
+                    <h3 className="text-base font-bold mb-0.5 text-foreground">{t.label}</h3>
+                    <p className="text-xs text-muted-foreground leading-snug">{t.desc}</p>
+                  </div>
                 </button>
               ))}
             </div>
@@ -260,7 +261,7 @@ const InterviewLobby = () => {
                 <textarea
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
-                  placeholder="e.g. I built an AI resume analyzer using React for the frontend, Node.js + Express for the backend, and MongoDB for storage. The core feature parses PDF resumes, calls the LLM API..."
+                  placeholder="Enter details about your background and experience..."
                   className="w-full bg-background/80 backdrop-blur-sm border border-border rounded-xl px-4 py-3 min-h-[120px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm shadow-inner transition-shadow"
                 />
               </motion.div>
@@ -281,7 +282,7 @@ const InterviewLobby = () => {
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-4xl mx-auto h-[600px] flex flex-col glass-morphism rounded-3xl overflow-hidden shadow-2xl border border-border/50 relative"
+          className="w-full max-w-6xl mx-auto flex-1 flex flex-col glass-morphism rounded-2xl overflow-hidden shadow-2xl border border-border/50 relative"
         >
           {/* Chat Header */}
           <div className="bg-background/80 backdrop-blur-md px-6 py-4 flex justify-between items-center z-10 border-b border-border/50">
@@ -293,7 +294,7 @@ const InterviewLobby = () => {
                 <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success border-2 border-background rounded-full"></div>
               </div>
               <div>
-                <h2 className="font-bold text-foreground">LevelUp AI Mentor</h2>
+                <h2 className="font-bold text-foreground">Interview Mentor</h2>
                 <p className="text-xs text-primary font-medium tracking-wide uppercase">
                   {topics.find(t => t.value === topic)?.label} Module
                 </p>
@@ -359,10 +360,56 @@ const InterviewLobby = () => {
                       : 'bg-secondary/80 border border-border/50 text-foreground rounded-2xl rounded-tl-sm'
                   }`}>
                     {msg.text.split('\n').map((line, j) => {
-                      if (line.startsWith('**') && line.endsWith('**')) return <p key={j} className="font-bold my-2 text-primary-foreground">{line.replace(/\*\*/g, '')}</p>;
-                      if (line.startsWith('---')) return <hr key={j} className={`my-3 border-t ${msg.role==='user'?'border-white/20':'border-border'}`} />;
-                      if (line === '') return <div key={j} className="h-2" />;
-                      return <p key={j}>{line.replace(/\*\*/g, '')}</p>;
+                      const trimmed = line.trim();
+                      
+                      // Section headers: **ANSWER EVALUATION**, **CORRECT ANSWER**, **NEXT QUESTIONS**
+                      const sectionHeaders = ['ANSWER EVALUATION', 'CORRECT ANSWER', 'NEXT QUESTIONS'];
+                      const isSectionHeader = sectionHeaders.some(h => trimmed === `**${h}**`);
+                      if (isSectionHeader) {
+                        const headerText = trimmed.replace(/\*\*/g, '');
+                        const headerColor = headerText === 'CORRECT ANSWER' ? 'text-amber-400' : headerText === 'NEXT QUESTIONS' ? 'text-blue-400' : 'text-emerald-400';
+                        return <p key={j} className={`font-bold text-sm tracking-widest uppercase mt-4 mb-2 ${headerColor}`}>{headerText}</p>;
+                      }
+                      
+                      // Status line with color coding
+                      if (trimmed.startsWith('**Status:**')) {
+                        const statusValue = trimmed.replace('**Status:**', '').trim();
+                        let statusColor = 'text-emerald-400';
+                        let statusBg = 'bg-emerald-500/10 border-emerald-500/20';
+                        if (statusValue === 'INCORRECT') { statusColor = 'text-red-400'; statusBg = 'bg-red-500/10 border-red-500/20'; }
+                        else if (statusValue === 'PARTIALLY CORRECT') { statusColor = 'text-amber-400'; statusBg = 'bg-amber-500/10 border-amber-500/20'; }
+                        return <div key={j} className={`inline-block px-3 py-1.5 rounded-lg border ${statusBg} mb-2`}><span className={`font-bold text-sm ${statusColor}`}>{statusValue}</span></div>;
+                      }
+                      
+                      // Feedback line
+                      if (trimmed.startsWith('**Feedback:**')) {
+                        const feedbackText = trimmed.replace('**Feedback:**', '').trim();
+                        return <p key={j} className="text-[14px] opacity-90 mb-1"><span className="font-semibold text-foreground/70">Feedback: </span>{feedbackText}</p>;
+                      }
+                      
+                      // Q1/Q2 question lines
+                      if (trimmed.startsWith('**Q1:**') || trimmed.startsWith('**Q2:**')) {
+                        const label = trimmed.substring(0, 6);
+                        const qText = trimmed.substring(6).trim();
+                        return <p key={j} className="text-[14px] my-1.5 pl-1"><span className="font-bold text-blue-400">{label.replace(/\*\*/g, '')}</span> {qText}</p>;
+                      }
+                      
+                      // Horizontal rules
+                      if (trimmed === '---') return <hr key={j} className={`my-4 border-t ${msg.role==='user'?'border-white/20':'border-border/60'}`} />;
+                      
+                      // Blank lines = spacing
+                      if (trimmed === '') return <div key={j} className="h-3" />;
+                      
+                      // Bold text lines (generic)
+                      if (trimmed.startsWith('**') && trimmed.endsWith('**')) return <p key={j} className="font-bold my-2">{trimmed.replace(/\*\*/g, '')}</p>;
+                      
+                      // Regular lines with inline bold
+                      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                      return <p key={j}>{parts.map((part, k) => 
+                        part.startsWith('**') && part.endsWith('**') 
+                          ? <span key={k} className="font-bold">{part.replace(/\*\*/g, '')}</span> 
+                          : part
+                      )}</p>;
                     })}
                   </div>
                 </motion.div>
@@ -409,7 +456,7 @@ const InterviewLobby = () => {
                 onChange={e => setInput(e.target.value)} 
                 placeholder={voiceMode && listening ? '🎤 Listening...' : 'Type your response...'}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                className="w-full max-h-32 min-h-[56px] resize-none bg-transparent border-none py-4 px-5 text-[15px] focus:outline-none focus:ring-0 text-foreground" 
+                className="w-full max-h-[300px] min-h-[56px] resize-none bg-transparent border-none py-4 px-5 text-[15px] focus:outline-none focus:ring-0 text-foreground overflow-y-auto" 
                 rows="1"
               />
               <button 
@@ -433,7 +480,7 @@ const InterviewLobby = () => {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl mx-auto"
+          className="max-w-xl mx-auto mb-16"
         >
           <div className="glass-morphism rounded-3xl p-10 md:p-14 text-center">
             <div className="w-24 h-24 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center mb-8 relative">
@@ -448,7 +495,7 @@ const InterviewLobby = () => {
               <input 
                 value={roomId} 
                 onChange={e => setRoomId(e.target.value)} 
-                placeholder="Enter Room Code (e.g. room-7xbf)"
+                placeholder="Enter Room Code"
                 className="w-full bg-background/50 border border-border rounded-xl px-5 py-4 text-center text-lg tracking-wider focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono" 
               />
               <button 
@@ -462,8 +509,22 @@ const InterviewLobby = () => {
         </motion.div>
       )}
 
+      {/* ===== INTERVIEW HISTORY MODE ===== */}
+      {mode === 'history' && (
+        <motion.div
+           initial={{ opacity: 0, y: 10 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="mb-16"
+        >
+           <InterviewHistory embedded={true} />
+        </motion.div>
+      )}
+
       {/* ===== FOREIGN LANGUAGE LEARNING SECTION ===== */}
-      <LanguageLearning />
+      {!(mode === 'ai' && chatStarted) && <LanguageLearning />}
+
+      {/* ===== FOREIGN LANGUAGE HUB (FULL FEATURES) ===== */}
+      {!(mode === 'ai' && chatStarted) && <LanguageHubEmbed />}
     </div>
   );
 };

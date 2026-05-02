@@ -27,4 +27,8 @@ const attemptSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Performance indexes for dashboard and analytics queries
+attemptSchema.index({ user: 1, createdAt: -1 });
+attemptSchema.index({ user: 1, percentage: 1 });
+
 export default mongoose.model('QuizAttempt', attemptSchema);

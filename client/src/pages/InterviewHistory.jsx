@@ -36,7 +36,7 @@ const formatDuration = (seconds) => {
   return `${m}m ${s}s`;
 };
 
-const InterviewHistory = () => {
+const InterviewHistory = ({ embedded = false }) => {
   const { api } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,11 +68,11 @@ const InterviewHistory = () => {
   const mostPracticed = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in relative">
+    <div className={`${embedded ? '' : 'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8'} animate-fade-in relative`}>
       {/* Background */}
-      <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
+      {!embedded && <div className="absolute top-20 left-1/4 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[120px] -z-10 pointer-events-none" />}
 
-      <header className="mb-10">
+      {!embedded && <header className="mb-10">
         <Link to="/interview" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
           <ArrowLeft size={16} /> Back to Interview Studio
         </Link>
@@ -83,7 +83,7 @@ const InterviewHistory = () => {
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Interview History</h1>
           <p className="text-muted-foreground">Track your mock interview practice sessions and see your progress over time.</p>
         </div>
-      </header>
+      </header>}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">

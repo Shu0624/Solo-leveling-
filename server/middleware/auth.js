@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-// Protect routes
+// Protect routes (requires DB query)
 export const protect = async (req, res, next) => {
   let token;
 
@@ -30,6 +30,24 @@ export const protect = async (req, res, next) => {
     }
   }
 
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, no token' });
+  }
+};
+
+// Lightweight token protection (no DB query, prevents hangs when DB is slow)
+export const protectTokenOnly = (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = { id: decoded.id }; // Minimal user object
+      return next();
+    } catch (error) {
+      return res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
@@ -70,4 +88,4 @@ export const scopeData = (req, res, next) => {
       req.scope = {};
   }
   next();
-};
+}

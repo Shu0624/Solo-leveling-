@@ -7,6 +7,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ActivityProvider } from './context/ActivityContext';
 import GlobalTimerWidget from './components/layout/GlobalTimerWidget';
 import RouteTracker from './components/layout/RouteTracker';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // =====================================================================
 // LAZY-LOADED PAGES — Code splitting for performance
@@ -28,7 +29,9 @@ const Benefits = lazy(() => import('./pages/Benefits'));
 const Assessment = lazy(() => import('./pages/Assessment'));
 const FacultyDashboard = lazy(() => import('./pages/FacultyDashboard'));
 const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 const Profile = lazy(() => import('./pages/Profile'));
+const LanguageHub = lazy(() => import('./pages/LanguageHub'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -47,10 +50,12 @@ function App() {
         <ActivityProvider>
           <BrowserRouter>
             <RouteTracker />
+            <ErrorBoundary>
             <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
               <Navbar />
               <GlobalTimerWidget />
             <Suspense fallback={<PageLoader />}>
+              <main>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
@@ -69,6 +74,7 @@ function App() {
                 <Route path="/interview/history" element={<ProtectedRoute><InterviewHistory /></ProtectedRoute>} />
                 <Route path="/interview/:roomId" element={<ProtectedRoute><InterviewRoom /></ProtectedRoute>} />
                 <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+                <Route path="/language" element={<ProtectedRoute><LanguageHub /></ProtectedRoute>} />
                 <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
                 <Route path="/benefits" element={<ProtectedRoute><Benefits /></ProtectedRoute>} />
                 <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
@@ -82,10 +88,12 @@ function App() {
                     <AnalyticsDashboard />
                   </ProtectedRoute>
                 } />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
+              </main>
             </Suspense>
             </div>
+            </ErrorBoundary>
           </BrowserRouter>
         </ActivityProvider>
       </AuthProvider>

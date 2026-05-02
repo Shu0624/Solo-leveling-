@@ -26,5 +26,8 @@ const chatMessageSchema = new mongoose.Schema(
   }
 );
 
+// Compound index for fast chat history fetch
+chatMessageSchema.index({ room: 1, createdAt: -1 });
+
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 export default ChatMessage;

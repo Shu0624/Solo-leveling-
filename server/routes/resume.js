@@ -1,6 +1,9 @@
 import express from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
+import streamifier from 'streamifier';
+import cloudinary from '../utils/cloudinary.js';
 import { protect } from '../middleware/auth.js';
 import { analyzeResume } from '../services/aiService.js';
 import Resume from '../models/Resume.js';
@@ -18,10 +21,39 @@ const upload = multer({
   }
 });
 
+// Rate limit resume analysis — prevents Groq API abuse
+const resumeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,                    // 10 analyses per hour per IP
+  message: { message: 'Too many resume analyses. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const uploadToCloudinary = (buffer, filename) => {
+  return new Promise((resolve, reject) => {
+    const cld_upload_stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'levelup_resumes',
+        resource_type: 'raw',
+        public_id: `${Date.now()}_${filename}`
+      },
+      (error, result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(error);
+        }
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+  });
+};
+
 // @desc    Upload and Analyze Resume (with real PDF parsing)
 // @route   POST /api/resume/upload
 // @access  Private
-router.post('/upload', protect, upload.single('resume'), async (req, res) => {
+router.post('/upload', protect, resumeLimiter, upload.single('resume'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'Please upload a PDF file' });
   }
@@ -40,18 +72,29 @@ router.post('/upload', protect, upload.single('resume'), async (req, res) => {
     // ---- ANALYZE with elite AI service ----
     const analysis = await analyzeResume(extractedText, req.body.jobTitle, req.body.companyName);
 
+    // ---- UPLOAD TO CLOUDINARY ----
+    let cloudinaryUrl = '';
+    try {
+      const cldResult = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+      cloudinaryUrl = cldResult.secure_url;
+    } catch (cldErr) {
+      console.error('Cloudinary upload error:', cldErr);
+      // We can still proceed if cloudinary fails, it just won't have a URL.
+    }
+
     // ---- SAVE to database for version tracking ----
     let resumeDoc = await Resume.findOne({ user: req.user._id });
 
     if (resumeDoc) {
       // Push old version to history
       resumeDoc.versions.push({
-        fileUrl: resumeDoc.filename,
+        fileUrl: resumeDoc.fileUrl || resumeDoc.filename, // Store old URL or filename fallback
         uploadedAt: resumeDoc.updatedAt,
         score: resumeDoc.analysis?.score || 0
       });
       // Update current
       resumeDoc.filename = req.file.originalname;
+      if (cloudinaryUrl) resumeDoc.fileUrl = cloudinaryUrl;
       resumeDoc.parsedData = {
         skills: analysis.skillNames || [],
       };
@@ -67,6 +110,7 @@ router.post('/upload', protect, upload.single('resume'), async (req, res) => {
       resumeDoc = await Resume.create({
         user: req.user._id,
         filename: req.file.originalname,
+        fileUrl: cloudinaryUrl,
         parsedData: {
           skills: analysis.skillNames || [],
         },
@@ -84,6 +128,7 @@ router.post('/upload', protect, upload.single('resume'), async (req, res) => {
       message: 'Resume analyzed successfully',
       analysis,
       resumeId: resumeDoc._id,
+      fileUrl: resumeDoc.fileUrl,
       versionsCount: resumeDoc.versions?.length || 0
     });
   } catch (err) {
@@ -104,6 +149,7 @@ router.get('/history', protect, async (req, res) => {
     res.status(200).json({
       current: {
         filename: resume.filename,
+        fileUrl: resume.fileUrl,
         score: resume.analysis?.score,
         skills: resume.parsedData?.skills,
         updatedAt: resume.updatedAt
@@ -161,6 +207,7 @@ router.get('/my-top', protect, async (req, res) => {
       analyses.push({
         _id: 'current',
         score: resume.analysis.score,
+        fileUrl: resume.fileUrl,
         jobTitle: resume.filename?.replace('.pdf', '') || 'Unknown Role',
         date: resume.updatedAt
       });
@@ -172,6 +219,7 @@ router.get('/my-top', protect, async (req, res) => {
           analyses.push({
             _id: `v_${idx}`,
             score: v.score,
+            fileUrl: v.fileUrl,
             jobTitle: v.fileUrl?.replace('.pdf', '') || 'Unknown Role',
             date: v.uploadedAt
           });

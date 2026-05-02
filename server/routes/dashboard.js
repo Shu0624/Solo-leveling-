@@ -419,4 +419,71 @@ router.delete('/tasks/:taskId', protect, async (req, res) => {
   }
 });
 
+// =====================================================================
+// READINESS REPORT DATA — Aggregates all metrics for PDF generation
+// =====================================================================
+
+// @desc    Get aggregated data for Career Readiness Report PDF
+// @route   GET /api/dashboard/report-data
+// @access  Private/Student
+router.get('/report-data', protect, authorize('student'), async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Parallel fetch all data
+    const [latestResume, quizAttempts, interviewSessions, activityAgg, user] = await Promise.all([
+      Resume.findOne({ user: userId }).sort({ updatedAt: -1 }).select('analysis.score').lean(),
+      QuizAttempt.find({ user: userId }).select('percentage').lean(),
+      // Dynamically import InterviewSession to avoid circular deps
+      import('../models/InterviewSession.js').then(m => 
+        m.default.find({ participants: userId, status: 'completed' }).countDocuments()
+      ).catch(() => 0),
+      // Activity aggregation
+      import('../models/Activity.js').then(m =>
+        m.default.aggregate([
+          { $match: { user: userId } },
+          { $group: { _id: null, totalSeconds: { $sum: '$duration' }, totalSessions: { $sum: 1 } } },
+        ])
+      ).catch(() => []),
+      User.findById(userId).select('name email college department year section streak').lean(),
+    ]);
+
+    // Compute quiz stats
+    const quizScores = quizAttempts.map(q => q.percentage);
+    const avgQuizScore = quizScores.length
+      ? Math.round(quizScores.reduce((s, v) => s + v, 0) / quizScores.length)
+      : 0;
+
+    res.json({
+      user: {
+        name: user?.name,
+        email: user?.email,
+        college: user?.college,
+        department: user?.department,
+        year: user?.year,
+        section: user?.section,
+      },
+      resumeScore: latestResume?.analysis?.score || 0,
+      quizData: {
+        avgScore: avgQuizScore,
+        totalAttempts: quizAttempts.length,
+      },
+      interviewData: {
+        sessionsCompleted: typeof interviewSessions === 'number' ? interviewSessions : 0,
+      },
+      streakData: {
+        current: user?.streak?.current || 0,
+        longest: user?.streak?.longest || 0,
+      },
+      activityData: {
+        totalSeconds: activityAgg[0]?.totalSeconds || 0,
+        totalSessions: activityAgg[0]?.totalSessions || 0,
+      },
+    });
+  } catch (err) {
+    console.error('Report data error:', err);
+    res.status(500).json({ message: 'Failed to generate report data' });
+  }
+});
+
 export default router;

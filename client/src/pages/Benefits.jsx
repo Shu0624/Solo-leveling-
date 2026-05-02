@@ -1,283 +1,114 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gift, ExternalLink, ChevronDown, ChevronUp,
   GraduationCap, Code2, Laptop, Wallet, Mail,
-  Sparkles, Tag, Star, CheckCircle2
+  Sparkles, CheckCircle2, RefreshCw, Clock,
+  BrainCircuit, Briefcase, Star, AlertCircle, Globe
 } from 'lucide-react';
 
 // =====================================================================
-// CURATED BENEFITS DATA
+// STATIC FALLBACK
 // =====================================================================
-const SECTIONS = [
-  {
-    id: 'discounts',
-    title: 'Student Discounts & Free Tools',
-    icon: Gift,
-    color: '#6366f1',
-    description: 'Access premium tools completely free with your student email.',
-    items: [
-      {
-        name: 'GitHub Student Developer Pack',
-        provider: 'GitHub',
-        emoji: '🐙',
-        description: 'Get 100+ free developer tools including domains, cloud credits, CI/CD, design tools, and more.',
-        value: 'Worth $200K+ in tools',
-        link: 'https://education.github.com/pack',
-        highlights: ['Free .me domain', 'Azure $100 credits', 'JetBrains IDEs', 'Canva Pro', 'Namecheap domains'],
-      },
-      {
-        name: 'JetBrains All Products Pack',
-        provider: 'JetBrains',
-        emoji: '🧠',
-        description: 'Full access to IntelliJ IDEA, PyCharm, WebStorm, and all JetBrains professional IDEs.',
-        value: 'Free (normally ₹50K+/year)',
-        link: 'https://www.jetbrains.com/community/education/',
-        highlights: ['IntelliJ IDEA Ultimate', 'PyCharm Professional', 'WebStorm', 'DataGrip'],
-      },
-      {
-        name: 'Figma Education',
-        provider: 'Figma',
-        emoji: '🎨',
-        description: 'Full Figma Professional plan free for students and educators. Design, prototype, and collaborate.',
-        value: 'Free (normally $12/mo)',
-        link: 'https://www.figma.com/education/',
-        highlights: ['Unlimited files', 'Professional features', 'Team collaboration', 'Dev mode'],
-      },
-      {
-        name: 'Azure for Students',
-        provider: 'Microsoft',
-        emoji: '☁️',
-        description: 'Get $100 in Azure credits, free services for 12 months, and 25+ always-free services.',
-        value: '$100 Azure credits',
-        link: 'https://azure.microsoft.com/en-us/free/students/',
-        highlights: ['$100 credits', 'No credit card needed', '25+ free services', 'AI & ML services'],
-      },
-      {
-        name: 'Google Cloud for Students',
-        provider: 'Google',
-        emoji: '🌐',
-        description: 'Access Google Cloud credits, free labs via Qwiklabs, and cloud certifications at discounted rates.',
-        value: '$300 in credits',
-        link: 'https://cloud.google.com/edu/',
-        highlights: ['Cloud credits', 'Free labs', 'Cert discounts', 'BigQuery free tier'],
-      },
-      {
-        name: 'Notion for Education',
-        provider: 'Notion',
-        emoji: '📓',
-        description: 'Free Notion Plus plan for students — unlimited blocks, file uploads, and collaboration features.',
-        value: 'Free (normally $8/mo)',
-        link: 'https://www.notion.so/students',
-        highlights: ['Unlimited blocks', 'Collaboration', 'AI assistant', 'Templates'],
-      },
-      {
-        name: 'Canva Pro for Students',
-        provider: 'Canva',
-        emoji: '🖌️',
-        description: 'Premium design tool with 100M+ graphics, brand kits, Magic Resize, background remover, and more.',
-        value: 'Free (normally ₹4K/year)',
-        link: 'https://www.canva.com/education/',
-        highlights: ['100M+ graphics', 'Brand kit', 'Background remover', 'AI tools'],
-      },
-      {
-        name: 'Spotify Student',
-        provider: 'Spotify',
-        emoji: '🎵',
-        description: 'Spotify Premium at half price. Includes ad-free music, offline downloads, and podcast access.',
-        value: '₹59/mo (50% off)',
-        link: 'https://www.spotify.com/student/',
-        highlights: ['Ad-free music', 'Offline downloads', 'High quality audio', '50% discount'],
-      },
-      {
-        name: 'Amazon Prime Student',
-        provider: 'Amazon',
-        emoji: '📦',
-        description: 'Half-price Amazon Prime membership with free delivery, Prime Video, and exclusive student deals.',
-        value: '₹749/year (50% off)',
-        link: 'https://www.amazon.in/primestudent',
-        highlights: ['Free delivery', 'Prime Video', 'Student deals', '50% off'],
-      },
-    ],
-  },
-  {
-    id: 'email',
-    title: 'How to Get a Student Email (.edu)',
-    icon: Mail,
-    color: '#22c55e',
-    description: 'Your gateway to all student discounts and benefits.',
-    items: [
-      {
-        name: 'Check with Your College IT Department',
-        emoji: '🏫',
-        description: 'Most Indian engineering colleges provide institutional email addresses (e.g., name@college.edu.in). Visit your IT department, academic office, or check your student portal.',
-        highlights: ['Most colleges issue emails during admission', 'Check your student ERP/portal', 'Contact IT helpdesk if not issued', 'Usually format: rollno@college.edu.in'],
-      },
-      {
-        name: 'Verify Student Status on Platforms',
-        emoji: '✅',
-        description: 'Each platform has its own verification process. Most accept college email, student ID upload, or integration with SheerID.',
-        highlights: ['GitHub: Upload student ID + college email', 'JetBrains: College email or ISIC card', 'Microsoft: Auto-verified .edu email', 'Spotify: SheerID verification'],
-      },
-      {
-        name: 'Benefits of a .edu Email',
-        emoji: '🎁',
-        description: 'A student email unlocks thousands of dollars worth of free software, cloud credits, and exclusive deals.',
-        highlights: ['Free developer tools worth $200K+', 'Cloud credits from AWS, Azure, GCP', 'Discounts on software & subscriptions', 'Access to academic research papers'],
-      },
-    ],
-  },
-  {
-    id: 'coding',
-    title: 'Coding Platform Deals',
-    icon: Code2,
-    color: '#f59e0b',
-    description: 'Maximize your learning while minimizing costs.',
-    items: [
-      {
-        name: 'LeetCode Premium',
-        emoji: '💻',
-        description: 'Premium access to 3000+ problems with solutions, company-wise questions, and mock interviews.',
-        value: 'Student pricing available',
-        link: 'https://leetcode.com/subscribe/',
-        highlights: ['Company-wise problems', 'Video solutions', 'Mock interviews', 'Contest rankings'],
-      },
-      {
-        name: 'Coursera Financial Aid',
-        emoji: '📚',
-        description: '100% financial aid available for all courses and specializations. Apply with a short essay explaining your financial situation.',
-        value: 'Free (with financial aid)',
-        link: 'https://www.coursera.org/financial-aid',
-        highlights: ['100% fee waiver', 'Verified certificates', 'All courses eligible', 'Takes 15 days to approve'],
-      },
-      {
-        name: 'Udemy Strategies',
-        emoji: '🎓',
-        description: 'Never pay full price on Udemy. Courses regularly go on sale at ₹299–₹499. Use incognito mode for new user deals.',
-        highlights: ['Wait for sales (monthly)', 'Use incognito for ₹299 deals', 'Check coupon sites', 'Free courses available too'],
-      },
-      {
-        name: 'freeCodeCamp',
-        emoji: '🏕️',
-        description: 'Completely free, full-stack web development curriculum with certifications. No strings attached.',
-        value: 'Completely Free',
-        link: 'https://www.freecodecamp.org/',
-        highlights: ['10+ certifications free', 'Full-stack curriculum', 'Active community', 'Real-world projects'],
-      },
-    ],
-  },
-  {
-    id: 'laptops',
-    title: 'Best Laptops for Students (2025)',
-    icon: Laptop,
-    color: '#8b5cf6',
-    description: 'Curated recommendations by budget and use case.',
-    items: [
-      {
-        name: 'Budget (₹30K–50K)',
-        emoji: '💰',
-        description: 'Best value picks for coding, web browsing, and basic development.',
-        highlights: [
-          'Acer Aspire 15 — i5-1235U, 8GB, 512GB SSD (~₹38K)',
-          'HP 15s — Ryzen 5 5500U, 8GB, 512GB SSD (~₹40K)',
-          'Lenovo IdeaPad Slim 3 — i5-1335U, 8GB (~₹42K)',
-          '✅ Great for: Web Dev, Python, Java, DSA practice',
-        ],
-      },
-      {
-        name: 'Mid-Range (₹50K–80K)',
-        emoji: '⚡',
-        description: 'Balanced performance for multi-tasking, Docker, and moderate development.',
-        highlights: [
-          'ASUS Vivobook 15 OLED — i7-13700H, 16GB (~₹62K)',
-          'Lenovo IdeaPad 5 Pro — Ryzen 7 7730U, 16GB OLED (~₹65K)',
-          'Acer Aspire 5 — i7-12650H, 16GB, 512GB (~₹58K)',
-          '✅ Best for: Full-stack dev, Docker, Android Studio',
-        ],
-      },
-      {
-        name: 'Professional (₹80K–1.2L)',
-        emoji: '🚀',
-        description: 'For serious development, ML workloads, and professional use.',
-        highlights: [
-          'MacBook Air M3 — 16GB, 256GB (~₹95K education)',
-          'ASUS Zenbook 14 OLED — Intel Ultra 7, 16GB (~₹85K)',
-          'Lenovo ThinkPad E14 Gen 5 — i7, 16GB (~₹82K)',
-          '✅ Best for: ML/AI, iOS dev, heavy IDEs, VMs',
-        ],
-      },
-      {
-        name: 'Earning Setup (₹1.2L+)',
-        emoji: '💎',
-        description: 'For freelancing, ML training, video editing, and professional work.',
-        highlights: [
-          'MacBook Pro M3 Pro — 18GB, 512GB (~₹1.6L)',
-          'ASUS ROG Zephyrus G14 — Ryzen 9, RTX 4060 (~₹1.4L)',
-          'Dell XPS 15 — i9, 32GB, RTX 4060 (~₹1.5L)',
-          '✅ Best for: Freelancing, ML training, video editing',
-        ],
-      },
-    ],
-  },
-  {
-    id: 'earning',
-    title: 'Student Earning Opportunities',
-    icon: Wallet,
-    color: '#f43f5e',
-    description: 'Start earning while in college. No degree required.',
-    items: [
-      {
-        name: 'Freelancing Platforms',
-        emoji: '💼',
-        description: 'Build websites, apps, and scripts for clients worldwide. Start small and build your portfolio.',
-        link: 'https://www.fiverr.com/',
-        highlights: [
-          'Fiverr — Start from ₹500/gig, scale to ₹50K+',
-          'Upwork — Hourly or fixed-price contracts',
-          'Toptal — Premium ($60-200/hr) after screening',
-          '💡 Start: WordPress sites, API integrations, React apps',
-        ],
-      },
-      {
-        name: 'Open Source Contributions',
-        emoji: '🌟',
-        description: 'Get paid to contribute to open source. Programs like GSoC, MLH Fellowship, and Outreachy offer stipends.',
-        highlights: [
-          'Google Summer of Code — $1500–$6600',
-          'MLH Fellowship — $5000 for 12 weeks',
-          'Outreachy — $7000 for 3 months',
-          'LFX Mentorship — $3000–$6600',
-        ],
-      },
-      {
-        name: 'Technical Writing',
-        emoji: '✍️',
-        description: 'Write technical articles and tutorials for money. Many platforms pay per article.',
-        highlights: [
-          'Dev.to — Build audience, get sponsorships',
-          'Medium Partner Program — Earn per read',
-          'freeCodeCamp — Exposure to 1M+ readers',
-          'DigitalOcean — $300-400 per tutorial',
-        ],
-      },
-      {
-        name: 'Campus Ambassador Stipends',
-        emoji: '🏫',
-        description: 'Represent tech companies at your college and earn monthly stipends, merchandise, and certificates.',
-        highlights: [
-          'GeeksforGeeks — Monthly stipend + premium access',
-          'Coding Ninjas — ₹2K-5K/month + courses',
-          'Internshala — Per-referral rewards',
-          'Various startups — ₹3K-10K/month',
-        ],
-      },
-    ],
-  },
+const FALLBACK_SECTIONS = {
+  discounts: [
+    { name: 'GitHub Student Developer Pack', provider: 'GitHub', emoji: '🐙', description: 'Get 100+ free developer tools.', value: 'Worth $200K+ in tools', link: 'https://education.github.com/pack', highlights: ['Free .me domain', 'Azure $100 credits', 'JetBrains IDEs', 'Canva Pro'] },
+    { name: 'JetBrains All Products Pack', provider: 'JetBrains', emoji: '🧠', description: 'Full access to all JetBrains professional IDEs.', value: 'Free (normally ₹50K+/year)', link: 'https://www.jetbrains.com/community/education/', highlights: ['IntelliJ IDEA Ultimate', 'PyCharm Professional', 'WebStorm', 'DataGrip'] },
+    { name: 'Figma Education', provider: 'Figma', emoji: '🎨', description: 'Full Figma Professional plan free for students.', value: 'Free (normally $12/mo)', link: 'https://www.figma.com/education/', highlights: ['Unlimited files', 'Professional features', 'Team collaboration', 'Dev mode'] },
+  ],
+  coding: [
+    { name: 'LeetCode Premium', provider: 'LeetCode', emoji: '💻', description: 'Premium access to 3000+ problems.', value: 'Student pricing', link: 'https://leetcode.com/subscribe/', highlights: ['Company-wise problems', 'Video solutions', 'Mock interviews'] },
+    { name: 'freeCodeCamp', provider: 'freeCodeCamp', emoji: '🏕️', description: 'Completely free, full-stack curriculum with certs.', value: 'Free', link: 'https://www.freecodecamp.org/', highlights: ['10+ free certs', 'Full-stack', 'Active community'] },
+  ],
+  'ai-courses': [
+    { name: 'Google AI Essentials', provider: 'Google', emoji: '🤖', description: 'Free Google course on AI fundamentals.', value: 'Free', link: 'https://www.coursera.org/learn/google-ai-essentials', highlights: ['Google certificate', 'Prompt engineering', 'AI for productivity'] },
+    { name: 'AWS ML University', provider: 'Amazon', emoji: '🟠', description: 'Free ML courses from Amazon\'s internal training.', value: 'Free', link: 'https://aws.amazon.com/machine-learning/mlu/', highlights: ['Amazon internal training', 'Hands-on notebooks', 'NLP & CV tracks'] },
+  ],
+};
+
+const SECTION_META = [
+  { key: 'discounts', title: 'Student Discounts & Free Tools', icon: Gift, color: '#6366f1', desc: 'Free premium tools with your student email.' },
+  { key: 'ai-courses', title: 'Free AI & ML Courses', icon: BrainCircuit, color: '#06b6d4', desc: 'Learn AI/ML from Google, Microsoft, Amazon, NVIDIA & more — completely free.' },
+  { key: 'internship', title: 'Internship Portals', icon: Briefcase, color: '#22c55e', desc: 'Find paid internships with PPO opportunities at top companies.' },
+  { key: 'placement', title: 'Placement & Hiring Platforms', icon: Star, color: '#8b5cf6', desc: 'Direct hire challenges, job boards, and referral platforms.' },
+  { key: 'coding', title: 'Coding Platform Deals', icon: Code2, color: '#f59e0b', desc: 'Maximize your DSA prep while minimizing costs.' },
+  { key: 'earning', title: 'Student Earning Opportunities', icon: Wallet, color: '#f43f5e', desc: 'Start earning while in college — no degree required.' },
+  { key: 'laptops', title: 'Best Laptops for Students', icon: Laptop, color: '#8b5cf6', desc: 'Curated picks by budget and use case.' },
+  { key: 'email', title: 'How to Get a Student Email', icon: Mail, color: '#22c55e', desc: 'Your gateway to all student benefits.' },
 ];
 
 const Benefits = () => {
+  const { api } = useAuth();
   const [openSection, setOpenSection] = useState('discounts');
   const [expandedItem, setExpandedItem] = useState(null);
+  const [benefits, setBenefits] = useState({});
+  const [expiredBenefits, setExpiredBenefits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [showExpired, setShowExpired] = useState(false);
+
+  useEffect(() => {
+    fetchBenefits();
+  }, []);
+
+  const fetchBenefits = async () => {
+    try {
+      const res = await api.get('/discover/benefits');
+      setBenefits(res.data.grouped || {});
+      setExpiredBenefits(res.data.expired || []);
+      setLastUpdated(res.data.lastUpdated);
+    } catch (e) {
+      console.error('Failed to fetch benefits, using fallback:', e);
+      setBenefits(FALLBACK_SECTIONS);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await api.post('/discover/refresh');
+      await fetchBenefits();
+    } catch (e) {
+      console.error('Refresh failed:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const timeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  // Filter sections that actually have data
+  const availableSections = SECTION_META.filter(s => {
+    const items = benefits[s.key];
+    return items && items.length > 0;
+  });
+
+  // Also include sections without API data but that exist in SECTION_META (for static fallback categories)
+  const currentItems = benefits[openSection] || [];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Gift className="text-primary animate-pulse mx-auto mb-4" size={48} />
+          <p className="text-muted-foreground font-medium">Loading benefits...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in relative">
@@ -285,143 +116,251 @@ const Benefits = () => {
       <div className="absolute top-40 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] -z-10 pointer-events-none" />
 
       {/* Header */}
-      <header className="mb-10 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4 border border-primary/20">
-          <GraduationCap size={14} /> Student Benefits
-        </div>
+      <header className="mb-8 text-center max-w-3xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-3">
-          Discounts, Free Tools & Earning Guides
+          Student Discounts, Free Courses & Opportunities
         </h1>
-        <p className="text-muted-foreground text-base">
-          Unlock thousands of rupees worth of free software, platform discounts, and earning opportunities — all available to you as a student.
+        <p className="text-muted-foreground text-base mb-4">
+          Free tools, internship portals, placement platforms, courses, and earning guides — curated for engineering students.
         </p>
+
+        {/* Last Updated + Refresh */}
+        <div className="flex items-center justify-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock size={12} /> Updated {timeAgo(lastUpdated)}
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
       </header>
 
       {/* Section Navigation */}
-      <div className="flex flex-wrap gap-2 justify-center mb-10">
-        {SECTIONS.map(section => {
+      <div className="flex flex-wrap gap-2 justify-center mb-8">
+        {SECTION_META.map(section => {
           const Icon = section.icon;
+          const count = (benefits[section.key] || []).length;
           return (
             <button
-              key={section.id}
-              onClick={() => { setOpenSection(section.id); setExpandedItem(null); }}
-              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold transition-all ${
-                openSection === section.id
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/60 border border-border/50'
+              key={section.key}
+              onClick={() => { setOpenSection(section.key); setExpandedItem(null); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
+                openSection === section.key
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-primary'
+                  : 'bg-secondary/40 text-muted-foreground hover:text-foreground hover:bg-secondary/60 border-border/50'
               }`}
             >
-              <Icon size={16} />
+              <Icon size={14} />
               <span className="hidden sm:inline">{section.title.split('(')[0].split('&')[0].trim()}</span>
               <span className="sm:hidden">{section.title.split(' ').slice(0, 2).join(' ')}</span>
+              {count > 0 && (
+                <span className={`text-[10px] ml-0.5 ${openSection === section.key ? 'opacity-70' : 'opacity-50'}`}>
+                  ({count})
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* Active Section Content */}
-      {SECTIONS.filter(s => s.id === openSection).map(section => {
+      {SECTION_META.filter(s => s.key === openSection).map(section => {
         const Icon = section.icon;
+        const items = currentItems;
+
         return (
           <motion.div
-            key={section.id}
+            key={section.key}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
             {/* Section Header */}
-            <div className="glass-morphism p-6 flex items-center gap-4">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: `${section.color}15`, color: section.color }}
-              >
-                <Icon size={28} />
+            <div className="glass-morphism p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: `${section.color}15`, color: section.color }}
+                >
+                  <Icon size={28} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">{section.title}</h2>
+                  <p className="text-sm text-muted-foreground">{section.desc}</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">{section.title}</h2>
-                <p className="text-sm text-muted-foreground">{section.description}</p>
-              </div>
+              {items.length > 0 && (
+                <span className="text-xs text-muted-foreground bg-secondary/50 px-2.5 py-1 rounded-lg font-bold">
+                  {items.length} items
+                </span>
+              )}
             </div>
 
             {/* Items */}
-            <div className="grid grid-cols-1 gap-3">
-              {section.items.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="glass-morphism overflow-hidden"
-                >
-                  <button
-                    onClick={() => setExpandedItem(expandedItem === `${section.id}-${i}` ? null : `${section.id}-${i}`)}
-                    className="w-full p-5 flex items-center justify-between text-left hover:bg-secondary/20 transition-colors"
+            {items.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3">
+                {items.map((item, i) => (
+                  <motion.div
+                    key={item._id || i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="glass-morphism overflow-hidden relative"
                   >
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl">{item.emoji}</span>
-                      <div>
-                        <h3 className="font-bold text-foreground text-sm">{item.name}</h3>
-                        {item.provider && (
-                          <p className="text-xs text-muted-foreground">{item.provider}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {item.value && (
-                        <span className="hidden sm:block px-3 py-1 rounded-full text-xs font-bold bg-success/10 text-success border border-success/20">
-                          {item.value}
-                        </span>
-                      )}
-                      {expandedItem === `${section.id}-${i}` ? (
-                        <ChevronUp size={18} className="text-muted-foreground" />
-                      ) : (
-                        <ChevronDown size={18} className="text-muted-foreground" />
-                      )}
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => setExpandedItem(expandedItem === `${section.key}-${i}` ? null : `${section.key}-${i}`)}
+                      className="w-full p-5 flex items-center justify-between text-left hover:bg-secondary/20 transition-colors gap-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-2xl shrink-0">{item.emoji}</span>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <h3 className="font-bold text-foreground text-sm">{item.name}</h3>
+                            {item.isNew && (
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                                <Sparkles size={8} /> New
+                              </span>
+                            )}
 
-                  <AnimatePresence>
-                    {expandedItem === `${section.id}-${i}` && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-5 pb-5 pt-1 border-t border-border/30 space-y-4">
-                          <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
-
-                          {item.highlights && (
-                            <div className="space-y-2">
-                              {item.highlights.map((h, j) => (
-                                <div key={j} className="flex items-start gap-2 text-sm text-foreground">
-                                  <CheckCircle2 size={14} className="text-primary mt-0.5 flex-shrink-0" />
-                                  <span>{h}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {item.link && (
-                            <a
-                              href={item.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
-                            >
-                              <ExternalLink size={14} /> Visit Website
-                            </a>
+                          </div>
+                          {item.provider && (
+                            <p className="text-xs text-muted-foreground">{item.provider}</p>
                           )}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ))}
-            </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {item.value && (
+                          <span className="hidden sm:block px-3 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20 whitespace-nowrap">
+                            {item.value}
+                          </span>
+                        )}
+                        {expandedItem === `${section.key}-${i}` ? (
+                          <ChevronUp size={18} className="text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronDown size={18} className="text-muted-foreground shrink-0" />
+                        )}
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {expandedItem === `${section.key}-${i}` && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-5 pb-5 pt-1 border-t border-border/30 space-y-4">
+                            <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+
+                            {item.highlights && item.highlights.length > 0 && (
+                              <div className="space-y-2">
+                                {item.highlights.map((h, j) => (
+                                  <div key={j} className="flex items-start gap-2 text-sm text-foreground">
+                                    <CheckCircle2 size={14} className="text-primary mt-0.5 flex-shrink-0" />
+                                    <span>{h}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {item.link && (
+                              <a
+                                href={item.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                              >
+                                <ExternalLink size={14} /> Visit Website
+                              </a>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="glass-morphism p-10 text-center">
+                <Globe size={40} className="mx-auto mb-3 text-muted-foreground opacity-30" />
+                <p className="text-muted-foreground font-medium">No items in this category yet.</p>
+                <p className="text-sm text-muted-foreground mt-1">Click "Refresh" to discover new benefits.</p>
+              </div>
+            )}
           </motion.div>
         );
       })}
+
+      {/* Expired / Previous */}
+      {expiredBenefits.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setShowExpired(!showExpired)}
+            className="w-full glass-morphism p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-secondary/50 flex items-center justify-center">
+                <Clock size={18} className="text-muted-foreground" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-bold text-foreground text-sm">Previous Benefits</h3>
+                <p className="text-xs text-muted-foreground">{expiredBenefits.length} expired or discontinued benefits</p>
+              </div>
+            </div>
+            {showExpired ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+          </button>
+
+          <AnimatePresence>
+            {showExpired && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 opacity-60">
+                  {expiredBenefits.map((item, i) => (
+                    <div key={item._id || `exp-${i}`} className="glass-morphism p-4 relative">
+                      <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border border-red-500/20">
+                        Expired
+                      </div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xl">{item.emoji}</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-foreground">{item.name}</h4>
+                          {item.provider && <p className="text-[10px] text-muted-foreground">{item.provider}</p>}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Footer */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="mt-10 text-center text-sm text-muted-foreground"
+      >
+        <p className="flex items-center justify-center gap-2">
+          <Gift size={14} className="text-primary" />
+          New benefits and tools added regularly · Verified items marked with ✓
+        </p>
+      </motion.div>
     </div>
   );
 };

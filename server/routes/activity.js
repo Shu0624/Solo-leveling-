@@ -9,14 +9,23 @@ const router = express.Router();
 router.post('/', protect, async (req, res) => {
   try {
     const { category, label, duration, type } = req.body;
+
+    // Input validation
+    if (!category || typeof category !== 'string') {
+      return res.status(400).json({ message: 'Category is required' });
+    }
+    if (!duration || typeof duration !== 'number' || duration < 10 || duration > 43200) {
+      return res.status(400).json({ message: 'Duration must be between 10 seconds and 12 hours (43200 seconds)' });
+    }
+
     const activity = await Activity.create({
       user: req.user._id,
       classroomCode: req.user.classroomCode || '',
       department: req.user.department || '',
       college: req.user.college || '',
       category,
-      label: label || category,
-      duration,
+      label: label?.substring(0, 200) || category,
+      duration: Math.round(duration),
       type: type || 'study',
       date: new Date()
     });

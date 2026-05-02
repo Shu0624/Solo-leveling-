@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import http from 'http';
+import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import cron from 'node-cron';
 import connectDB from './config/db.js';
@@ -16,8 +17,11 @@ import chatRoutes from './routes/chat.js';
 import assessmentRoutes from './routes/assessment.js';
 import analyticsRoutes from './routes/analytics.js';
 import interviewRoutes from './routes/interview.js';
+import languageRoutes from './routes/language.js';
+import discoverRoutes from './routes/discover.js';
 import ChatMessage from './models/ChatMessage.js';
 import { runAggregation } from './scripts/aggregateAnalytics.js';
+import { seedIfEmpty, runDailyDiscovery } from './services/discoveryService.js';
 
 dotenv.config();
 
@@ -30,8 +34,33 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+// Warn about weak JWT secrets
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+  console.warn('⚠️  WARNING: JWT_SECRET is too short (< 32 chars). Use a cryptographically random secret in production.');
+}
+
 // Connect to database
-connectDB();
+connectDB().then(async () => {
+  // One-time migration: Drop old attendance index that conflicts with subject-wise tracking
+  try {
+    const mongoose = (await import('mongoose')).default;
+    if (mongoose.connection.readyState === 1) {
+      const collection = mongoose.connection.collection('attendances');
+      const indexes = await collection.indexes();
+      const oldIndex = indexes.find(idx => idx.name === 'classroomCode_1_date_1');
+      if (oldIndex) {
+        await collection.dropIndex('classroomCode_1_date_1');
+        console.log('[MIGRATION] Dropped old attendance index classroomCode_1_date_1');
+      }
+    }
+  } catch (e) {
+    // Index might not exist, that's fine
+    if (!e.message.includes('not found')) console.log('[MIGRATION] Index check:', e.message);
+  }
+
+  // Seed programs & benefits collections on first startup
+  try { await seedIfEmpty(); } catch (e) { console.error('[SEED] Initial seed failed:', e.message); }
+}).catch(() => {});
 
 const app = express();
 const server = http.createServer(app);
@@ -45,26 +74,68 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(helmet({ contentSecurityPolicy: false })); // Security headers
-app.use(cors());
+// Security headers — CSP restricts script sources to prevent XSS
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "wss:", "ws:", process.env.CLIENT_URL || 'http://localhost:5173'],
+      mediaSrc: ["'self'", "blob:"],
+      frameSrc: ["'self'", "blob:"],
+    },
+  },
+}));
+
+// CORS — restrict to configured client origin
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(s => s.trim());
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl) in development
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check for monitoring (UptimeRobot, etc.)
 app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
-// Socket.io logic for WebRTC
-io.on('connection', (socket) => {
-  console.log('New client connected', socket.id);
-  
-  socket.on('join-room', (roomId, userId) => {
-    socket.join(roomId);
-    // Broadcast to others in room that a user joined
-    socket.to(roomId).emit('user-connected', userId);
+// Socket.io authentication middleware — verify JWT before allowing connections
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+  if (!token) {
+    return next(new Error('Authentication required'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (err) {
+    return next(new Error('Invalid token'));
+  }
+});
 
-    socket.on('disconnect', () => {
-      socket.to(roomId).emit('user-disconnected', userId);
-    });
+// Socket.io logic for WebRTC + Chat
+io.on('connection', (socket) => {
+  console.log('Client connected', socket.id);
+  
+  // Track which WebRTC room this socket is in (for cleanup)
+  let currentRoomId = null;
+
+  socket.on('join-room', (roomId, userId) => {
+    currentRoomId = roomId;
+    socket.join(roomId);
+    socket.to(roomId).emit('user-connected', userId);
   });
 
   // Relay WebRTC signaling messages
@@ -81,11 +152,12 @@ io.on('connection', (socket) => {
   });
 
   // =====================================================================
-  // COURSE GROUP CHAT
+  // COURSE GROUP CHAT — SECURED
+  // Uses socket.userId from JWT middleware instead of trusting client data
   // =====================================================================
   socket.on('join-course-chat', async (room) => {
+    if (!room || typeof room !== 'string' || room.length > 30) return;
     socket.join(`chat:${room}`);
-    // Send last 50 messages on join
     try {
       const history = await ChatMessage.find({ room })
         .sort({ createdAt: -1 })
@@ -98,21 +170,34 @@ io.on('connection', (socket) => {
   });
 
   socket.on('leave-course-chat', (room) => {
-    socket.leave(`chat:${room}`);
+    if (room) socket.leave(`chat:${room}`);
   });
 
   socket.on('course-message', async (data) => {
-    const { room, userId, userName, message } = data;
-    if (!room || !message) return;
+    const { room, userName, message } = data;
+    if (!room || !message || typeof message !== 'string') return;
+    // SECURITY: Use verified socket.userId, NOT the client-provided userId
+    // Truncate message to prevent payload flooding
+    const safeMessage = message.trim().substring(0, 2000);
+    if (safeMessage.length === 0) return;
     try {
-      const saved = await ChatMessage.create({ room, userId, userName, message });
+      const saved = await ChatMessage.create({
+        room,
+        userId: socket.userId,  // From JWT — verified identity
+        userName: userName ? String(userName).substring(0, 100) : 'Anonymous',
+        message: safeMessage
+      });
       io.to(`chat:${room}`).emit('course-message', saved);
     } catch (e) {
       console.error('Chat save error:', e);
     }
   });
 
+  // Single disconnect handler (fixes memory leak from nested listener)
   socket.on('disconnect', () => {
+    if (currentRoomId) {
+      socket.to(currentRoomId).emit('user-disconnected', socket.userId);
+    }
     console.log('Client disconnected', socket.id);
   });
 });
@@ -128,6 +213,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/assessment', assessmentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/interview', interviewRoutes);
+app.use('/api/language', languageRoutes);
+app.use('/api/discover', discoverRoutes);
 
 // =====================================================================
 // CRON JOBS — Analytics Aggregation
@@ -148,6 +235,13 @@ cron.schedule('0 0 1 * *', async () => {
   try { await runAggregation('monthly'); } catch (e) { console.error('[CRON] Monthly aggregation failed:', e.message); }
 });
 console.log('[CRON] Analytics aggregation jobs scheduled');
+
+// Daily at 6 AM — AI Discovery for Programs & Benefits
+cron.schedule('0 6 * * *', async () => {
+  console.log('[CRON] Running daily AI discovery for programs & benefits...');
+  try { await runDailyDiscovery(); } catch (e) { console.error('[CRON] Discovery failed:', e.message); }
+});
+console.log('[CRON] AI Discovery job scheduled (daily at 6 AM)');
 
 
 // =====================================================================

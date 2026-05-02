@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Lock, Save, ShieldCheck, Mail, Building, GraduationCap, MapPin, Hash, Check, AlertCircle } from 'lucide-react';
+import { User, Lock, Save, ShieldCheck, Mail, Building, GraduationCap, MapPin, Hash, Check, AlertCircle, IdCard, QrCode } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
 
@@ -79,11 +79,96 @@ const Profile = () => {
     }
   };
 
+  const initials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
+
+  const displayId = user?.enrollmentId || user?.employeeId || 'N/A';
+  const roleBadge = user?.role === 'student' ? 'Student' 
+    : user?.role === 'faculty' ? 'Faculty'
+    : user?.role === 'hod' ? 'HOD'
+    : user?.role === 'principal' ? 'Principal'
+    : user?.role === 'placement' ? 'Placement'
+    : 'User';
+
   return (
     <div className="container mx-auto max-w-5xl px-4 py-8 relative">
       <div className="flex flex-col gap-8">
-        
-        {/* Header Options */}
+
+        {/* ====== PROFESSIONAL ID CARD ====== */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-morphism rounded-3xl overflow-hidden"
+        >
+          {/* Gradient Banner */}
+          <div className="h-28 bg-gradient-to-r from-primary via-primary/80 to-accent relative">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+            <div className="absolute top-4 right-5 flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-wider border border-white/20">
+                <IdCard size={12} className="inline mr-1.5 -mt-0.5" />{roleBadge}
+              </span>
+            </div>
+          </div>
+
+          {/* Card Body */}
+          <div className="px-6 md:px-8 pb-8 relative">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
+              {/* Avatar */}
+              <div className="w-24 h-24 -mt-12 shrink-0 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-primary/30 border-4 border-background relative z-10">
+                {initials}
+              </div>
+
+              {/* Name + Details */}
+              <div className="flex-1 pt-2 md:pt-3">
+                <h1 className="text-2xl font-extrabold text-foreground">{user?.name || 'Unknown'}</h1>
+                <p className="text-sm text-muted-foreground font-medium mt-0.5">{user?.email}</p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mt-4">
+                  <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider border border-primary/20">
+                    {roleBadge}
+                  </span>
+                  <span className="px-3 py-1 rounded-lg bg-secondary text-foreground text-xs font-bold uppercase tracking-wider border border-border/50 font-mono">
+                    ID: {displayId}
+                  </span>
+                  {user?.classroomCode && (
+                    <span className="px-3 py-1 rounded-lg bg-accent/10 text-accent text-xs font-bold uppercase tracking-wider border border-accent/20 font-mono">
+                      Class: {user.classroomCode}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* QR-like visual (decorative) */}
+              <div className="hidden md:flex flex-col items-center gap-1 p-3 mt-4 rounded-xl bg-secondary/50 border border-border/30">
+                <QrCode size={48} className="text-muted-foreground/40" />
+                <span className="text-[9px] font-mono text-muted-foreground font-bold">{displayId}</span>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-border/30">
+              {[
+                { label: 'College', value: user?.college || 'N/A', icon: Building },
+                { label: 'Department', value: user?.department || 'N/A', icon: GraduationCap },
+                { label: 'Year / Section', value: user?.year ? `Year ${user.year}${user.section ? ` - ${user.section}` : ''}` : 'N/A', icon: MapPin },
+                { label: 'Classroom', value: user?.classroomCode || 'N/A', icon: Hash },
+              ].map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <div key={i} className="p-3 rounded-xl bg-secondary/30 border border-border/30">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <Icon size={14} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
+                    </div>
+                    <p className="text-sm font-bold text-foreground truncate">{item.value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
@@ -92,10 +177,6 @@ const Profile = () => {
             <p className="text-muted-foreground mt-1">
               Manage your personal information, classroom assignments, and security preferences.
             </p>
-          </div>
-          <div className="bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-xl flex items-center gap-2 font-semibold">
-            <ShieldCheck size={18} />
-            Role: <span className="capitalize">{user?.role || 'Student'}</span>
           </div>
         </div>
 
@@ -182,8 +263,8 @@ const Profile = () => {
                     name="department"
                     value={profileData.department}
                     onChange={handleProfileChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
-                    placeholder="e.g., Computer Science"
+                    className="w-full bg-background/50 border border-border rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                    placeholder="Enter your department"
                   />
                 </div>
               </div>
@@ -200,8 +281,8 @@ const Profile = () => {
                     name="section"
                     value={profileData.section}
                     onChange={handleProfileChange}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
-                    placeholder="e.g., A, B, C"
+                    className="w-full bg-background/50 border border-border rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                    placeholder="Enter your section"
                   />
                 </div>
               </div>
@@ -216,8 +297,8 @@ const Profile = () => {
                   max="5"
                   value={profileData.year}
                   onChange={handleProfileChange}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none"
-                  placeholder="1-4"
+                  className="w-full bg-background/50 border border-border rounded-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+                  placeholder="Enter your current year"
                 />
               </div>
 
@@ -234,7 +315,7 @@ const Profile = () => {
                     value={profileData.classroomCode}
                     onChange={handleProfileChange}
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 outline-none uppercase"
-                    placeholder="e.g., CSE-3A"
+                    placeholder="Enter your classroom code"
                   />
                 </div>
               </div>

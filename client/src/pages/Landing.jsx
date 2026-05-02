@@ -31,7 +31,7 @@ const Landing = () => {
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Bridge the gap between academia and industry. Master the MERN stack, optimize your resume with AI, and crush technical interviews in a single, unified platform.
+            Bridge the gap between academics and industry. Build your skills, optimize your resume, and prepare for technical interviews — all in one place.
           </p>
 
           <div className="flex flex-col sm:flex-row shadow-sm shadow-primary/20 items-center justify-center gap-4 max-w-md mx-auto rounded-3xl p-2 bg-background/50 backdrop-blur-xl border border-border/50">
@@ -53,8 +53,8 @@ const Landing = () => {
       {/* Features Grid */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32" id="features">
         <div className="text-center mb-20">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight text-foreground">An Unfair Advantage.</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Everything you need to secure top engineering roles, built into a single distraction-free ecosystem.</p>
+          <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight text-foreground">Everything You Need</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">All the tools you need to land top engineering roles, built into a single distraction-free platform.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -69,7 +69,7 @@ const Landing = () => {
             { 
               icon: <Bot size={28} />, 
               title: 'AI Resume Optimization', 
-              desc: 'Our proprietary ATS engine scores your PDF resume against live JD parameters, delivering actionable keyword improvement suggestions.',
+              desc: 'Our resume scoring system evaluates your PDF against live job descriptions, delivering actionable keyword improvement suggestions.',
               color: 'text-accent bg-accent/10 border-accent/20'
             },
             { 
@@ -81,7 +81,7 @@ const Landing = () => {
             { 
               icon: <Route size={28} />, 
               title: 'Algorithmic Roadmaps', 
-              desc: 'Stop guessing. Get an exact day-by-day 6-month study trajectory personalized to your current skill matrix and target salary tier.',
+              desc: 'Stop guessing. Get an exact day-by-day study plan personalized to your current skill level and target role.',
               color: 'text-blue-500 bg-blue-500/10 border-blue-500/20'
             }
           ].map((feat, i) => (
@@ -107,7 +107,7 @@ const Landing = () => {
 
       {/* Footer minimal */}
       <footer className="max-w-7xl mx-auto px-4 py-8 border-t border-border/50 text-center text-muted-foreground mt-20">
-        <p className="font-medium">&copy; {new Date().getFullYear()} LevelUp. Built for elite engineers.</p>
+        <p className="font-medium">&copy; {new Date().getFullYear()} LevelUp. Built for engineering students.</p>
       </footer>
     </div>
   );

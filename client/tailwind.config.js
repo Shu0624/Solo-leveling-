@@ -4,6 +4,16 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    {
+      pattern: /grid-cols-(1|2|3|4|5|6|12)/,
+      variants: ['sm', 'md', 'lg', 'xl'],
+    },
+    {
+      pattern: /col-span-(1|2|3|4|5|6|7|8|9|10|11|12)/,
+      variants: ['sm', 'md', 'lg', 'xl'],
+    }
+  ],
   darkMode: 'class',
   theme: {
     extend: {

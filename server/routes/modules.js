@@ -279,62 +279,17 @@ router.post('/quiz/:quizId/submit', protect, async (req, res) => {
 });
 
 // =====================================================================
-// CODE EXECUTION (Sandboxed)
+// CODE EXECUTION — DISABLED (Security)
+// The previous implementation used child_process.execSync which allows
+// arbitrary OS command execution (RCE vulnerability). Replaced with
+// a safe stub. To re-enable, use a Docker sandbox or Judge0 API.
 // =====================================================================
-
-// @desc    Execute code snippet in sandboxed child process
-// @route   POST /api/modules/execute
-// @access  Private
 router.post('/execute', protect, async (req, res) => {
-  try {
-    const { code, language } = req.body;
-    if (!code || !language) {
-      return res.status(400).json({ message: 'Code and language are required' });
-    }
-
-    const { execSync } = await import('child_process');
-    const fs = await import('fs');
-    const path = await import('path');
-    const os = await import('os');
-
-    // Create temp file
-    const extensions = { javascript: 'js', python: 'py', java: 'java', c: 'c' };
-    const ext = extensions[language] || 'txt';
-    const tmpDir = os.default.tmpdir();
-    const tmpFile = path.default.join(tmpDir, `levelup_exec_${Date.now()}.${ext}`);
-
-    fs.default.writeFileSync(tmpFile, code);
-
-    let command;
-    switch (language) {
-      case 'javascript':
-        command = `node "${tmpFile}"`;
-        break;
-      case 'python':
-        command = `python "${tmpFile}"`;
-        break;
-      default:
-        fs.default.unlinkSync(tmpFile);
-        return res.status(400).json({ message: `Language "${language}" is not supported for execution yet` });
-    }
-
-    try {
-      const output = execSync(command, {
-        timeout: 5000, // 5 second timeout
-        maxBuffer: 1024 * 256, // 256KB max output
-        encoding: 'utf-8',
-      });
-      fs.default.unlinkSync(tmpFile);
-      res.status(200).json({ output: output.substring(0, 5000), error: null });
-    } catch (execErr) {
-      fs.default.unlinkSync(tmpFile);
-      const stderr = execErr.stderr || execErr.message || 'Execution failed';
-      res.status(200).json({ output: null, error: stderr.substring(0, 5000) });
-    }
-  } catch (err) {
-    console.error('Code execution error:', err);
-    res.status(500).json({ message: 'Code execution failed' });
-  }
+  return res.status(503).json({
+    message: 'Code execution is temporarily disabled for security hardening. Use your local IDE to run code.',
+    output: null,
+    error: 'Service unavailable'
+  });
 });
 
 export default router;

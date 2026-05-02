@@ -50,7 +50,7 @@ const Register = () => {
     }
   };
 
-  const isStaff = ['faculty', 'hod', 'principal', 'placement'].includes(formData.role);
+
 
   return (
     <div className="relative min-h-[calc(100vh-100px)] flex items-center justify-center overflow-hidden py-10">
@@ -110,7 +110,7 @@ const Register = () => {
                 <input
                   type="text" name="name" value={formData.name} onChange={handleChange}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="John Doe" required
+                  placeholder="Enter your full name" required
                 />
               </div>
             </div>
@@ -123,7 +123,7 @@ const Register = () => {
                 <input
                   type="email" name="email" value={formData.email} onChange={handleChange}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="name@example.com" required
+                  placeholder="Enter your email address" required
                 />
               </div>
             </div>
@@ -136,27 +136,28 @@ const Register = () => {
                 <input
                   type="password" name="password" value={formData.password} onChange={handleChange}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="••••••••" required minLength="6"
+                  placeholder="Enter your password" required minLength="6"
                 />
               </div>
             </div>
 
-            {/* Role */}
+            {/* Role Selection */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-foreground ml-1">Role</label>
               <div className="relative">
                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                 <select
                   name="role" value={formData.role} onChange={handleChange}
-                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none text-foreground"
                 >
                   <option value="student">Student</option>
-                  <option value="faculty">Faculty / Teacher</option>
-                  <option value="hod">Head of Department (HOD)</option>
-                  <option value="placement">Placement Head</option>
+                  <option value="faculty">Faculty</option>
+                  <option value="hod">HOD (Head of Department)</option>
                   <option value="principal">Principal</option>
+                  <option value="placement">Placement Officer</option>
                 </select>
               </div>
+              <p className="text-xs text-muted-foreground ml-1">Select your role to access the appropriate dashboard and features.</p>
             </div>
 
             {/* College (always required) */}
@@ -167,7 +168,7 @@ const Register = () => {
                 <input
                   type="text" name="college" value={formData.college} onChange={handleChange}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="e.g. IIT Delhi" required
+                  placeholder="Enter your college/institution" required
                 />
               </div>
             </div>
@@ -180,52 +181,46 @@ const Register = () => {
                 <input
                   type="text" name="department" value={formData.department} onChange={handleChange}
                   className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="e.g. Computer Science"
+                  placeholder="Enter your department"
                 />
               </div>
             </div>
 
-            {/* Year — only show for students and faculty */}
-            {(formData.role === 'student' || formData.role === 'faculty') && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground ml-1">
-                  {formData.role === 'student' ? 'Current Year' : 'Assigned Year (Class)'}
-                </label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <select
-                    name="year" value={formData.year} onChange={handleChange}
-                    className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
-                  >
-                    <option value="">Select Year</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                  </select>
-                </div>
+            {/* Year */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground ml-1">Current Year</label>
+              <div className="relative">
+                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <select
+                  name="year" value={formData.year} onChange={handleChange}
+                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+                >
+                  <option value="">Select Year</option>
+                  <option value="1">1st Year</option>
+                  <option value="2">2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                </select>
               </div>
-            )}
+            </div>
 
-            {/* Section — only show for students and faculty */}
-            {(formData.role === 'student' || formData.role === 'faculty') && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground ml-1">Section</label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                  <select
-                    name="section" value={formData.section} onChange={handleChange}
-                    className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
-                  >
-                    <option value="">Select Section</option>
-                    <option value="A">Section A</option>
-                    <option value="B">Section B</option>
-                    <option value="C">Section C</option>
-                    <option value="D">Section D</option>
-                  </select>
-                </div>
+            {/* Section */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground ml-1">Section</label>
+              <div className="relative">
+                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                <select
+                  name="section" value={formData.section} onChange={handleChange}
+                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all appearance-none"
+                >
+                  <option value="">Select Section</option>
+                  <option value="A">Section A</option>
+                  <option value="B">Section B</option>
+                  <option value="C">Section C</option>
+                  <option value="D">Section D</option>
+                </select>
               </div>
-            )}
+            </div>
 
             <button
               type="submit"

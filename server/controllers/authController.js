@@ -5,14 +5,14 @@ import { z } from 'zod';
 
 // Validation schemas
 const registerSchema = z.object({
-  name: z.string().min(2),
+  name: z.string().min(2).max(100),
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(6),
-  role: z.enum(['student', 'faculty', 'hod', 'principal', 'placement']),
-  college: z.string().min(2),
-  department: z.string().optional(),
+  password: z.string().min(6).max(128),
+  role: z.enum(['student', 'faculty', 'hod', 'principal', 'placement']).optional(),
+  college: z.string().min(2).max(200),
+  department: z.string().max(100).optional(),
   year: z.number().min(1).max(4).optional(),
-  section: z.string().optional(),
+  section: z.string().max(10).optional(),
 });
 
 const loginSchema = z.object({
@@ -27,13 +27,52 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Register a generic user (student or faculty)
+// Auto-generate enrollment/employee ID
+const generateEnrollmentId = async (department, year) => {
+  const dept = (department || 'GEN').toUpperCase().slice(0, 4);
+  const gradYear = year ? (2024 + (4 - year)) : 2028;
+  const count = await User.countDocuments({ role: 'student' });
+  const seq = String(count + 1).padStart(3, '0');
+  return `${dept}-${gradYear}-${seq}`;
+};
+
+const generateEmployeeId = async (department) => {
+  const dept = (department || 'GEN').toUpperCase().slice(0, 4);
+  const count = await User.countDocuments({ role: { $in: ['faculty', 'hod', 'principal', 'placement'] } });
+  const seq = String(count + 1).padStart(3, '0');
+  return `FAC-${dept}-${seq}`;
+};
+
+// Helper to build consistent user response object
+const buildUserResponse = (user, token) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  college: user.college,
+  department: user.department,
+  year: user.year,
+  section: user.section,
+  classroomCode: user.classroomCode,
+  assignedClassrooms: user.assignedClassrooms,
+  enrollmentId: user.enrollmentId,
+  employeeId: user.employeeId,
+  profilePicture: user.profilePicture,
+  streak: user.streak,
+  skills: user.skills,
+  targets: user.targets,
+  token: token || undefined,
+});
+
+// @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req, res) => {
   try {
     const validatedData = registerSchema.parse(req.body);
-    const { name, email, password, role, college, department, year, section } = validatedData;
+    const { name, email, password, college, department, year, section } = validatedData;
+
+    const role = validatedData.role || 'student';
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -42,10 +81,26 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Generate classroom code for students and faculty if applicable
+    // Generate classroom code for students if applicable
     let classroomCode = '';
     if (department && year && section) {
       classroomCode = `${department}-${year}${section}`.toUpperCase();
+    }
+
+    // Auto-generate IDs based on role
+    const isStaffRole = ['faculty', 'hod', 'principal', 'placement'].includes(role);
+    let enrollmentId;
+    let employeeId;
+    let assignedClassrooms = [];
+
+    if (isStaffRole) {
+      employeeId = await generateEmployeeId(department);
+      // For faculty, auto-assign the classroom code so they can manage it immediately
+      if (classroomCode) {
+        assignedClassrooms = [classroomCode];
+      }
+    } else {
+      enrollmentId = await generateEnrollmentId(department, year);
     }
 
     // Hash password
@@ -60,20 +115,16 @@ export const registerUser = async (req, res) => {
       role,
       college,
       department,
-      year,
-      section,
-      classroomCode,
+      year: isStaffRole ? undefined : year,
+      section: isStaffRole ? undefined : section,
+      classroomCode: isStaffRole ? undefined : classroomCode,
+      assignedClassrooms,
+      enrollmentId,
+      employeeId,
     });
 
     if (user) {
-      res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        college: user.college,
-        token: generateToken(user._id),
-      });
+      res.status(201).json(buildUserResponse(user, generateToken(user._id)));
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }
@@ -81,6 +132,7 @@ export const registerUser = async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: error.errors[0].message });
     }
+    console.error('Registration error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -97,14 +149,7 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        college: user.college,
-        token: generateToken(user._id),
-      });
+      res.json(buildUserResponse(user, generateToken(user._id)));
     } else {
       res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -116,11 +161,27 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Get user data
+// @desc    Get user data (+ retroactive ID assignment for older accounts)
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = async (req, res) => {
-  res.status(200).json(req.user);
+  const user = req.user;
+
+  // Retroactive ID generation for users who registered before this feature
+  let needsSave = false;
+  if (user.role === 'student' && !user.enrollmentId) {
+    user.enrollmentId = await generateEnrollmentId(user.department, user.year);
+    needsSave = true;
+  }
+  if (['faculty', 'hod', 'principal', 'placement'].includes(user.role) && !user.employeeId) {
+    user.employeeId = await generateEmployeeId(user.department);
+    needsSave = true;
+  }
+  if (needsSave) {
+    await user.save();
+  }
+
+  res.status(200).json(buildUserResponse(user));
 };
 
 // @desc    Update user profile
@@ -130,31 +191,38 @@ export const updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.college = req.body.college || user.college;
-      user.department = req.body.department || user.department;
-      user.year = req.body.year || user.year;
-      user.section = req.body.section || user.section;
-      user.classroomCode = req.body.classroomCode || user.classroomCode;
-
-      const updatedUser = await user.save();
-
-      res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        college: updatedUser.college,
-        department: updatedUser.department,
-        year: updatedUser.year,
-        section: updatedUser.section,
-        classroomCode: updatedUser.classroomCode,
-        token: generateToken(updatedUser._id), // optional: send new token or assume existing is ok
-      });
-    } else {
-      res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    // Fields all users can safely update
+    const { name, college } = req.body;
+    if (name && typeof name === 'string') user.name = name.substring(0, 100);
+    if (college && typeof college === 'string') user.college = college.substring(0, 200);
+
+    // Academic fields — allow all roles to update these
+    if (req.body.department) user.department = String(req.body.department).substring(0, 100);
+    if (req.body.year !== undefined) user.year = Number(req.body.year) || undefined;
+    if (req.body.section) user.section = String(req.body.section).substring(0, 10);
+
+    // Classroom code handling
+    if (req.body.classroomCode) {
+      const code = String(req.body.classroomCode).substring(0, 20).toUpperCase();
+      if (user.role === 'student') {
+        user.classroomCode = code;
+      } else {
+        // Faculty+ get it added to assignedClassrooms
+        user.classroomCode = code;
+        if (!user.assignedClassrooms) user.assignedClassrooms = [];
+        if (!user.assignedClassrooms.includes(code)) {
+          user.assignedClassrooms.push(code);
+        }
+      }
+    }
+
+    const updatedUser = await user.save();
+
+    res.json(buildUserResponse(updatedUser, generateToken(updatedUser._id)));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -174,6 +242,9 @@ export const updatePassword = async (req, res) => {
       if (!oldPassword || !newPassword) {
         return res.status(400).json({ message: 'Please provide both old and new passwords' });
       }
+      if (typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
+        return res.status(400).json({ message: 'New password must be between 6 and 128 characters' });
+      }
 
       if (!(await bcrypt.compare(oldPassword, user.password))) {
         return res.status(401).json({ message: 'Incorrect old password' });
@@ -192,3 +263,4 @@ export const updatePassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+

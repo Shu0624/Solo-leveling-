@@ -28,14 +28,34 @@ const InterviewRoom = () => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
+  const localStreamRef = useRef(null); // Ref to avoid stale closure
+
+  // Warn before leaving an active call
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (localStreamRef.current) {
+        e.preventDefault();
+        e.returnValue = 'You are in an active call. Are you sure you want to leave?';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   useEffect(() => {
-    // 1. Initialize Socket
-    socketRef.current = io('http://localhost:5000');
+    // 1. Initialize Socket with auth token and dynamic URL
+    const token = localStorage.getItem('token');
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace('/api', '')
+      : window.location.origin;
+    socketRef.current = io(socketUrl, {
+      auth: { token },
+    });
     
     // 2. Get local media
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then((stream) => {
+        localStreamRef.current = stream;
         setLocalStream(stream);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         
@@ -104,7 +124,8 @@ const InterviewRoom = () => {
       });
 
     return () => {
-      if (localStream) localStream.getTracks().forEach(track => track.stop());
+      // Use ref to avoid stale closure — localStream state is captured at mount time
+      if (localStreamRef.current) localStreamRef.current.getTracks().forEach(track => track.stop());
       if (peerConnectionRef.current) peerConnectionRef.current.close();
       if (socketRef.current) socketRef.current.disconnect();
     };
@@ -113,20 +134,37 @@ const InterviewRoom = () => {
   const toggleMute = () => {
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      setIsMuted(!audioTrack.enabled);
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
     }
   };
 
   const toggleVideo = () => {
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      setIsVideoOff(!videoTrack.enabled);
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOff(!videoTrack.enabled);
+      }
     }
   };
 
   const endCall = () => {
+    // Properly cleanup before navigating
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     navigate('/interview');
   };
 

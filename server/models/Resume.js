@@ -29,4 +29,8 @@ const resumeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Performance indexes for user lookup and leaderboard
+resumeSchema.index({ user: 1 });
+resumeSchema.index({ 'analysis.score': -1, updatedAt: -1 });
+
 export default mongoose.model('Resume', resumeSchema);
