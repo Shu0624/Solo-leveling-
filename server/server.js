@@ -63,6 +63,7 @@ connectDB().then(async () => {
 }).catch(() => {});
 
 const app = express();
+app.set('trust proxy', 1); // Trust the first proxy (e.g. Vercel) for rate limiting
 const server = http.createServer(app);
 
 // Socket.io setup for WebRTC signaling later
@@ -95,7 +96,7 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173').split
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl) in development
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.vercel.app/')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -103,6 +104,7 @@ app.use(cors({
   },
   credentials: true,
 }));
+
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
