@@ -140,100 +140,79 @@ router.get('/admin', protect, authorize('faculty', 'hod', 'principal', 'admin', 
     // Determine the base match filter for students
     let studentMatch = { role: 'student' };
     
-    // Hierarchy Rules
     if (role === 'principal' || role === 'placement') {
-      // Sees entire college
       if (college) studentMatch.college = college;
     } else if (role === 'hod') {
-      // Sees entire department in their college
       if (college) studentMatch.college = college;
       if (department) studentMatch.department = department;
     } else if (role === 'faculty') {
-      // Sees specific class (department + year if specified, else just department)
       if (college) studentMatch.college = college;
       if (department) studentMatch.department = department;
       if (year) studentMatch.year = year;
     }
 
-    // 1. Get eligible student IDs for fast lookups
-    const students = await User.find(studentMatch).select('_id name email department year');
+    // Step 1: Get eligible students (required before parallel queries)
+    const students = await User.find(studentMatch).select('_id name department year').lean();
     const studentIds = students.map(s => s._id);
     const totalStudents = students.length;
 
-    // 2. Students active this week
+    // Step 2: Run ALL independent queries in PARALLEL (the key perf fix)
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const activeThisWeek = await User.countDocuments({
-      _id: { $in: studentIds },
-      updatedAt: { $gte: oneWeekAgo }
-    });
 
-    // 3. Activity Time & Leaderboard
-    const mongoose = (await import('mongoose')).default;
-    // Need Activity model here, I will import it if missing. Let's assume it's imported or I will use mongoose.model
-    const Activity = mongoose.model('Activity');
-    
-    const activityAgg = await Activity.aggregate([
-      { $match: { user: { $in: studentIds } } },
-      { $group: { 
-          _id: '$user', 
-          totalSeconds: { $sum: '$duration' },
-          lastActive: { $max: '$date' }
-      }},
-      { $sort: { totalSeconds: -1 } },
-      { $limit: 10 }
+    const [activeThisWeek, quizAgg, resumeAgg, quizLeaderboard, recentActivity] = await Promise.all([
+      User.countDocuments({ _id: { $in: studentIds }, updatedAt: { $gte: oneWeekAgo } }),
+
+      QuizAttempt.aggregate([
+        { $match: { user: { $in: studentIds } } },
+        { $group: { _id: null, avgScore: { $avg: '$percentage' }, totalAttempts: { $sum: 1 } } }
+      ]),
+
+      Resume.aggregate([
+        { $match: { user: { $in: studentIds }, 'analysis.score': { $gt: 0 } } },
+        { $group: { _id: null, avgResume: { $avg: '$analysis.score' } } }
+      ]),
+
+      QuizAttempt.aggregate([
+        { $match: { user: { $in: studentIds } } },
+        { $group: { _id: '$user', totalAttempts: { $sum: 1 }, avgScore: { $avg: '$percentage' }, lastAttempt: { $max: '$createdAt' } } },
+        { $sort: { totalAttempts: -1, avgScore: -1 } },
+        { $limit: 10 }
+      ]),
+
+      QuizAttempt.find({ user: { $in: studentIds } })
+        .populate('user', 'name department')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean()
     ]);
-    
-    // Total hours studied across scope
-    const totalSecondsOverall = activityAgg.reduce((acc, curr) => acc + curr.totalSeconds, 0);
 
-    // Map top students
-    const topStudents = activityAgg.map(a => {
+    // Step 3: Process results (instant — no I/O)
+    const avgQuizScore = quizAgg.length > 0 ? Math.round(quizAgg[0].avgScore || 0) : 0;
+    const totalAttempts = quizAgg.length > 0 ? quizAgg[0].totalAttempts : 0;
+    const avgResumeScore = resumeAgg.length > 0 ? Math.round(resumeAgg[0].avgResume || 0) : 0;
+
+    let topStudents = quizLeaderboard.map(a => {
       const stu = students.find(s => s._id.toString() === a._id.toString());
       return {
         id: a._id,
         name: stu?.name || 'Unknown',
         department: stu?.department,
-        hours: Math.round(a.totalSeconds / 3600),
-        lastActive: a.lastActive
+        hours: a.totalAttempts,
+        metric: 'attempts',
+        avgScore: Math.round(a.avgScore || 0),
+        lastActive: a.lastAttempt
       };
     });
 
-    // 4. Average quiz score
-    const quizAgg = await QuizAttempt.aggregate([
-      { $match: { user: { $in: studentIds } } },
-      { $group: { _id: null, avgScore: { $avg: '$percentage' }, totalAttempts: { $sum: 1 } } }
-    ]);
-    const avgQuizScore = quizAgg.length > 0 ? Math.round(quizAgg[0].avgScore || 0) : 0;
-    const totalAttempts = quizAgg.length > 0 ? quizAgg[0].totalAttempts : 0;
-
-    // 5. Average resume score
-    const resumeAgg = await Resume.aggregate([
-      { $match: { user: { $in: studentIds }, 'analysis.score': { $gt: 0 } } },
-      { $group: { _id: null, avgResume: { $avg: '$analysis.score' } } }
-    ]);
-    const avgResumeScore = resumeAgg.length > 0 ? Math.round(resumeAgg[0].avgResume || 0) : 0;
-
-    // 6. Recent quiz attempts (activity feed)
-    const recentActivity = await QuizAttempt.find({ user: { $in: studentIds } })
-      .populate('user', 'name email department')
-      .sort({ createdAt: -1 })
-      .limit(10);
+    if (topStudents.length === 0) {
+      topStudents = students.slice(0, 10).map(s => ({
+        id: s._id, name: s.name, department: s.department, hours: 0, metric: 'none'
+      }));
+    }
 
     res.status(200).json({
-      scope: {
-        role,
-        department: department || 'All',
-        college: college || 'All',
-        year: role === 'faculty' && year ? year : 'All Years'
-      },
-      stats: {
-        totalStudents,
-        activeThisWeek,
-        avgQuizScore,
-        avgResumeScore,
-        totalAttempts,
-        totalStudyHours: Math.round(totalSecondsOverall / 3600)
-      },
+      scope: { role, department: department || 'All', college: college || 'All', year: role === 'faculty' && year ? year : 'All Years' },
+      stats: { totalStudents, activeThisWeek, avgQuizScore, avgResumeScore, totalAttempts, totalStudyHours: 0 },
       leaderboard: topStudents,
       recentActivity: recentActivity.map(a => ({
         studentName: a.user?.name || 'Unknown',
@@ -247,6 +226,8 @@ router.get('/admin', protect, authorize('faculty', 'hod', 'principal', 'admin', 
     res.status(500).json({ message: 'Failed to load admin dashboard' });
   }
 });
+
+
 
 // =====================================================================
 // NOTES CRUD

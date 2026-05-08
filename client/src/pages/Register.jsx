@@ -53,10 +53,31 @@ const Register = () => {
 
 
   return (
-    <div className="relative min-h-[calc(100vh-100px)] flex items-center justify-center overflow-hidden py-10">
-      {/* Background */}
-      <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-60 pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[100px] opacity-40 pointer-events-none" />
+    <div className="relative min-h-screen flex flex-col overflow-hidden noise-overlay" style={{ background: '#050505', color: '#fff' }}>
+      {/* ─── Gradient Mesh Background ─── */}
+      <div className="absolute inset-0 h-full w-full z-0 overflow-hidden">
+        <div className="gradient-mesh" />
+      </div>
+
+      {/* ─── Minimal Landing Navbar ─── */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-[1400px] mx-auto w-full">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">L</div>
+          <Link to="/" className="text-lg font-semibold tracking-tight text-white/90 hover:text-white transition-colors">LevelUp</Link>
+        </div>
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
+          <Link to="/#about" className="hover:text-white transition-colors">About</Link>
+          <Link to="/#features" className="hover:text-white transition-colors">Features</Link>
+          <Link to="/#testimonials" className="hover:text-white transition-colors">Testimonials</Link>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link to="/login" className="text-sm font-medium text-white/80 hover:text-white transition-colors hidden sm:block">Sign in</Link>
+          <Link to="/register" className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">Get Started</Link>
+        </div>
+      </nav>
+
+      {/* ─── Register Form Container ─── */}
+      <div className="flex-1 flex items-center justify-center py-10">
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -241,6 +262,7 @@ const Register = () => {
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 };

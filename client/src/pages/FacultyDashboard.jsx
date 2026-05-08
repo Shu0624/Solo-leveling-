@@ -146,7 +146,15 @@ const FacultyDashboard = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-lg text-primary">{student.hours}<span className="text-xs font-semibold text-muted-foreground">h</span></p>
+                    <p className="font-black text-lg text-primary">
+                      {student.hours}
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        {student.metric === 'attempts' ? ' quiz' : 'h'}
+                      </span>
+                    </p>
+                    {student.avgScore > 0 && (
+                      <p className="text-[10px] text-muted-foreground">{student.avgScore}% avg</p>
+                    )}
                   </div>
                 </div>
               ))}

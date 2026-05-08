@@ -71,6 +71,9 @@ const Navbar = () => {
     { path: '/profile', icon: <User size={20} />, label: 'Profile' },
   ];
 
+  // Hide global navbar on landing and auth pages (using custom minimal navbar instead)
+  if (['/', '/login', '/register'].includes(location.pathname)) return null;
+
   return (
     <>
       {/* ═══════════════════════════════════════════════════════════════ */}

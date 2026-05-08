@@ -53,6 +53,48 @@ const InterviewLobby = () => {
     scrollToBottom();
   }, [messages, chatLoading]);
 
+  // Pre-load speech synthesis voices (Chrome loads them async)
+  useEffect(() => {
+    const loadVoices = () => window.speechSynthesis?.getVoices();
+    loadVoices();
+    window.speechSynthesis?.addEventListener?.('voiceschanged', loadVoices);
+    return () => window.speechSynthesis?.removeEventListener?.('voiceschanged', loadVoices);
+  }, []);
+
+  // Auto-speak new AI messages when TTS is enabled
+  useEffect(() => {
+    if (messages.length > 0 && ttsEnabled) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'ai') {
+        window.speechSynthesis.cancel();
+        const cleanText = lastMsg.text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        const voices = window.speechSynthesis.getVoices();
+        // Region-specific voice name patterns
+        const regionVoices = {
+          'en-IN': { names: /heera|neerja|ravi|veena|priya|indian/i, female: /heera|neerja|veena|priya/i },
+          'en-GB': { names: /hazel|susan|george|fiona|libby|maisie|british|UK/i, female: /hazel|susan|fiona|libby|maisie/i },
+          'en-US': { names: /zira|jenny|aria|david|mark|samantha|Google US/i, female: /zira|jenny|aria|samantha/i }
+        };
+        const region = regionVoices[accent] || regionVoices['en-US'];
+        // 1. Try exact lang match
+        let langVoices = voices.filter(v => v.lang === accent);
+        // 2. Try name-based match if no exact locale
+        if (langVoices.length === 0) langVoices = voices.filter(v => region.names.test(v.name));
+        // 3. Broadest fallback
+        if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith('en'));
+        // Pick female from the matched set
+        const femaleVoice = langVoices.find(v => region.female.test(v.name)) || langVoices.find(v => /female/i.test(v.name));
+        const voiceMatch = femaleVoice || langVoices[0];
+        if (voiceMatch) utterance.voice = voiceMatch;
+        else utterance.lang = accent;
+        utterance.rate = 0.95;
+        utterance.pitch = 1.05;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  }, [messages, ttsEnabled, accent]);
+
   const startPeerRoom = () => {
     const id = roomId.trim() || `room-${Date.now().toString(36)}`;
     navigate(`/interview/${id}`);
@@ -78,14 +120,24 @@ const InterviewLobby = () => {
 
   // --- Voice: Text-to-Speech ---
   const speakText = (text) => {
-    if (!ttsEnabled || !voiceMode) return;
+    if (!ttsEnabled) return;
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
     
-    // Find a matching voice for the selected accent to prevent silent failure
+    // Region-specific voice name patterns
     const voices = window.speechSynthesis.getVoices();
-    const voiceMatch = voices.find(v => v.lang === accent) || voices.find(v => v.lang.startsWith(accent.split('-')[0]));
+    const regionVoices = {
+      'en-IN': { names: /heera|neerja|ravi|veena|priya|indian/i, female: /heera|neerja|veena|priya/i },
+      'en-GB': { names: /hazel|susan|george|fiona|libby|maisie|british|UK/i, female: /hazel|susan|fiona|libby|maisie/i },
+      'en-US': { names: /zira|jenny|aria|david|mark|samantha|Google US/i, female: /zira|jenny|aria|samantha/i }
+    };
+    const region = regionVoices[accent] || regionVoices['en-US'];
+    let langVoices = voices.filter(v => v.lang === accent);
+    if (langVoices.length === 0) langVoices = voices.filter(v => region.names.test(v.name));
+    if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith('en'));
+    const femaleVoice = langVoices.find(v => region.female.test(v.name)) || langVoices.find(v => /female/i.test(v.name));
+    const voiceMatch = femaleVoice || langVoices[0];
     if (voiceMatch) {
       utterance.voice = voiceMatch;
     } else {
@@ -93,7 +145,7 @@ const InterviewLobby = () => {
     }
 
     utterance.rate = 0.95;
-    utterance.pitch = 1;
+    utterance.pitch = 1.05;
     window.speechSynthesis.speak(utterance);
   };
 
