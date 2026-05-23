@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
 import cron from 'node-cron';
 import connectDB from './config/db.js';
+import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
 import resumeRoutes from './routes/resume.js';
@@ -19,9 +20,15 @@ import analyticsRoutes from './routes/analytics.js';
 import interviewRoutes from './routes/interview.js';
 import languageRoutes from './routes/language.js';
 import discoverRoutes from './routes/discover.js';
+import sessionRoutes from './routes/sessions.js';
 import ChatMessage from './models/ChatMessage.js';
 import { runAggregation } from './scripts/aggregateAnalytics.js';
 import { seedIfEmpty, runDailyDiscovery } from './services/discoveryService.js';
+import {
+  startSession, endSession, heartbeat, markIdle, markResume, tabSwitch,
+  initSessionManager
+} from './services/sessionManager.js';
+import User from './models/User.js';
 
 dotenv.config();
 
@@ -127,7 +134,7 @@ io.use((socket, next) => {
   }
 });
 
-// Socket.io logic for WebRTC + Chat
+// Socket.io logic for WebRTC + Chat + Session Tracking
 io.on('connection', (socket) => {
   console.log('Client connected', socket.id);
   
@@ -151,6 +158,72 @@ io.on('connection', (socket) => {
 
   socket.on('ice-candidate', (incoming) => {
     io.to(incoming.target).emit('ice-candidate', incoming);
+  });
+
+  // =====================================================================
+  // REAL-TIME SESSION TRACKING — Activity Intelligence System
+  // =====================================================================
+  socket.on('session:start', async (data) => {
+    try {
+      const user = await User.findById(socket.userId).select('name classroomCode department college').lean();
+      if (!user) return;
+      const result = await startSession(socket.userId, {
+        category: data.category || 'other',
+        label: data.label || '',
+        source: data.source || 'manual',
+        deviceInfo: data.deviceInfo || {},
+        userName: user.name,
+        classroomCode: user.classroomCode,
+      }, io);
+      socket.emit('session:confirmed', result);
+    } catch (err) {
+      console.error('[WS] session:start error:', err.message);
+      socket.emit('session:error', { message: 'Failed to start session' });
+    }
+  });
+
+  socket.on('session:heartbeat', (data) => {
+    const result = heartbeat(socket.userId, data, io);
+    if (result && !result.error) {
+      socket.emit('session:heartbeat-ack', result);
+    }
+  });
+
+  socket.on('session:idle', () => {
+    markIdle(socket.userId, io);
+  });
+
+  socket.on('session:resume', () => {
+    markResume(socket.userId, io);
+  });
+
+  socket.on('session:tab-switch', (data) => {
+    tabSwitch(socket.userId, data?.visible);
+  });
+
+  socket.on('session:end', async () => {
+    try {
+      const result = await endSession(null, socket.userId, io);
+      socket.emit('session:ended', result);
+    } catch (err) {
+      console.error('[WS] session:end error:', err.message);
+    }
+  });
+
+  // =====================================================================
+  // FACULTY LIVE MONITORING — Join classroom room for real-time updates
+  // =====================================================================
+  socket.on('faculty:join', async (classroomCode) => {
+    if (!classroomCode || typeof classroomCode !== 'string') return;
+    // Verify this user is faculty/admin
+    const user = await User.findById(socket.userId).select('role assignedClassrooms').lean();
+    if (!user || !['faculty', 'hod', 'principal', 'placement'].includes(user.role)) return;
+    socket.join(`faculty:${classroomCode}`);
+    console.log(`[WS] Faculty ${socket.userId} joined room faculty:${classroomCode}`);
+  });
+
+  socket.on('faculty:leave', (classroomCode) => {
+    if (classroomCode) socket.leave(`faculty:${classroomCode}`);
   });
 
   // =====================================================================
@@ -195,22 +268,44 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Single disconnect handler (fixes memory leak from nested listener)
-  socket.on('disconnect', () => {
+  // Single disconnect handler — also auto-ends any active tracking session
+  socket.on('disconnect', async () => {
     if (currentRoomId) {
       socket.to(currentRoomId).emit('user-disconnected', socket.userId);
     }
+    // Auto-end tracking session on disconnect (will be saved)
+    try {
+      await endSession(null, socket.userId, io);
+    } catch (e) {
+      // Session may not exist — that's fine
+    }
     console.log('Client disconnected', socket.id);
   });
+});
+
+// Make io accessible to route handlers (for SessionManager broadcasts)
+app.set('io', io);
+
+// Initialize SessionManager background tasks (batch flush + cleanup)
+initSessionManager(io);
+
+// AI Rate Limiting — protect expensive Groq/Gemini resources from abuse
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 requests per 15 minutes
+  message: { message: 'Too many requests to AI services. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/resume', resumeRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/ai', aiLimiter, aiRoutes);
 app.use('/api/modules', modulesRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/sessions', sessionRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/assessment', assessmentRoutes);
 app.use('/api/analytics', analyticsRoutes);

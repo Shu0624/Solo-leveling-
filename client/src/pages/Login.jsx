@@ -34,18 +34,8 @@ const Login = () => {
         <div className="gradient-mesh" />
       </div>
 
-      {/* ─── Minimal Landing Navbar ─── */}
-      <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-[1400px] mx-auto w-full">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">L</div>
-          <Link to="/" className="text-lg font-semibold tracking-tight text-white/90">LevelUp</Link>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm font-medium text-white/80 hover:text-white transition-colors hidden sm:block">Sign in</Link>
-          <Link to="/register" className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">Get Started</Link>
-        </div>
-      </nav>
+
 
       {/* ─── Login Form Container ─── */}
       <div className="flex-1 flex items-center justify-center py-12">

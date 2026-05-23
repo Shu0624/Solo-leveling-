@@ -14,6 +14,10 @@ import confetti from 'canvas-confetti';
 import BinauralBeatsPlayer from '../components/dashboard/BinauralBeatsPlayer';
 import TaskChecklist from '../components/dashboard/TaskChecklist';
 import { generateReadinessReport } from '../utils/generateReport';
+import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
+import TodayIntelligence from '../components/dashboard/TodayIntelligence';
+import FocusScoreRing from '../components/dashboard/FocusScoreRing';
+import SessionHistory from '../components/dashboard/SessionHistory';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
@@ -27,13 +31,15 @@ const StudentDashboard = () => {
   const [moduleProgress, setModuleProgress] = useState(0);
   const [programs, setPrograms] = useState([]);
 
-  // Global Timer state
+  // Global Timer state + Session Intelligence
   const {
     timerRunning, timerSeconds, timerCategory, timerLabel,
     timerMode, countdownMinutes,
     setTimerCategory, setTimerLabel, setTimerMode, setCountdownMinutes,
     startTimer, pauseTimer, stopAndSaveTimer,
-    formatTime
+    formatTime,
+    // Session Intelligence (new)
+    focusStatus, isIdle, focusScore: lastFocusScore, todayStats,
   } = useActivity();
 
   // History & Analytics
@@ -42,6 +48,7 @@ const StudentDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [activeRange, setActiveRange] = useState('7days');
 
   useEffect(() => {
     const timerId = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -58,17 +65,17 @@ const StudentDashboard = () => {
     fetchDashboard();
     fetchNotes();
     fetchHistory();
-    loadAnalyticsData();
+    loadAnalyticsData(activeRange);
     fetchPrograms();
     
     // Listen for global timer saves to refresh history
     const handleActivityLog = () => {
       fetchHistory();
-      loadAnalyticsData();
+      loadAnalyticsData(activeRange);
     };
     window.addEventListener('activity-logged', handleActivityLog);
     return () => window.removeEventListener('activity-logged', handleActivityLog);
-  }, []);
+  }, [activeRange]);
 
   const fetchDashboard = async () => {
     try {
@@ -130,9 +137,9 @@ const StudentDashboard = () => {
     catch (err) { console.error(err); }
   };
 
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = async (range = '7days') => {
     try {
-      const res = await api.get('/activity/analytics');
+      const res = await api.get(`/activity/analytics?range=${range}`);
       setAnalytics(res.data);
     } catch (err) { console.error(err); }
   };
@@ -177,19 +184,31 @@ const StudentDashboard = () => {
   })) || [];
 
   const dailyChartData = analytics ? (() => {
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().split('T')[0];
-      const found = analytics.daily.find(r => r._id === key);
-      data.push({
-        dateStr: key,
-        name: d.toLocaleDateString('en', { weekday: 'short' }),
-        minutes: found ? Math.round(found.totalSeconds / 60) : 0
-      });
-    }
-    return data;
+    if (!analytics.daily || analytics.daily.length === 0) return [];
+    
+    return analytics.daily.map(d => {
+      let formattedName = d._id;
+      
+      try {
+        if (d._id.length === 7) { // %Y-%m format
+          const [year, month] = d._id.split('-');
+          const dateObj = new Date(year, parseInt(month) - 1, 1);
+          formattedName = dateObj.toLocaleString('en', { month: 'short' });
+        } else { // %Y-%m-%d format
+          const [year, month, day] = d._id.split('-');
+          const dateObj = new Date(year, parseInt(month) - 1, parseInt(day));
+          formattedName = dateObj.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      
+      return {
+        dateStr: d._id,
+        name: formattedName,
+        minutes: Math.round(d.totalSeconds / 60)
+      };
+    });
   })() : [];
 
   if (loading) {
@@ -224,12 +243,12 @@ const StudentDashboard = () => {
           <p className="text-white/60 text-sm font-medium">Let's make today productive and meaningful.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button 
-            onClick={openAnalyticsModal} 
+          <Link 
+            to="/my-analytics" 
             className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white/10 backdrop-blur-md rounded-xl text-sm font-medium transition-colors"
           >
             <PieChartIcon size={16} /> Analytics
-          </button>
+          </Link>
           <button 
             onClick={async () => {
               try {
@@ -276,7 +295,12 @@ const StudentDashboard = () => {
         </div>
       </div>
 
-      {/* 2. FOCUS & PROGRESS SECTION */}
+      {/* 1.5 LIVE SESSION WIDGET — Shows when timer is running */}
+      <div className="mb-6">
+        <LiveSessionWidget />
+      </div>
+
+      {/* 2. FOCUS & INTELLIGENCE SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
          
          {/* LEFT: FOCUS ZONE */}
@@ -408,10 +432,10 @@ const StudentDashboard = () => {
                          <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Today</div>
                          <div className="font-bold text-white shadow-sm text-sm sm:text-base">{formatDuration(analytics?.today?.totalSeconds || 0)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 p-2 sm:p-3 rounded-xl min-w-[70px] sm:min-w-[80px]">
-                         <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Week</div>
-                         <div className="font-bold text-white shadow-sm text-sm sm:text-base">{formatDuration(dailyChartData.reduce((acc, d) => acc + d.minutes * 60, 0))}</div>
-                      </div>
+                       <div className="bg-black/40 border border-white/5 p-2 sm:p-3 rounded-xl min-w-[70px] sm:min-w-[80px]">
+                          <div className="text-[9px] sm:text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Week</div>
+                          <div className="font-bold text-white shadow-sm text-sm sm:text-base">{formatDuration(analytics?.weekly?.totalSeconds || 0)}</div>
+                       </div>
                    </div>
                 </div>
 
@@ -467,13 +491,67 @@ const StudentDashboard = () => {
          </div>
       </div>
 
-      {/* 2.5 EXTENDED INSIGHTS SECTION */}
+      {/* 2.5 TODAY'S INTELLIGENCE + SESSION HISTORY */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        {/* Left: Today's Intelligence Panel */}
+        <div className="lg:col-span-7">
+          <TodayIntelligence />
+        </div>
+
+        {/* Right: Session History + Focus Score */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Last Session Focus Score */}
+          {lastFocusScore !== null && lastFocusScore > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="border border-white/10 bg-[#121217]/60 backdrop-blur-3xl rounded-[2.5rem] p-6 shadow-2xl flex items-center justify-between"
+            >
+              <div>
+                <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-1">Last Session</h3>
+                <p className="text-xs text-white/30">
+                  {lastFocusScore >= 80 ? 'Excellent focus! Keep it up 🔥' :
+                   lastFocusScore >= 60 ? 'Good focus session ✨' :
+                   lastFocusScore >= 40 ? 'Room for improvement 💪' :
+                   'Try minimizing distractions 🎯'}
+                </p>
+              </div>
+              <FocusScoreRing score={lastFocusScore} size="sm" showLabel={false} />
+            </motion.div>
+          )}
+
+          {/* Session History */}
+          <SessionHistory />
+        </div>
+      </div>
+
+      {/* 3. EXTENDED INSIGHTS SECTION */}
       <div className="mb-10 border border-white/10 bg-[#121217]/60 backdrop-blur-3xl rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative overflow-hidden">
-         <div className="flex justify-between items-center mb-6 relative z-10">
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Activity size={20} className="text-blue-400" /> Focus Time - Last 7 Days
+              <Activity size={20} className="text-blue-400" /> Focus Time History
             </h2>
-            <span className="text-[10px] bg-white/5 cursor-pointer hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 text-white/40 font-bold uppercase tracking-wider">Minutes ▼</span>
+            <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10 backdrop-blur-md shadow-inner">
+              {[
+                { value: '7days', label: '7 Days' },
+                { value: 'thisMonth', label: 'This Month' },
+                { value: 'lastMonth', label: 'Last Month' },
+                { value: 'everyMonth', label: 'Monthly' },
+                { value: 'lastYear', label: 'Last Year' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setActiveRange(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+                    activeRange === opt.value
+                      ? 'bg-primary text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                      : 'text-white/50 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
          </div>
          <div className="h-[250px] sm:h-[320px] w-full relative z-10">
             {dailyChartData.some(d => d.minutes > 0) ? (
@@ -589,9 +667,9 @@ const StudentDashboard = () => {
             </div>
             
             <div className="space-y-0 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-px before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-              {activityHistory.length === 0 ? (
-                <div className="py-8 text-center text-white/30 text-sm border border-dashed border-white/10 rounded-2xl relative z-10 bg-[#09090b]/50 backdrop-blur-sm">No sessions yet. Hit start above!</div>
-              ) : activityHistory.slice(0, 4).map((a, i) => {
+              {(() => { const realSessions = activityHistory.filter(a => !a.label?.startsWith('Auto-tracked:')); return realSessions.length === 0 ? (
+                 <div className="py-8 text-center text-white/30 text-sm border border-dashed border-white/10 rounded-2xl relative z-10 bg-[#09090b]/50 backdrop-blur-sm">No focus sessions yet. Hit start above!</div>
+               ) : realSessions.slice(0, 4).map((a, i) => {
                 const cat = ACTIVITY_CATEGORIES.find(c => c.value === a.category);
                 return (
                   <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active py-4">
@@ -613,7 +691,7 @@ const StudentDashboard = () => {
                      </div>
                   </div>
                 );
-              })}
+              })})()}
             </div>
           </div>
 

@@ -9,7 +9,7 @@ const activitySchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['java', 'python', 'dsa', 'ai', 'aptitude', 'interview', 'resume', 'group-discussion', 'other']
+      enum: ['java', 'python', 'dsa', 'ai', 'aptitude', 'interview', 'resume', 'group-discussion', 'quiz', 'module', 'other']
     },
     label: { type: String }, // Custom label e.g. "Java Arrays practice"
     duration: { type: Number, required: true }, // seconds

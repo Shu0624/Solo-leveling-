@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 /**
  * Generate a branded Career Readiness Report PDF
@@ -114,7 +114,7 @@ export const generateReadinessReport = (data) => {
   doc.text('Performance Breakdown', 20, y);
 
   y += 5;
-  doc.autoTable({
+  autoTable(doc, {
     startY: y,
     head: [['Dimension', 'Score', 'Status', 'Weight']],
     body: [
@@ -158,7 +158,7 @@ export const generateReadinessReport = (data) => {
     : 0;
   const totalSessions = activityData?.totalSessions || 0;
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: y,
     head: [['Metric', 'Value']],
     body: [

@@ -6,6 +6,7 @@ import {
   BookOpen, Target, Clock, Star, Flame, BarChart3, ArrowRight 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import LiveStudentGrid from '../components/dashboard/LiveStudentGrid';
 
 const FacultyDashboard = () => {
   const { api, user } = useAuth();
@@ -120,6 +121,11 @@ const FacultyDashboard = () => {
 
       </div>
 
+      {/* Live Monitoring Station */}
+      <div className="mb-8">
+        <LiveStudentGrid classroomCode={user.role === 'faculty' && user.assignedClassrooms?.length > 0 ? user.assignedClassrooms[0] : 'all'} />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Top Performers Leaderboard */}
@@ -167,7 +173,7 @@ const FacultyDashboard = () => {
         {/* Live Activity Feed */}
         <div className="glass-morphism p-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold flex items-center gap-2 text-foreground"><Activity className="text-accent"/> Live Quiz Feed</h2>
+            <h2 className="text-xl font-bold flex items-center gap-2 text-foreground"><Activity className="text-accent"/> Live Student Activity Feed</h2>
           </div>
           {data.recentActivity?.length > 0 ? (
             <div className="space-y-4">
@@ -178,20 +184,20 @@ const FacultyDashboard = () => {
                        {act.studentName}
                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50 text-muted-foreground uppercase">{act.department}</span>
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">Completed a module quiz</p>
+                    <p className="text-xs text-muted-foreground mt-1">{act.description}</p>
                   </div>
-                  <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm ${
+                  <div className={`px-4 py-2 rounded-xl text-sm font-bold shadow-sm whitespace-nowrap ${
                     act.score >= 70 ? 'bg-success/10 text-success border border-success/20' : 
                     act.score >= 50 ? 'bg-warning/10 text-warning border border-warning/20' : 
                     'bg-destructive/10 text-destructive border border-destructive/20'
                   }`}>
-                    {act.score}% Score
+                    {act.score}% {act.scoreLabel || 'Score'}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center p-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">No recent quiz activity.</div>
+            <div className="text-center p-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">No recent student activity.</div>
           )}
         </div>
 

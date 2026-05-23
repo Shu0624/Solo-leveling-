@@ -55,6 +55,7 @@ router.get('/history', protect, async (req, res) => {
 router.get('/analytics', protect, async (req, res) => {
   try {
     const userId = req.user._id;
+    const range = req.query.range || '7days';
 
     // 1. Total time by category (all time)
     const byCategory = await Activity.aggregate([
@@ -63,30 +64,79 @@ router.get('/analytics', protect, async (req, res) => {
       { $sort: { totalSeconds: -1 } }
     ]);
 
-    // 2. Daily totals for last 7 days
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // 2. Dynamic totals based on range
+    let startDate;
+    let endDate = new Date();
+    let groupByFormat = '%Y-%m-%d';
+
+    if (range === 'thisMonth') {
+      startDate = new Date();
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (range === 'lastMonth') {
+      startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 1);
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date();
+      endDate.setDate(0); // Last day of previous month
+      endDate.setHours(23, 59, 59, 999);
+    } else if (range === 'lastYear') {
+      startDate = new Date();
+      startDate.setFullYear(startDate.getFullYear() - 1);
+      startDate.setMonth(0);
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date();
+      endDate.setFullYear(endDate.getFullYear() - 1);
+      endDate.setMonth(11);
+      endDate.setDate(31);
+      endDate.setHours(23, 59, 59, 999);
+
+      groupByFormat = '%Y-%m';
+    } else if (range === 'everyMonth') {
+      startDate = new Date();
+      startDate.setMonth(0);
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+
+      groupByFormat = '%Y-%m';
+    } else {
+      // Default: last 7 days
+      startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    }
+
     const daily = await Activity.aggregate([
-      { $match: { user: userId, date: { $gte: sevenDaysAgo } } },
+      { $match: { user: userId, date: { $gte: startDate, $lte: endDate } } },
       { $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+        _id: { $dateToString: { format: groupByFormat, date: '$date' } },
         totalSeconds: { $sum: '$duration' },
         sessions: { $sum: 1 }
       }},
       { $sort: { _id: 1 } }
     ]);
 
-    // 3. Monthly total
+    // 3. Weekly total (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const weeklyAgg = await Activity.aggregate([
+      { $match: { user: userId, date: { $gte: sevenDaysAgo } } },
+      { $group: { _id: null, totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 } } }
+    ]);
+
+    // 3b. Monthly total
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const monthlyAgg = await Activity.aggregate([
       { $match: { user: userId, date: { $gte: thirtyDaysAgo } } },
       { $group: { _id: null, totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 } } }
     ]);
 
-    // 4. Today's total
+    // 4. Today's total (only focus sessions, exclude auto-tracked)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayAgg = await Activity.aggregate([
-      { $match: { user: userId, date: { $gte: today } } },
+      { $match: { user: userId, date: { $gte: today }, type: { $ne: 'auto' } } },
       { $group: { _id: null, totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 } } }
     ]);
 
@@ -107,11 +157,19 @@ router.get('/analytics', protect, async (req, res) => {
       } else break;
     }
 
+    // 6. Overall totals
+    const overallAgg = await Activity.aggregate([
+      { $match: { user: userId } },
+      { $group: { _id: null, totalSeconds: { $sum: '$duration' }, sessionCount: { $sum: 1 } } }
+    ]);
+
     res.status(200).json({
       byCategory,
       daily,
+      weekly: weeklyAgg[0] || { totalSeconds: 0, sessions: 0 },
       monthly: monthlyAgg[0] || { totalSeconds: 0, sessions: 0 },
       today: todayAgg[0] || { totalSeconds: 0, sessions: 0 },
+      overall: overallAgg[0] || { totalSeconds: 0, sessionCount: 0 },
       streak
     });
   } catch (err) {

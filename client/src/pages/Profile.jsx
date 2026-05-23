@@ -43,6 +43,9 @@ const Profile = () => {
 
     try {
       const res = await api.put('/auth/profile', profileData);
+      if (res.data.token) {
+        localStorage.setItem('token', res.data.token);
+      }
       setUser(res.data);
       setProfileMessage({ type: 'success', text: 'Profile updated successfully!' });
       setTimeout(() => setProfileMessage({ type: '', text: '' }), 3000);

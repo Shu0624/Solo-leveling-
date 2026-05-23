@@ -2,24 +2,34 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import InterviewSession from '../models/InterviewSession.js';
 
+import { z } from 'zod';
+
 const router = express.Router();
+
+const saveSessionSchema = z.object({
+  topic: z.string().trim().max(100).default('hr'),
+  messagesCount: z.number().int().min(0).max(1000).default(0),
+  durationSeconds: z.number().int().min(0).max(86400).default(0),
+  score: z.number().min(0).max(100).default(0),
+});
 
 // @desc    Save a completed AI interview session
 // @route   POST /api/interview/session
 // @access  Private
 router.post('/session', protect, async (req, res) => {
   try {
-    const { topic, messagesCount, durationSeconds, score } = req.body;
+    const validated = saveSessionSchema.parse(req.body);
+    const { topic, messagesCount, durationSeconds, score } = validated;
 
     const session = await InterviewSession.create({
       host: req.user._id,
       roomId: `ai-${Date.now().toString(36)}`,
       type: 'mock-interview',
       status: 'completed',
-      topic: topic || 'hr',
-      messagesCount: messagesCount || 0,
-      aiScore: score || 0,
-      startedAt: new Date(Date.now() - (durationSeconds || 0) * 1000),
+      topic,
+      messagesCount,
+      aiScore: score,
+      startedAt: new Date(Date.now() - durationSeconds * 1000),
       endedAt: new Date()
     });
 
@@ -35,6 +45,9 @@ router.post('/session', protect, async (req, res) => {
       }
     });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: err.errors[0].message });
+    }
     console.error('Save interview session error:', err);
     res.status(500).json({ message: 'Failed to save interview session' });
   }

@@ -195,28 +195,51 @@ export const updateProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Fields all users can safely update
-    const { name, college } = req.body;
-    if (name && typeof name === 'string') user.name = name.substring(0, 100);
-    if (college && typeof college === 'string') user.college = college.substring(0, 200);
+    const { name, college, department, year, section, classroomCode } = req.body;
 
-    // Academic fields — allow all roles to update these
-    if (req.body.department) user.department = String(req.body.department).substring(0, 100);
-    if (req.body.year !== undefined) user.year = Number(req.body.year) || undefined;
-    if (req.body.section) user.section = String(req.body.section).substring(0, 10);
+    // Fields update
+    if (name !== undefined) user.name = String(name).substring(0, 100);
+    if (college !== undefined) user.college = String(college).substring(0, 200);
+    if (department !== undefined) user.department = String(department).substring(0, 100);
+    
+    // Academic fields updates
+    if (year !== undefined) {
+      user.year = year ? Number(year) : undefined;
+    }
+    if (section !== undefined) {
+      user.section = section ? String(section).substring(0, 10) : undefined;
+    }
 
-    // Classroom code handling
-    if (req.body.classroomCode) {
-      const code = String(req.body.classroomCode).substring(0, 20).toUpperCase();
-      if (user.role === 'student') {
-        user.classroomCode = code;
-      } else {
-        // Faculty+ get it added to assignedClassrooms
-        user.classroomCode = code;
+    // Dynamic classroom code auto-regeneration
+    if (classroomCode !== undefined) {
+      const code = String(classroomCode).substring(0, 20).toUpperCase();
+      user.classroomCode = code || undefined;
+      if (user.role !== 'student' && code) {
         if (!user.assignedClassrooms) user.assignedClassrooms = [];
         if (!user.assignedClassrooms.includes(code)) {
           user.assignedClassrooms.push(code);
         }
+      }
+    } else if (user.department && user.year && user.section) {
+      // Auto-compute classroomCode from department-yearSection
+      const autoCode = `${user.department}-${user.year}${user.section}`.toUpperCase();
+      user.classroomCode = autoCode;
+      if (user.role !== 'student') {
+        if (!user.assignedClassrooms) user.assignedClassrooms = [];
+        if (!user.assignedClassrooms.includes(autoCode)) {
+          user.assignedClassrooms.push(autoCode);
+        }
+      }
+    }
+
+    // Dynamic ID regeneration if key fields updated
+    if (user.role === 'student') {
+      if (user.department && user.year) {
+        user.enrollmentId = await generateEnrollmentId(user.department, user.year);
+      }
+    } else {
+      if (user.department) {
+        user.employeeId = await generateEmployeeId(user.department);
       }
     }
 

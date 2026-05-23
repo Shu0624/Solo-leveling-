@@ -26,19 +26,18 @@ const RouteTracker = () => {
   };
 
   const logActivity = (path, durationSeconds) => {
-    if (!user || durationSeconds < 10) return; // Don't log if less than 10 seconds
+    if (!user || durationSeconds < 120) return; // Only log if spent 2+ minutes on a page
 
     const category = getCategoryFromPath(path);
     const activityData = {
       category,
       label: getLabelFromPath(path),
       duration: durationSeconds,
-      type: 'study'
+      type: 'auto'
     };
 
     api.post('/activity', activityData)
       .then(() => {
-        // Dispatch activity-logged event to update dashboard graphs
         window.dispatchEvent(new Event('activity-logged'));
       })
       .catch(err => {

@@ -188,11 +188,14 @@ const ResumeAnalysis = () => {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-muted-foreground ml-1">Job Description <span className="text-destructive">*</span></label>
+              <div className="flex justify-between items-center ml-1">
+                <label className="text-sm font-semibold text-muted-foreground">Job Description</label>
+                <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-full text-muted-foreground font-bold uppercase">Optional</span>
+              </div>
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the target job description here..."
+                placeholder="Paste the target job description here to analyze matching alignment, or leave blank for a general ATS score scan..."
                 className="w-full h-24 bg-background/50 glass-morphism border border-border/60 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium"
               />
             </div>
@@ -251,7 +254,7 @@ const ResumeAnalysis = () => {
 
             <button 
               onClick={handleUpload}
-              disabled={!file || !jobDescription.trim() || analyzing}
+              disabled={!file || analyzing}
               className="mt-3 w-full py-3 rounded-xl bg-slate-900 dark:bg-primary text-white font-bold text-sm shadow-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {analyzing ? (

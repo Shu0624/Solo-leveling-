@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Code2, ChevronDown, ChevronUp, Terminal, Loader2 } from 'lucide-react';
+import { Play, Code2, ChevronDown, ChevronUp, Terminal, Loader2, Copy, Check } from 'lucide-react';
 
 const LANGUAGES = [
   { value: 'javascript', label: 'JavaScript', starter: '// Write your JavaScript code here\nconsole.log("Hello, LevelUp!");' },
@@ -16,6 +16,8 @@ const CodePlayground = () => {
   const [output, setOutput] = useState(null);
   const [error, setError] = useState(null);
   const [running, setRunning] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [outputCopied, setOutputCopied] = useState(false);
 
   const handleLanguageChange = (lang) => {
     setLanguage(lang);
@@ -71,23 +73,42 @@ const CodePlayground = () => {
           >
             <div className="border-t border-border/50 p-4 space-y-3">
               {/* Language Selector + Run */}
-              <div className="flex items-center gap-3">
-                <select
-                  value={language}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  {LANGUAGES.map(l => (
-                    <option key={l.value} value={l.value}>{l.label}</option>
-                  ))}
-                </select>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="bg-secondary border border-border rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {LANGUAGES.map(l => (
+                      <option key={l.value} value={l.value}>{l.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={runCode}
+                    disabled={running || !code.trim()}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-success-foreground text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-all shadow-sm"
+                  >
+                    {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />}
+                    {running ? 'Running...' : 'Run Code'}
+                  </button>
+                </div>
+                
                 <button
-                  onClick={runCode}
-                  disabled={running || !code.trim()}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success text-success-foreground text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-all shadow-sm"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(code);
+                      setCodeCopied(true);
+                      setTimeout(() => setCodeCopied(false), 2000);
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
+                  title="Copy current code"
                 >
-                  {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />}
-                  {running ? 'Running...' : 'Run Code'}
+                  {codeCopied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                  <span>{codeCopied ? 'Copied!' : 'Copy Code'}</span>
                 </button>
               </div>
 
@@ -114,11 +135,28 @@ const CodePlayground = () => {
 
               {/* Output Panel */}
               {(output || error) && (
-                <div className={`rounded-xl p-4 text-sm font-mono border ${
+                <div className={`rounded-xl p-4 text-sm font-mono border relative group ${
                   error 
                     ? 'bg-destructive/5 border-destructive/20 text-destructive' 
                     : 'bg-secondary border-border/50 text-foreground'
                 }`}>
+                  <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(error || output);
+                          setOutputCopied(true);
+                          setTimeout(() => setOutputCopied(false), 2000);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg bg-[#1e1e2e]/80 hover:bg-[#1e1e2e] border border-white/10 text-white/50 hover:text-white transition-all shadow-md"
+                      title="Copy output"
+                    >
+                      {outputCopied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-wider opacity-60">
                     <Terminal size={12} /> {error ? 'Error' : 'Output'}
                   </div>

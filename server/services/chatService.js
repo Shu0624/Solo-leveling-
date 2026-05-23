@@ -376,7 +376,8 @@ You MUST respond strictly in valid JSON:
 {
   "message": "Your markdown-formatted response following the STRICT OUTPUT FORMAT above.",
   "nextQuestionIndex": (integer),
-  "type": "question" // use "complete" if the interview is over
+  "type": "question", // use "complete" if the interview is over
+  "score": (integer 1-10) // Rate the answer: 9-10=excellent, 7-8=good, 5-6=partial, 3-4=weak, 1-2=wrong. Use 0 for greetings/non-answers.
 }`;
       userPrompt = userMessage;
     } else {
@@ -433,7 +434,8 @@ You MUST respond strictly in valid JSON format matching this schema:
 {
   "message": "Your markdown-formatted response following the STRICT OUTPUT FORMAT above.",
   "nextQuestionIndex": (integer, usually previous + 1, or 0 if complete),
-  "type": "question" // use "complete" if the interview is over
+  "type": "question", // use "complete" if the interview is over
+  "score": (integer 1-10) // Rate the answer: 9-10=excellent, 7-8=good, 5-6=partial, 3-4=weak, 1-2=wrong. Use 0 for greetings/non-answers.
 }
 
 Respond strictly with JSON and no other text.`;
@@ -454,7 +456,8 @@ Respond strictly with JSON and no other text.`;
     return {
       message: parsed.message || "Please tell me more.",
       nextQuestionIndex: parsed.nextQuestionIndex !== undefined ? parsed.nextQuestionIndex : questionIndex + 1,
-      type: parsed.type || "question"
+      type: parsed.type || "question",
+      score: typeof parsed.score === 'number' ? parsed.score : 0
     };
 
   } catch(e) {

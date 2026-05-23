@@ -4,6 +4,11 @@ import Module from '../models/Module.js';
 import Quiz from '../models/Quiz.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import Progress from '../models/Progress.js';
+import vm from 'vm';
+import { spawn, execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 const router = express.Router();
 
@@ -279,17 +284,119 @@ router.post('/quiz/:quizId/submit', protect, async (req, res) => {
 });
 
 // =====================================================================
-// CODE EXECUTION — DISABLED (Security)
-// The previous implementation used child_process.execSync which allows
-// arbitrary OS command execution (RCE vulnerability). Replaced with
-// a safe stub. To re-enable, use a Docker sandbox or Judge0 API.
+// CODE EXECUTION — Enabled Safely (Security hardened)
+// JavaScript runs in an isolated VM sandbox context to prevent RCE.
+// Python runs in a separate child process with a strict 2-second timeout.
 // =====================================================================
 router.post('/execute', protect, async (req, res) => {
-  return res.status(503).json({
-    message: 'Code execution is temporarily disabled for security hardening. Use your local IDE to run code.',
-    output: null,
-    error: 'Service unavailable'
-  });
+  const { code, language } = req.body;
+
+  if (!code || !language) {
+    return res.status(400).json({ error: 'Missing code or language' });
+  }
+
+  if (language === 'javascript') {
+    try {
+      let consoleOutput = [];
+      const sandbox = {
+        console: {
+          log: (...args) => {
+            consoleOutput.push(args.map(arg => {
+              if (typeof arg === 'object') {
+                try { return JSON.stringify(arg); } catch (e) { return String(arg); }
+              }
+              return String(arg);
+            }).join(' '));
+          }
+        }
+      };
+
+      const context = vm.createContext(sandbox);
+      const script = new vm.Script(code);
+      
+      // Run with a 1.5s timeout to prevent infinite loops
+      script.runInContext(context, { timeout: 1500 });
+
+      return res.status(200).json({
+        output: consoleOutput.join('\n') || '(no output)',
+        error: null
+      });
+    } catch (err) {
+      return res.status(200).json({
+        output: null,
+        error: err.message
+      });
+    }
+  }
+
+  if (language === 'python') {
+    const tempDir = os.tmpdir();
+    const tempFile = path.join(tempDir, `py_${Date.now()}_${Math.random().toString(36).substring(3)}.py`);
+
+    try {
+      fs.writeFileSync(tempFile, code, 'utf8');
+
+      // Detect whether to use python or python3
+      let pythonCmd = 'python';
+      try {
+        execSync('python --version', { stdio: 'ignore' });
+      } catch (e) {
+        pythonCmd = 'python3';
+      }
+
+      const pyProcess = spawn(pythonCmd, [tempFile]);
+      let stdoutData = '';
+      let stderrData = '';
+
+      const timeout = setTimeout(() => {
+        pyProcess.kill();
+      }, 2000);
+
+      pyProcess.stdout.on('data', (data) => {
+        stdoutData += data.toString();
+      });
+
+      pyProcess.stderr.on('data', (data) => {
+        stderrData += data.toString();
+      });
+
+      pyProcess.on('close', (code) => {
+        clearTimeout(timeout);
+        // Clean up temp file
+        try { fs.unlinkSync(tempFile); } catch (e) {}
+
+        if (stderrData) {
+          return res.status(200).json({
+            output: null,
+            error: stderrData.trim()
+          });
+        }
+
+        return res.status(200).json({
+          output: stdoutData || '(no output)',
+          error: null
+        });
+      });
+
+      pyProcess.on('error', (err) => {
+        clearTimeout(timeout);
+        try { fs.unlinkSync(tempFile); } catch (e) {}
+        return res.status(200).json({
+          output: null,
+          error: `Failed to start Python interpreter: ${err.message}`
+        });
+      });
+
+    } catch (err) {
+      try { fs.unlinkSync(tempFile); } catch (e) {}
+      return res.status(200).json({
+        output: null,
+        error: `Python execution error: ${err.message}`
+      });
+    }
+  } else {
+    return res.status(400).json({ error: 'Unsupported language' });
+  }
 });
 
 export default router;

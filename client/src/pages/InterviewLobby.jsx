@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, History, Database, Globe, Server, Layout } from 'lucide-react';
+import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, History, Database, Globe, Server, Layout, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LanguageLearning from '../components/learning/LanguageLearning';
 import LanguageHubEmbed from '../components/learning/LanguageHubEmbed';
@@ -32,6 +32,7 @@ const InterviewLobby = () => {
 
   // Session tracking
   const sessionStartRef = useRef(null);
+  const [scores, setScores] = useState([]); // Score per answer (1-10)
 
   const topics = [
     { value: 'hr', label: 'Behavioral', icon: <Briefcase size={20}/>, desc: 'Focus on STAR method & leadership' },
@@ -69,27 +70,14 @@ const InterviewLobby = () => {
         window.speechSynthesis.cancel();
         const cleanText = lastMsg.text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        const voices = window.speechSynthesis.getVoices();
-        // Region-specific voice name patterns
-        const regionVoices = {
-          'en-IN': { names: /heera|neerja|ravi|veena|priya|indian/i, female: /heera|neerja|veena|priya/i },
-          'en-GB': { names: /hazel|susan|george|fiona|libby|maisie|british|UK/i, female: /hazel|susan|fiona|libby|maisie/i },
-          'en-US': { names: /zira|jenny|aria|david|mark|samantha|Google US/i, female: /zira|jenny|aria|samantha/i }
-        };
-        const region = regionVoices[accent] || regionVoices['en-US'];
-        // 1. Try exact lang match
-        let langVoices = voices.filter(v => v.lang === accent);
-        // 2. Try name-based match if no exact locale
-        if (langVoices.length === 0) langVoices = voices.filter(v => region.names.test(v.name));
-        // 3. Broadest fallback
-        if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith('en'));
-        // Pick female from the matched set
-        const femaleVoice = langVoices.find(v => region.female.test(v.name)) || langVoices.find(v => /female/i.test(v.name));
-        const voiceMatch = femaleVoice || langVoices[0];
-        if (voiceMatch) utterance.voice = voiceMatch;
+        const selectedVoice = pickVoiceForAccent(accent);
+        if (selectedVoice) utterance.voice = selectedVoice;
         else utterance.lang = accent;
-        utterance.rate = 0.95;
-        utterance.pitch = 1.05;
+        // Accent-specific speech params for natural differentiation
+        const params = { 'en-IN': { rate: 1.0, pitch: 1.02 }, 'en-GB': { rate: 0.92, pitch: 0.95 }, 'en-US': { rate: 0.95, pitch: 1.05 } };
+        const p = params[accent] || params['en-US'];
+        utterance.rate = p.rate;
+        utterance.pitch = p.pitch;
         window.speechSynthesis.speak(utterance);
       }
     }
@@ -109,7 +97,9 @@ const InterviewLobby = () => {
 
     try {
       const res = await api.post('/chat', { topic, message: userMsg, questionIndex, projectDescription, history: messages });
-      setMessages(prev => [...prev, { role: 'ai', text: res.data.message }]);
+      const aiScore = res.data.score || 0;
+      setMessages(prev => [...prev, { role: 'ai', text: res.data.message, score: aiScore }]);
+      if (aiScore > 0) setScores(prev => [...prev, aiScore]);
       setQuestionIndex(res.data.nextQuestionIndex);
     } catch (err) {
       setMessages(prev => [...prev, { role: 'ai', text: 'Connection interrupted. Please try again.' }]);
@@ -118,34 +108,46 @@ const InterviewLobby = () => {
     }
   };
 
+  // --- Shared voice picker ---
+  const pickVoiceForAccent = (targetAccent) => {
+    const voices = window.speechSynthesis.getVoices();
+    // Broad regex patterns covering Google, Microsoft, Apple voices
+    const regionVoices = {
+      'en-IN': { names: /heera|neerja|ravi|veena|priya|indian|hindi|Google हिन्दी|Microsoft Heera|Microsoft Neerja/i, female: /heera|neerja|veena|priya/i },
+      'en-GB': { names: /hazel|susan|george|fiona|libby|maisie|british|UK|Google UK|Microsoft Hazel|Microsoft Susan|Microsoft Libby/i, female: /hazel|susan|fiona|libby|maisie/i },
+      'en-US': { names: /zira|jenny|aria|david|mark|samantha|Google US|Microsoft Zira|Microsoft Jenny|Microsoft Aria/i, female: /zira|jenny|aria|samantha/i }
+    };
+    const region = regionVoices[targetAccent] || regionVoices['en-US'];
+
+    // Step 1: Exact locale match (e.g. lang === 'en-IN')
+    let langVoices = voices.filter(v => v.lang === targetAccent);
+    // Step 2: Also match en-IN variants like 'en_IN'
+    if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.replace('_', '-') === targetAccent);
+    // Step 3: Name-based match
+    if (langVoices.length === 0) langVoices = voices.filter(v => region.names.test(v.name));
+    // Step 4: Broadest fallback — but ONLY if nothing else worked
+    if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith('en'));
+
+    // Prefer female voice
+    const femaleVoice = langVoices.find(v => region.female.test(v.name)) || langVoices.find(v => /female/i.test(v.name));
+    const match = femaleVoice || langVoices[0];
+    console.log(`[TTS] Accent: ${targetAccent}, Selected: ${match?.name} (${match?.lang}), Available for locale: ${voices.filter(v => v.lang === targetAccent).map(v => v.name).join(', ') || 'none'}`);
+    return match || null;
+  };
+
   // --- Voice: Text-to-Speech ---
   const speakText = (text) => {
     if (!ttsEnabled) return;
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    
-    // Region-specific voice name patterns
-    const voices = window.speechSynthesis.getVoices();
-    const regionVoices = {
-      'en-IN': { names: /heera|neerja|ravi|veena|priya|indian/i, female: /heera|neerja|veena|priya/i },
-      'en-GB': { names: /hazel|susan|george|fiona|libby|maisie|british|UK/i, female: /hazel|susan|fiona|libby|maisie/i },
-      'en-US': { names: /zira|jenny|aria|david|mark|samantha|Google US/i, female: /zira|jenny|aria|samantha/i }
-    };
-    const region = regionVoices[accent] || regionVoices['en-US'];
-    let langVoices = voices.filter(v => v.lang === accent);
-    if (langVoices.length === 0) langVoices = voices.filter(v => region.names.test(v.name));
-    if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith('en'));
-    const femaleVoice = langVoices.find(v => region.female.test(v.name)) || langVoices.find(v => /female/i.test(v.name));
-    const voiceMatch = femaleVoice || langVoices[0];
-    if (voiceMatch) {
-      utterance.voice = voiceMatch;
-    } else {
-      utterance.lang = accent;
-    }
-
-    utterance.rate = 0.95;
-    utterance.pitch = 1.05;
+    const selectedVoice = pickVoiceForAccent(accent);
+    if (selectedVoice) utterance.voice = selectedVoice;
+    else utterance.lang = accent;
+    const params = { 'en-IN': { rate: 1.0, pitch: 1.02 }, 'en-GB': { rate: 0.92, pitch: 0.95 }, 'en-US': { rate: 0.95, pitch: 1.05 } };
+    const p = params[accent] || params['en-US'];
+    utterance.rate = p.rate;
+    utterance.pitch = p.pitch;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -213,12 +215,13 @@ const InterviewLobby = () => {
     if (chatStarted && messages.length > 1 && sessionStartRef.current) {
       const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
       const userMsgCount = messages.filter(m => m.role === 'user').length;
+      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) : 0; // Convert 1-10 to percentage
       try {
         await api.post('/interview/session', {
           topic,
           messagesCount: userMsgCount,
           durationSeconds,
-          score: 0
+          score: avgScore
         });
       } catch (e) {
         // silent fail — don't block UX
@@ -227,6 +230,7 @@ const InterviewLobby = () => {
     setChatStarted(false);
     setMessages([]);
     setQuestionIndex(0);
+    setScores([]);
     sessionStartRef.current = null;
   };
 
@@ -352,13 +356,24 @@ const InterviewLobby = () => {
                 </p>
               </div>
             </div>
-            <button 
-              onClick={resetChat} 
-              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-              title="End Session"
-            >
-              <RefreshCw size={20} />
-            </button>
+            <div className="flex items-center gap-3">
+              {scores.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <Award size={14} className="text-primary" />
+                  <span className="text-sm font-bold text-primary">
+                    {(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)}/10
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">avg</span>
+                </div>
+              )}
+              <button 
+                onClick={resetChat} 
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                title="End Session"
+              >
+                <RefreshCw size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Voice Controls Bar */}
@@ -463,6 +478,20 @@ const InterviewLobby = () => {
                           : part
                       )}</p>;
                     })}
+                    {msg.role === 'ai' && msg.score > 0 && (
+                      <div className={`mt-3 pt-3 border-t flex items-center gap-2 ${msg.score >= 7 ? 'border-emerald-500/20' : msg.score >= 5 ? 'border-amber-500/20' : 'border-red-500/20'}`}>
+                        <div className={`px-2.5 py-1 rounded-lg text-xs font-black ${
+                          msg.score >= 7 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                          msg.score >= 5 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                          'bg-red-500/15 text-red-400 border border-red-500/30'
+                        }`}>
+                          {msg.score}/10
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {msg.score >= 9 ? 'Excellent!' : msg.score >= 7 ? 'Good answer' : msg.score >= 5 ? 'Needs depth' : 'Review this topic'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}

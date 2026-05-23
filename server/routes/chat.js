@@ -45,7 +45,7 @@ router.post('/', protectTokenOnly, chatLimiter, async (req, res) => {
 
     const sanitizedMessage = message.trim().substring(0, 20000);
     const response = await getAIChatResponse(topic || 'hr', sanitizedMessage, questionIndex || 0, projectDescription, sanitizedHistory);
-    res.status(200).json(response);
+    res.status(200).json({ ...response, score: response.score || 0 });
   } catch (err) {
     res.status(500).json({ message: 'Chat failed' });
   }

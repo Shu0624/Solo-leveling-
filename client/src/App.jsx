@@ -29,6 +29,7 @@ const Benefits = lazy(() => import('./pages/Benefits'));
 const Assessment = lazy(() => import('./pages/Assessment'));
 const FacultyDashboard = lazy(() => import('./pages/FacultyDashboard'));
 const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
+const StudentAnalytics = lazy(() => import('./pages/StudentAnalytics'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LanguageHub = lazy(() => import('./pages/LanguageHub'));
@@ -78,6 +79,11 @@ function App() {
                 <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
                 <Route path="/benefits" element={<ProtectedRoute><Benefits /></ProtectedRoute>} />
                 <Route path="/assessment" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
+                <Route path="/my-analytics" element={
+                  <ProtectedRoute>
+                    <StudentAnalytics />
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin" element={
                   <ProtectedRoute allowedRoles={['faculty', 'hod', 'principal', 'placement', 'admin']}>
                     <FacultyDashboard />

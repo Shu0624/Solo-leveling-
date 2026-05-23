@@ -1,13 +1,37 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Play, Award, BookOpen, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, ChevronLeft, ChevronRight, Play, Award, BookOpen, Clock, AlertCircle, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import CodePlayground from '../components/learning/CodePlayground';
 import CourseChat from '../components/learning/CourseChat';
+
+const CopyButton = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="p-1.5 rounded-lg bg-[#1e1e2e]/80 hover:bg-[#1e1e2e] border border-white/10 text-white/50 hover:text-white transition-all duration-200 shadow-lg"
+      title="Copy code"
+    >
+      {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+    </button>
+  );
+};
 
 const ModuleDetail = () => {
   const { slug } = useParams();
@@ -194,15 +218,26 @@ const ModuleDetail = () => {
                     blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 py-2 my-6 bg-primary/5 italic text-muted-foreground rounded-r-lg" {...props} />,
                     code({node, className, children, ...props}) {
                       const match = /language-(\w+)/.exec(className || '');
-                      return match ? (
-                        <code className="bg-secondary text-secondary-foreground font-mono text-sm p-4 rounded-xl my-4 overflow-x-auto shadow-inner border border-border/50 block" {...props}>
-                          {children}
-                        </code>
-                      ) : (
+                      const codeString = String(children).replace(/\n$/, '');
+
+                      if (match) {
+                        return (
+                          <div className="relative group my-6">
+                            <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <CopyButton text={codeString} />
+                            </div>
+                            <code className="bg-secondary text-secondary-foreground font-mono text-sm p-4 pr-12 rounded-xl overflow-x-auto shadow-inner border border-border/50 block" {...props}>
+                              {children}
+                            </code>
+                          </div>
+                        );
+                      }
+
+                      return (
                         <code className="bg-secondary/50 text-foreground font-mono text-sm px-1.5 py-0.5 rounded-md" {...props}>
                           {children}
                         </code>
-                      )
+                      );
                     }
                   }}
                 >

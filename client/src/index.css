@@ -4,79 +4,79 @@
 
 @layer base {
   :root {
-    /* Human, approachable colors - Light Theme (default) */
-    --background: 0 0% 100%; /* Pure white background */
-    --foreground: 220 30% 20%; /* Charcoal, soft text */
+    /* Premium Futuristic Deep Midnight Theme */
+    --background: 240 10% 4%; /* Elegant dark obsidian */
+    --foreground: 0 0% 98%; /* Soft white */
     
-    --card: 210 20% 98%; /* Very light grey/blue */
-    --card-foreground: 220 30% 20%;
+    --card: 240 10% 6%; /* Sleek obsidian card */
+    --card-foreground: 0 0% 98%;
  
-    --popover: 210 20% 98%;
-    --popover-foreground: 220 30% 20%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
  
-    --primary: 220 90% 56%; /* Clean professional blue */
+    --primary: 199 89% 48%; /* Electric Cyan/Blue */
     --primary-foreground: 0 0% 100%;
  
-    --secondary: 210 20% 94%; /* Soft grey for secondary buttons */
-    --secondary-foreground: 220 30% 30%;
+    --secondary: 240 4% 15%; /* Charcoal Indigo */
+    --secondary-foreground: 0 0% 90%;
  
-    --muted: 210 20% 92%;
-    --muted-foreground: 220 15% 50%;
+    --muted: 240 4% 12%;
+    --muted-foreground: 240 5% 65%;
  
-    --accent: 250 90% 65%; /* Cool violet accent */
+    --accent: 262 83% 58%; /* Futuristic Cyber Violet */
     --accent-foreground: 0 0% 100%;
  
-    --destructive: 350 80% 60%; /* Soft red */
+    --destructive: 350 80% 55%;
     --destructive-foreground: 0 0% 100%;
-
-    --success: 140 60% 50%; /* Friendly green */
+ 
+    --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 45 95% 55%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
  
-    --border: 210 15% 85%;
-    --input: 210 15% 90%;
-    --ring: 210 100% 55%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 199 89% 48%;
  
-    --radius: 1.25rem; /* Very rounded borders (human/friendly aspect) */
+    --radius: 1rem;
   }
  
   .dark {
-    /* Dark Theme - softened */
-    --background: 220 20% 12%; 
-    --foreground: 210 20% 90%;
+    /* Keep identical or slightly darker for perfect consistent beauty */
+    --background: 240 10% 3%;
+    --foreground: 0 0% 98%;
  
-    --card: 220 20% 16%;
-    --card-foreground: 210 20% 90%;
+    --card: 240 10% 5%;
+    --card-foreground: 0 0% 98%;
  
-    --popover: 220 20% 16%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 240 10% 5%;
+    --popover-foreground: 0 0% 98%;
  
-    --primary: 220 90% 65%; /* Clean blue */
-    --primary-foreground: 220 20% 12%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
  
-    --secondary: 220 20% 22%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 240 4% 12%;
+    --secondary-foreground: 0 0% 90%;
  
-    --muted: 220 20% 22%;
-    --muted-foreground: 220 15% 70%;
+    --muted: 240 4% 10%;
+    --muted-foreground: 240 5% 60%;
  
-    --accent: 250 85% 72%;
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
  
-    --destructive: 350 80% 65%;
-    --destructive-foreground: 210 20% 90%;
+    --destructive: 350 80% 55%;
+    --destructive-foreground: 0 0% 100%;
     
-    --success: 140 50% 55%;
-    --success-foreground: 220 20% 12%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
     
-    --warning: 45 90% 60%;
-    --warning-foreground: 220 20% 12%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
  
-    --border: 220 20% 25%;
-    --input: 220 20% 25%;
-    --ring: 210 100% 65%;
+    --border: 240 5% 12%;
+    --input: 240 5% 12%;
+    --ring: 199 89% 48%;
   }
 }
  
@@ -307,3 +307,72 @@ select option:disabled {
 .stagger-children > *:nth-child(4) { animation-delay: 0.3s; }
 .stagger-children > *:nth-child(5) { animation-delay: 0.4s; }
 .stagger-children > *:nth-child(6) { animation-delay: 0.5s; }
+
+/* High-Density Mobile Optimizations */
+@media (max-width: 640px) {
+  /* Reduce excessive padding inside cards on mobile to fit more detailed info */
+  .glass-morphism, 
+  [class*="rounded-[2.5rem]"],
+  [class*="rounded-[2rem]"],
+  .rounded-3xl,
+  .rounded-\[2\.5rem\] {
+    padding: 1rem !important;
+    border-radius: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Reduce gap sizes in grid layouts on mobile */
+  .grid {
+    gap: 0.75rem !important;
+  }
+  
+  /* Reduce outer container padding */
+  .py-8 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  
+  .mb-10 {
+    margin-bottom: 1.25rem !important;
+  }
+  
+  .mb-8 {
+    margin-bottom: 1rem !important;
+  }
+  
+  .mb-6 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Make text hierarchy fit beautifully without wrapping awkwardly */
+  h1 {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+  }
+  
+  h3 {
+    font-size: 1.1rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  /* Compact spacing for buttons and tabs */
+  .px-4.py-2 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .px-6.py-3 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
