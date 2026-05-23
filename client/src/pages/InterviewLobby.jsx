@@ -128,10 +128,24 @@ const InterviewLobby = () => {
         const p = params[accent] || params['en-US'];
         utterance.rate = p.rate;
         utterance.pitch = p.pitch;
+
+        // Prevent microphone loopback feedback during AI speaking
+        utterance.onstart = () => {
+          recognitionRef.current?.stop();
+          setListening(false);
+        };
+
+        // Resume microphone automatically once AI finishes speaking if voiceMode is on
+        utterance.onend = () => {
+          if (voiceMode) {
+            startListening();
+          }
+        };
+
         window.speechSynthesis.speak(utterance);
       }
     }
-  }, [messages, ttsEnabled, accent]);
+  }, [messages, ttsEnabled, accent, voiceMode]);
 
   const startPeerRoom = () => {
     const id = roomId.trim() || `room-${Date.now().toString(36)}`;
@@ -201,11 +215,29 @@ const InterviewLobby = () => {
     const p = params[accent] || params['en-US'];
     utterance.rate = p.rate;
     utterance.pitch = p.pitch;
+
+    // Prevent microphone loopback feedback during AI speaking
+    utterance.onstart = () => {
+      recognitionRef.current?.stop();
+      setListening(false);
+    };
+
+    utterance.onend = () => {
+      if (voiceMode) {
+        startListening();
+      }
+    };
+
     window.speechSynthesis.speak(utterance);
   };
 
   // --- Voice: Speech-to-Text ---
   const startListening = () => {
+    // Avoid feedback: Do not start listening if speech synthesis is currently active/speaking
+    if (window.speechSynthesis?.speaking) {
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert('Speech Recognition is not supported in this browser. Please use Chrome.');
