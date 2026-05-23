@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, History, Database, Globe, Server, Layout, Award } from 'lucide-react';
+import { Bot, Users, Send, Video, ArrowRight, RefreshCw, Briefcase, Coffee, Code2, Calculator, Mic, MicOff, Volume2, VolumeX, History, Database, Globe, Server, Layout, Award, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LanguageLearning from '../components/learning/LanguageLearning';
 import LanguageHubEmbed from '../components/learning/LanguageHubEmbed';
@@ -453,11 +453,23 @@ const InterviewLobby = () => {
                 </div>
               )}
               <button 
+                onClick={async () => {
+                  if (window.confirm("Are you sure you want to end this interview session? Your progress will be saved to your Practice History.")) {
+                    await resetChat();
+                    setMode('history'); // Instantly switch tab to history to see the result!
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-destructive/15 hover:bg-destructive/25 text-destructive-foreground border border-destructive/30 hover:border-destructive/50 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm"
+                title="Stop and Save Session to History"
+              >
+                <Square size={11} fill="currentColor" /> Stop & Save
+              </button>
+              <button 
                 onClick={resetChat} 
                 className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                title="End Session"
+                title="Discard and Restart Session"
               >
-                <RefreshCw size={20} />
+                <RefreshCw size={18} />
               </button>
             </div>
           </div>
