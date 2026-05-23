@@ -171,22 +171,17 @@ const InterviewLobby = () => {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = accent;
 
     recognition.onresult = (event) => {
       let currentTranscript = '';
-      // Accumulate all transcript pieces (works better across Chrome/Edge edge-cases)
+      // Accumulate all transcript pieces (works better across Chrome/Edge edge-cases in continuous mode)
       for (let i = 0; i < event.results.length; i++) {
         currentTranscript += event.results[i][0].transcript;
       }
       setInput(currentTranscript);
-      
-      // Stop listening automatically if the browser dictates this is the final result
-      if (event.results[0] && event.results[0].isFinal) {
-        setListening(false);
-      }
     };
 
     recognition.onerror = () => setListening(false);
@@ -233,7 +228,12 @@ const InterviewLobby = () => {
           topic,
           messagesCount: userMsgCount,
           durationSeconds,
-          score: avgScore
+          score: avgScore,
+          messages: messages.map(m => ({
+            role: m.role,
+            text: m.text,
+            score: m.score || 0
+          }))
         });
       } catch (e) {
         // silent fail — don't block UX

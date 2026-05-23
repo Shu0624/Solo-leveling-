@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { History, Clock, MessageSquare, Award, Bot, ArrowLeft, TrendingUp, Zap } from 'lucide-react';
+import { History, Clock, MessageSquare, Award, Bot, ArrowLeft, TrendingUp, Zap, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const TOPIC_LABELS = {
@@ -40,6 +40,9 @@ const InterviewHistory = ({ embedded = false }) => {
   const { api } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -54,6 +57,20 @@ const InterviewHistory = ({ embedded = false }) => {
     };
     fetchHistory();
   }, [api]);
+
+  const handleViewSession = async (session) => {
+    setSelectedSession(session);
+    setDetailsLoading(true);
+    setSessionDetails(null);
+    try {
+      const res = await api.get(`/interview/session/${session._id}`);
+      setSessionDetails(res.data.session);
+    } catch (err) {
+      console.error('Failed to fetch session details:', err);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
 
   // Stats
   const totalSessions = sessions.length;
@@ -137,7 +154,8 @@ const InterviewHistory = ({ embedded = false }) => {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.04 }}
-              className="glass-morphism rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-secondary/30 transition-colors"
+              onClick={() => handleViewSession(session)}
+              className="glass-morphism rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-secondary/50 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] border border-border/10 hover:border-primary/20 shadow-sm"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -178,6 +196,98 @@ const InterviewHistory = ({ embedded = false }) => {
               </div>
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* ===== DETAILED DIALOGUE MODAL ===== */}
+      {selectedSession && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-secondary/95 border border-border/80 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-border/50 flex items-center justify-between bg-background/20">
+              <div className="flex items-center gap-3">
+                <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${TOPIC_COLORS[selectedSession.topic] || 'bg-secondary text-foreground border-border'}`}>
+                  {TOPIC_LABELS[selectedSession.topic] || selectedSession.topic}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(selectedSession.completedAt).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedSession(null)}
+                className="text-muted-foreground hover:text-foreground p-1.5 bg-secondary rounded-lg border border-border/50 hover:bg-secondary/85 transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Score & Meta Bar */}
+            <div className="px-6 py-4 bg-background/10 border-b border-border/30 flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5"><Clock size={12} /> {formatDuration(selectedSession.durationSeconds)}</span>
+                <span className="flex items-center gap-1.5"><MessageSquare size={12} /> {selectedSession.messagesCount} answers</span>
+              </div>
+              {selectedSession.aiScore > 0 && (
+                <div className="flex items-center gap-1.5 text-primary font-bold">
+                  <Award size={14} /> Overall Score: {selectedSession.aiScore}%
+                </div>
+              )}
+            </div>
+
+            {/* Scrollable Dialogue */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background/5">
+              {detailsLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  <span className="text-xs text-muted-foreground font-medium animate-pulse">Loading detailed conversation...</span>
+                </div>
+              ) : !sessionDetails || !sessionDetails.messages || sessionDetails.messages.length === 0 ? (
+                <div className="text-center py-20 text-muted-foreground space-y-2">
+                  <Bot size={36} className="mx-auto text-muted-foreground/50 mb-2" />
+                  <p className="text-sm font-semibold">Transcript Not Available</p>
+                  <p className="text-xs max-w-xs mx-auto">This session was completed before conversation archiving was active, or no messages were exchanged.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sessionDetails.messages.map((m, idx) => (
+                    <div key={idx} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <span className="text-[10px] text-muted-foreground mb-1 ml-1 mr-1">
+                        {m.role === 'user' ? 'You' : 'AI Mentor'}
+                      </span>
+                      <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[13.5px] leading-relaxed shadow-sm ${
+                        m.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm font-medium'
+                          : 'bg-secondary/70 border border-border/40 text-foreground rounded-tl-sm whitespace-pre-wrap'
+                      }`}>
+                        {m.text}
+                        {m.role === 'user' && m.score > 0 && (
+                          <div className="mt-2 text-[11.5px] font-bold bg-background/30 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                            <Award size={12} /> Score: {m.score}/10
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-border/50 bg-background/20 flex justify-end">
+              <button
+                onClick={() => setSelectedSession(null)}
+                className="px-4 py-2 bg-secondary border border-border/80 hover:bg-secondary/80 rounded-xl text-xs font-semibold transition-all"
+              >
+                Close Transcript
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

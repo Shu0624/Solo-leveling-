@@ -11,6 +11,13 @@ const saveSessionSchema = z.object({
   messagesCount: z.number().int().min(0).max(1000).default(0),
   durationSeconds: z.number().int().min(0).max(86400).default(0),
   score: z.number().min(0).max(100).default(0),
+  messages: z.array(
+    z.object({
+      role: z.string(),
+      text: z.string(),
+      score: z.number().optional()
+    })
+  ).optional()
 });
 
 // @desc    Save a completed AI interview session
@@ -19,7 +26,7 @@ const saveSessionSchema = z.object({
 router.post('/session', protect, async (req, res) => {
   try {
     const validated = saveSessionSchema.parse(req.body);
-    const { topic, messagesCount, durationSeconds, score } = validated;
+    const { topic, messagesCount, durationSeconds, score, messages } = validated;
 
     const session = await InterviewSession.create({
       host: req.user._id,
@@ -30,7 +37,8 @@ router.post('/session', protect, async (req, res) => {
       messagesCount,
       aiScore: score,
       startedAt: new Date(Date.now() - durationSeconds * 1000),
-      endedAt: new Date()
+      endedAt: new Date(),
+      messages: messages || []
     });
 
     res.status(201).json({
@@ -84,6 +92,22 @@ router.get('/history', protect, async (req, res) => {
   } catch (err) {
     console.error('Interview history error:', err);
     res.status(500).json({ message: 'Failed to fetch interview history' });
+  }
+});
+
+// @desc    Get detailed interview session with transcript messages
+// @route   GET /api/interview/session/:id
+// @access  Private
+router.get('/session/:id', protect, async (req, res) => {
+  try {
+    const session = await InterviewSession.findOne({ _id: req.params.id, host: req.user._id }).lean();
+    if (!session) {
+      return res.status(404).json({ message: 'Interview session not found' });
+    }
+    res.status(200).json({ session });
+  } catch (err) {
+    console.error('Fetch interview session error:', err);
+    res.status(500).json({ message: 'Failed to fetch interview session' });
   }
 });
 

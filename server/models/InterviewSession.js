@@ -19,6 +19,14 @@ const sessionSchema = new mongoose.Schema(
     topic: { type: String, default: 'hr' },
     messagesCount: { type: Number, default: 0 },
     aiScore: { type: Number, default: 0 },
+    messages: [
+      {
+        role: { type: String, enum: ['user', 'ai', 'assistant'] },
+        text: String,
+        score: Number,
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
     // --- End AI fields ---
     feedback: [
       {
