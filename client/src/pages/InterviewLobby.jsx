@@ -55,6 +55,47 @@ const InterviewLobby = () => {
     scrollToBottom();
   }, [messages, chatLoading]);
 
+  // Restore active interview session from localStorage on mount to prevent data loss on reload
+  useEffect(() => {
+    const savedSession = localStorage.getItem('active_interview_session');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed.chatStarted) {
+          setTopic(parsed.topic || 'hr');
+          setProjectDescription(parsed.projectDescription || '');
+          setMessages(parsed.messages || []);
+          setQuestionIndex(parsed.questionIndex || 0);
+          setScores(parsed.scores || []);
+          setChatStarted(parsed.chatStarted);
+          if (parsed.sessionStart) {
+            sessionStartRef.current = parsed.sessionStart;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore saved interview session:', e);
+      }
+    }
+  }, []);
+
+  // Save active interview session to localStorage dynamically to protect session progress
+  useEffect(() => {
+    if (chatStarted) {
+      const sessionData = {
+        topic,
+        projectDescription,
+        messages,
+        questionIndex,
+        scores,
+        chatStarted,
+        sessionStart: sessionStartRef.current
+      };
+      localStorage.setItem('active_interview_session', JSON.stringify(sessionData));
+    } else {
+      localStorage.removeItem('active_interview_session');
+    }
+  }, [chatStarted, topic, projectDescription, messages, questionIndex, scores]);
+
   // Auto-grow input textarea height dynamically as the user types
   useEffect(() => {
     if (textareaRef.current) {
@@ -244,6 +285,7 @@ const InterviewLobby = () => {
     setQuestionIndex(0);
     setScores([]);
     sessionStartRef.current = null;
+    localStorage.removeItem('active_interview_session');
   };
 
   return (
