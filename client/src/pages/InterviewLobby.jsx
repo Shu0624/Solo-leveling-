@@ -22,6 +22,7 @@ const InterviewLobby = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // Voice mode state
   const [voiceMode, setVoiceMode] = useState(false);
@@ -53,6 +54,14 @@ const InterviewLobby = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, chatLoading]);
+
+  // Auto-grow input textarea height dynamically as the user types
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 250)}px`;
+    }
+  }, [input]);
 
   // Pre-load speech synthesis voices (Chrome loads them async)
   useEffect(() => {
@@ -92,6 +101,9 @@ const InterviewLobby = () => {
     if (!input.trim() || chatLoading) return;
     const userMsg = input.trim();
     setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setChatLoading(true);
 
@@ -421,7 +433,7 @@ const InterviewLobby = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] md:max-w-[75%] px-6 py-4 text-[15px] leading-relaxed shadow-sm ${
+                  <div className={`max-w-[80%] md:max-w-[70%] px-4 py-3 text-[14px] leading-relaxed shadow-sm ${
                     msg.role === 'user' 
                       ? 'bg-primary text-primary-foreground rounded-2xl rounded-tr-sm' 
                       : 'bg-secondary/80 border border-border/50 text-foreground rounded-2xl rounded-tl-sm'
@@ -533,12 +545,14 @@ const InterviewLobby = () => {
                 </button>
               )}
               <textarea 
+                ref={textareaRef}
                 value={input} 
                 onChange={e => setInput(e.target.value)} 
                 placeholder={voiceMode && listening ? '🎤 Listening...' : 'Type your response...'}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                className="w-full max-h-[300px] min-h-[56px] resize-none bg-transparent border-none py-4 px-5 text-[15px] focus:outline-none focus:ring-0 text-foreground overflow-y-auto" 
+                className="w-full max-h-[250px] min-h-[56px] resize-none bg-transparent border-none py-4 px-5 pr-14 text-[15px] focus:outline-none focus:ring-0 text-foreground overflow-y-auto" 
                 rows="1"
+                spellCheck="true"
               />
               <button 
                 onClick={sendMessage} 

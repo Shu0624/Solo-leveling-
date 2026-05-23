@@ -8,7 +8,7 @@ const router = express.Router();
 // Rate limit AI chat — prevents Groq API abuse
 const chatLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
-  max: 30,                    // 30 messages per 15 min per IP
+  max: 500,                   // 500 messages per 15 min per IP
   message: { message: 'Too many requests. Please slow down and try again in a few minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -32,10 +32,10 @@ router.post('/', protectTokenOnly, chatLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Project description too long (max 10000 characters)' });
     }
 
-    // Sanitize conversation history (limit to last 10 messages to control token usage)
+    // Sanitize conversation history (limit to last 30 messages to control token usage and keep context longer)
     const sanitizedHistory = Array.isArray(history)
       ? history
-          .slice(-10)
+          .slice(-30)
           .filter(m => m && typeof m.role === 'string' && typeof m.text === 'string')
           .map(m => ({
             role: m.role === 'user' ? 'user' : 'assistant',

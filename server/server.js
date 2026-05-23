@@ -292,7 +292,7 @@ initSessionManager(io);
 // AI Rate Limiting — protect expensive Groq/Gemini resources from abuse
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit each IP to 30 requests per 15 minutes
+  max: 500, // Limit each IP to 500 requests per 15 minutes
   message: { message: 'Too many requests to AI services. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
