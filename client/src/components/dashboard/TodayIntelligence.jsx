@@ -128,8 +128,8 @@ const TodayIntelligence = () => {
         )}
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 relative z-10">
+      {/* KPI Grid - dynamically changes to 2 columns in split-pane views to avoid layout squishing */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4 gap-3 mb-6 relative z-10">
         {kpis.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
