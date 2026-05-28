@@ -453,37 +453,131 @@ router.get('/export', protect, authorize(...adminRoles), scopeData, async (req, 
     const students = await getStudentsInScope(req.scope);
     const studentIds = students.map(s => s._id);
 
-    const actAgg = await Activity.aggregate([
-      { $match: { user: { $in: studentIds } } },
-      { $group: { _id: '$user', totalSeconds: { $sum: '$duration' }, lastActive: { $max: '$date' } } },
+    // Parallel fetch matching all student analytics sources
+    const [
+      quizAttempts,
+      resumes,
+      dsaProgressions,
+      languageProfiles,
+      attendances,
+      focusAgg,
+      assignments
+    ] = await Promise.all([
+      QuizAttempt.find({ user: { $in: studentIds } }).lean(),
+      Resume.find({ user: { $in: studentIds } }).lean(),
+      DSAProgress.find({ studentId: { $in: studentIds } }).lean(),
+      LanguageProfile.find({ user: { $in: studentIds } }).lean(),
+      Attendance.find({ classroomCode: { $in: students.map(s => s.classroomCode).filter(Boolean) } }).lean(),
+      Activity.aggregate([
+        { $match: { user: { $in: studentIds }, type: { $ne: 'auto' } } },
+        { $group: { _id: '$user', totalSeconds: { $sum: '$duration' } } }
+      ]),
+      Assignment.find({ classroomCode: { $in: students.map(s => s.classroomCode).filter(Boolean) } }).lean()
     ]);
-    const actMap = {};
-    actAgg.forEach(a => { actMap[a._id.toString()] = a; });
 
-    const quizAgg = await QuizAttempt.aggregate([
-      { $match: { user: { $in: studentIds } } },
-      { $group: { _id: '$user', avg: { $avg: '$percentage' }, count: { $sum: 1 } } },
-    ]);
+    // Build lookup maps for performance
     const quizMap = {};
-    quizAgg.forEach(q => { quizMap[q._id.toString()] = q; });
+    quizAttempts.forEach(qa => {
+      const uid = qa.user.toString();
+      if (!quizMap[uid]) quizMap[uid] = [];
+      quizMap[uid].push(qa);
+    });
+
+    const resumeMap = {};
+    resumes.forEach(r => { resumeMap[r.user.toString()] = r; });
+
+    const dsaMap = {};
+    dsaProgressions.forEach(d => { dsaMap[d.studentId.toString()] = d; });
+
+    const langMap = {};
+    languageProfiles.forEach(lp => { langMap[lp.user.toString()] = lp; });
+
+    const focusMap = {};
+    focusAgg.forEach(f => { focusMap[f._id.toString()] = f.totalSeconds; });
 
     const rows = students.map(s => {
-      const act = actMap[s._id.toString()];
-      const quiz = quizMap[s._id.toString()];
+      const sid = s._id.toString();
+      const sCode = s.classroomCode;
+
+      const sQuizzes = quizMap[sid] || [];
+      const quizTotal = sQuizzes.length;
+      const quizAvgScore = quizTotal > 0
+        ? Math.round(sQuizzes.reduce((sum, q) => sum + (q.percentage || 0), 0) / quizTotal)
+        : 0;
+
+      const sResume = resumeMap[sid];
+      const resumeScore = sResume?.analysis?.score || 0;
+
+      const focusTotalSeconds = focusMap[sid] || 0;
+      const focusOverallHours = Math.round(focusTotalSeconds / 3600);
+
+      const sDsa = dsaMap[sid];
+      const dsaTotalSolved = sDsa ? ((sDsa.easySolved || 0) + (sDsa.mediumSolved || 0) + (sDsa.hardSolved || 0)) : 0;
+
+      const sLang = langMap[sid];
+      const langXP = sLang ? (sLang.totalXP || 0) : 0;
+
+      // Academic assignments
+      const sAssignments = assignments.filter(a => a.classroomCode === sCode);
+      let submittedAssignments = 0;
+      sAssignments.forEach(ass => {
+        if (ass.submissions?.some(subm => subm.studentId?.toString() === sid)) {
+          submittedAssignments++;
+        }
+      });
+      const assignmentCompletionRate = sAssignments.length > 0 
+        ? Math.round((submittedAssignments / sAssignments.length) * 100) 
+        : 0;
+
+      // Academic attendance
+      const sAttendances = attendances.filter(a => a.classroomCode === sCode);
+      let totalLectures = 0;
+      let lecturesAttended = 0;
+      sAttendances.forEach(att => {
+        const record = att.records?.find(rec => rec.studentId?.toString() === sid);
+        if (record) {
+          totalLectures++;
+          if (record.status === 'present' || record.status === 'late') lecturesAttended++;
+        }
+      });
+      const attendancePercentage = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
+
+      // Composite Readiness Score
+      const weights = { quiz: 15, resume: 15, focus: 10, dsa: 15, academics: 10, language: 10 };
+      const dsaScore = Math.min((dsaTotalSolved / 50) * 100, 100);
+      const academicScore = Math.round((attendancePercentage + assignmentCompletionRate) / 2);
+      const languageScore = Math.min((langXP / 500) * 100, 100);
+      const focusScore = Math.min(focusTotalSeconds / 36000 * 100, 100);
+      
+      const readinessScore = Math.round(
+        (quizAvgScore * weights.quiz +
+         resumeScore * weights.resume +
+         focusScore * weights.focus +
+         dsaScore * weights.dsa +
+         academicScore * weights.academics +
+         languageScore * weights.language) / 75 * 100
+      );
+
       return {
         name: s.name,
-        classroom: s.classroomCode || '',
+        email: s.email || '',
+        classroom: sCode || '',
         department: s.department || '',
         college: s.college || '',
-        studyHours: Math.round((act?.totalSeconds || 0) / 3600),
-        lastActive: act?.lastActive ? new Date(act.lastActive).toISOString().split('T')[0] : 'N/A',
-        quizAvg: Math.round(quiz?.avg || 0),
-        quizAttempts: quiz?.count || 0,
+        studyHours: focusOverallHours,
+        lastActive: focusTotalSeconds > 0 ? 'Active' : 'N/A',
+        quizAvg: quizAvgScore,
+        quizAttempts: quizTotal,
         streak: s.streak?.current || 0,
+        readinessScore: isNaN(readinessScore) ? 0 : Math.min(readinessScore, 100),
+        dsaSolved: dsaTotalSolved,
+        resumeScore,
+        attendance: attendancePercentage,
+        assignmentCompletion: assignmentCompletionRate
       };
     });
 
-    rows.sort((a, b) => b.studyHours - a.studyHours);
+    rows.sort((a, b) => b.readinessScore - a.readinessScore);
 
     if (req.query.format === 'csv') {
       const headers = Object.keys(rows[0] || {});
@@ -777,6 +871,35 @@ Format the response exactly as a JSON object:
   } catch (err) {
     console.error('Mentorship plan error:', err);
     res.status(500).json({ message: 'Failed to generate mentorship plan' });
+  }
+});
+
+// =====================================================================
+// POST /api/analytics/placement/invite-draft — Generate AI Placement Drive Invite
+// =====================================================================
+router.post('/placement/invite-draft', protect, authorize(...adminRoles), async (req, res) => {
+  try {
+    const { companyName, jobRole, minReadiness, minResumeScore } = req.body;
+    const prompt = `You are a professional Training and Placement Officer (TPO) at an engineering college.
+Write a highly compelling and professional campus placement drive invitation email for the company: "${companyName || 'TechCorp'}" for the role of "${jobRole || 'Software Engineer'}".
+The target audience of students has cleared the screening criteria (minimum readiness score of ${minReadiness || 70}%, minimum ATS resume score of ${minResumeScore || 70}%).
+Mention that their profile has been auto-flagged by the LevelUp Placement Readiness Engine as eligible candidates.
+Keep the email structured, professional, and exciting.
+Format the response exactly as a JSON object:
+{
+  "subject": "Exclusive Campus Drive: [Company Name] - [Job Role]",
+  "emailContent": "Dear Candidate,\\n\\n..."
+}`;
+
+    const responseText = await getGroqChatCompletion([
+      { role: 'system', content: 'You generate professional placement email templates in JSON.' },
+      { role: 'user', content: prompt }
+    ], true, 0.5);
+
+    res.json(JSON.parse(responseText));
+  } catch (err) {
+    console.error('Placement invite draft error:', err);
+    res.status(500).json({ message: 'Failed to generate invitation draft' });
   }
 });
 

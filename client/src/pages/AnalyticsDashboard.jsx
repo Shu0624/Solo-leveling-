@@ -19,6 +19,7 @@ const TABS = [
   { id: 'at-risk', label: 'At-Risk Alerts', icon: AlertTriangle },
   { id: 'compare', label: 'Compare', icon: GitCompare },
   { id: 'ask', label: 'Ask AI', icon: Brain },
+  { id: 'placement-hub', label: 'Placement Pool', icon: Trophy },
   { id: 'export', label: 'Export', icon: Download },
 ];
 
@@ -46,8 +47,26 @@ const AnalyticsDashboard = () => {
   const [mentorshipPlan, setMentorshipPlan] = useState(null);
   const [planLoading, setPlanLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [emailSubject, setEmailSubject] = useState('');
   const [emailContent, setEmailContent] = useState('');
+
+  // Placement Hub State
+  const [placementStudents, setPlacementStudents] = useState([]);
+  const [placementLoading, setPlacementLoading] = useState(false);
+  const [placementSearch, setPlacementSearch] = useState('');
+  const [placementFilters, setPlacementFilters] = useState({
+    companyName: 'TechCorp',
+    jobRole: 'Software Engineer',
+    minReadiness: 65,
+    minResumeScore: 65,
+    minDsaSolved: 10,
+    minAttendance: 75,
+    classroom: 'all',
+  });
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteSubject, setInviteSubject] = useState('');
+  const [inviteContent, setInviteContent] = useState('');
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const fetchAtRiskData = useCallback(async () => {
     setAtRiskLoading(true);
@@ -93,6 +112,83 @@ const AnalyticsDashboard = () => {
       fetchAtRiskData();
     }
   }, [activeTab, fetchAtRiskData]);
+
+  const fetchPlacementStudents = useCallback(async () => {
+    setPlacementLoading(true);
+    try {
+      const res = await api.get('/analytics/export');
+      setPlacementStudents(res.data);
+    } catch (err) {
+      console.error('Failed to load placement pool:', err);
+    } finally {
+      setPlacementLoading(false);
+    }
+  }, [api]);
+
+  useEffect(() => {
+    if (activeTab === 'placement-hub') {
+      fetchPlacementStudents();
+    }
+  }, [activeTab, fetchPlacementStudents]);
+
+  const generatePlacementInvite = async () => {
+    setInviteLoading(true);
+    setInviteSubject('');
+    setInviteContent('');
+    try {
+      const res = await api.post('/analytics/placement/invite-draft', {
+        companyName: placementFilters.companyName,
+        jobRole: placementFilters.jobRole,
+        minReadiness: placementFilters.minReadiness,
+        minResumeScore: placementFilters.minResumeScore,
+      });
+      setInviteSubject(res.data.subject || '');
+      setInviteContent(res.data.emailContent || '');
+      setInviteModalOpen(true);
+    } catch (err) {
+      console.error('Failed to generate placement invite:', err);
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const filteredPlacementPool = placementStudents.filter(s => {
+    const matchesSearch = s.name?.toLowerCase().includes(placementSearch.toLowerCase()) || 
+                          s.email?.toLowerCase().includes(placementSearch.toLowerCase());
+    const matchesClassroom = placementFilters.classroom === 'all' || s.classroom === placementFilters.classroom;
+    const matchesReadiness = s.readinessScore >= placementFilters.minReadiness;
+    const matchesResume = s.resumeScore >= placementFilters.minResumeScore;
+    const matchesDsa = s.dsaSolved >= placementFilters.minDsaSolved;
+    const matchesAttendance = s.attendance >= placementFilters.minAttendance;
+    return matchesSearch && matchesClassroom && matchesReadiness && matchesResume && matchesDsa && matchesAttendance;
+  });
+
+  const exportPlacementCSV = (filtered) => {
+    if (filtered.length === 0) return;
+    const headers = ['Name', 'Email', 'Classroom', 'Department', 'College', 'Readiness Score %', 'Resume Score', 'DSA Solved', 'Attendance %'];
+    const csvContent = [
+      headers.join(','),
+      ...filtered.map(s => [
+        `"${s.name}"`,
+        `"${s.email || ''}"`,
+        `"${s.classroom}"`,
+        `"${s.department}"`,
+        `"${s.college}"`,
+        s.readinessScore,
+        s.resumeScore,
+        s.dsaSolved,
+        s.attendance
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eligible_candidates_${placementFilters.companyName.toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const fetchOverview = async () => {
     setLoading(true);
@@ -257,6 +353,88 @@ const AnalyticsDashboard = () => {
               <MetricCard label="Quiz Attempts" value={overview.stats.totalQuizAttempts} icon="chart" color="#06b6d4" delay={4} />
               <MetricCard label="Avg Resume Score" value={overview.stats.avgResumeScore} icon="file" color="#ec4899" delay={5} />
               <MetricCard label="Avg Streak" value={`${overview.stats.avgStreak} days`} icon="flame" color="#f43f5e" delay={6} />
+            </div>
+
+            {/* Persona Action Center */}
+            <div className="glass-morphism p-6 relative overflow-hidden">
+              <div className="absolute right-0 top-0 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none" />
+              
+              {user?.role === 'principal' && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                    <Sparkles className="text-primary" size={18} /> Institutional Strategic Executive Overview
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                    Welcome, Principal. The campus placement readiness index is currently at <span className="text-primary font-bold">{overview.stats.avgQuizScore}%</span>. 
+                    The overall study volume registered for the past 30 days is <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} hours</span>. 
+                    To ensure high-quality placement results, consider reviewing the <span className="text-white">Placement Pool tab</span> to evaluate students matching prime recruiters criteria.
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                      Open Placement Pool Screening
+                    </button>
+                    <button onClick={() => setActiveTab('classrooms')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all">
+                      Inspect Departmental Classrooms
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {user?.role === 'placement' && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                    <Trophy className="text-amber-500" size={18} /> Training & Placement Officer Control Room
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                    You have <span className="text-white">{overview.stats.totalStudents} candidates</span> in your scope. 
+                    Average student ATS resume score is <span className="text-pink-400 font-bold">{overview.stats.avgResumeScore}/100</span>.
+                    You can screen, filter, and invite cohorts matching corporate hiring policies under the <span className="text-white">Placement Pool tab</span>, and export customized drive registration sheets.
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                      Go to Placement Screening Pool
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {user?.role === 'hod' && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                    <Brain className="text-purple-400" size={18} /> Head of Department Command Dashboard
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                    Departmental statistics indicate <span className="text-white">{overview.stats.activeThisWeek} active students</span> this week. 
+                    Average consistency is <span className="text-emerald-400 font-bold">{overview.stats.avgStreak} days streak</span>. 
+                    Ensure class teachers have resolved students flagged in the <span className="text-white">At-Risk Alerts</span> tab.
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-extrabold rounded-xl transition-all">
+                      View Flagged Students
+                    </button>
+                    <button onClick={() => setActiveTab('compare')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all">
+                      Compare Classroom Sections
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {user?.role === 'faculty' && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                    <Users className="text-blue-400" size={18} /> Classroom Mentor Action Center
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                    Your assigned classroom has accumulated <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} study hours</span>.
+                    You can generate personalized AI-crafted mentorship plans for students falling behind in attendance, DSA progress, or assignment completion rates.
+                  </p>
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                      Open At-Risk Alerts
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Charts Row */}
@@ -807,6 +985,352 @@ const AnalyticsDashboard = () => {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+        )}
+
+        {/* ============ PLACEMENT HUB TAB ============ */}
+        {activeTab === 'placement-hub' && (
+          <motion.div
+            key="placement-hub"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {placementLoading ? (
+              <div className="flex flex-col items-center justify-center min-h-[30vh] text-muted-foreground">
+                <Loader2 size={36} className="animate-spin text-primary mb-3" />
+                <p className="font-semibold text-sm">Loading placement readiness database...</p>
+              </div>
+            ) : (
+              <>
+                {/* Search & Setup Filters */}
+                <div className="glass-morphism p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left: Company & Role Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Company Details</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Company Name</label>
+                        <input
+                          type="text"
+                          value={placementFilters.companyName}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, companyName: e.target.value }))}
+                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Target Job Role</label>
+                        <input
+                          type="text"
+                          value={placementFilters.jobRole}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, jobRole: e.target.value }))}
+                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Classroom Filter</label>
+                        <select
+                          value={placementFilters.classroom}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, classroom: e.target.value }))}
+                          className="w-full bg-[#121217] border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold text-white"
+                        >
+                          <option value="all">All Classrooms</option>
+                          {[...new Set(placementStudents.map(s => s.classroom).filter(Boolean))].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right 2 Columns: SLIDERS */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Eligibility Criteria Sliders</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Sliders details */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Min Readiness Score</span>
+                          <span className="text-primary">{placementFilters.minReadiness}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={placementFilters.minReadiness}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, minReadiness: parseInt(e.target.value) }))}
+                          className="w-full accent-primary bg-secondary/50 rounded-lg h-1.5 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Min Resume Score</span>
+                          <span className="text-pink-500">{placementFilters.minResumeScore}/100</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={placementFilters.minResumeScore}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, minResumeScore: parseInt(e.target.value) }))}
+                          className="w-full accent-pink-500 bg-secondary/50 rounded-lg h-1.5 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Min DSA Solved</span>
+                          <span className="text-amber-500">{placementFilters.minDsaSolved} problems</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={placementFilters.minDsaSolved}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, minDsaSolved: parseInt(e.target.value) }))}
+                          className="w-full accent-amber-500 bg-secondary/50 rounded-lg h-1.5 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span className="text-muted-foreground">Min Attendance Rate</span>
+                          <span className="text-emerald-500">{placementFilters.minAttendance}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={placementFilters.minAttendance}
+                          onChange={e => setPlacementFilters(prev => ({ ...prev, minAttendance: parseInt(e.target.value) }))}
+                          className="w-full accent-emerald-500 bg-secondary/50 rounded-lg h-1.5 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pool Metrics Row */}
+                {(() => {
+                  const total = placementStudents.length || 1;
+                  const eligible = filteredPlacementPool.length;
+                  const pct = Math.round((eligible / total) * 100);
+                  const avgReadiness = eligible > 0
+                    ? Math.round(filteredPlacementPool.reduce((acc, s) => acc + s.readinessScore, 0) / eligible)
+                    : 0;
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="glass-morphism p-6 flex items-center justify-between">
+                        <div>
+                          <span className="text-3xl font-black text-foreground">{eligible} / {placementStudents.length}</span>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Eligible Candidates</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                          <Users size={24} />
+                        </div>
+                      </div>
+                      <div className="glass-morphism p-6 flex items-center justify-between">
+                        <div>
+                          <span className="text-3xl font-black text-emerald-400">{pct}%</span>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Match Ratio</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                          <TrendingUp size={24} />
+                        </div>
+                      </div>
+                      <div className="glass-morphism p-6 flex items-center justify-between">
+                        <div>
+                          <span className="text-3xl font-black text-indigo-400">{avgReadiness}%</span>
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Pool Avg Readiness</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                          <Trophy size={24} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Main Filter Action Bar */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-secondary/20 p-4 rounded-2xl border border-border/50">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3.5 top-3.5 text-muted-foreground" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search candidates by name..."
+                      value={placementSearch}
+                      onChange={e => setPlacementSearch(e.target.value)}
+                      className="w-full bg-[#121217]/50 border border-border/40 text-foreground pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 text-xs font-semibold"
+                    />
+                  </div>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                    <button
+                      onClick={() => exportPlacementCSV(filteredPlacementPool)}
+                      disabled={filteredPlacementPool.length === 0}
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-secondary text-foreground hover:bg-secondary/80 border border-border/50 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2"
+                    >
+                      <Download size={14} /> Export CSV for Recruiters
+                    </button>
+                    <button
+                      onClick={generatePlacementInvite}
+                      disabled={filteredPlacementPool.length === 0 || inviteLoading}
+                      className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg shadow-primary/10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2"
+                    >
+                      {inviteLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
+                      AI Mass Invite
+                    </button>
+                  </div>
+                </div>
+
+                {/* Candidates List */}
+                <div className="glass-morphism overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-border/50 bg-secondary/10 text-white">
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Candidate Name</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Classroom</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Readiness</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Resume ATS</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">DSA Solved</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Attendance</th>
+                        <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider text-right">Direct Invite</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPlacementPool.length > 0 ? (
+                        filteredPlacementPool.map(student => (
+                          <tr key={student.email} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
+                            <td className="py-4 px-4">
+                              <div className="font-extrabold text-foreground text-sm">{student.name}</div>
+                              <div className="text-muted-foreground text-[10px] font-medium">{student.email}</div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="px-2 py-0.5 rounded-full bg-background border border-border/50 text-[10px] font-bold text-muted-foreground uppercase">
+                                {student.classroom}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 font-black">
+                              <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold ${
+                                student.readinessScore >= 75 ? 'text-emerald-400 bg-emerald-500/10' :
+                                student.readinessScore >= 50 ? 'text-amber-400 bg-amber-500/10' : 'text-red-400 bg-red-500/10'
+                              }`}>
+                                {student.readinessScore}%
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 font-extrabold text-pink-400">{student.resumeScore}/100</td>
+                            <td className="py-4 px-4 font-black text-amber-500">{student.dsaSolved} solved</td>
+                            <td className="py-4 px-4 font-extrabold text-white">{student.attendance}%</td>
+                            <td className="py-4 px-4 text-right">
+                              <button
+                                onClick={() => {
+                                  const text = `Hi ${student.name},\n\nYou have matched the criteria for ${placementFilters.companyName}'s drive for the ${placementFilters.jobRole} role. Please apply immediately on the placement portal.\n\nBest,\nTPO Office`;
+                                  navigator.clipboard.writeText(text);
+                                  alert(`Quick invite copied to clipboard for ${student.name}!`);
+                                }}
+                                className="px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/50 rounded-lg text-[10px] font-extrabold text-white transition-all"
+                              >
+                                Copy Text
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                            <Trophy size={48} className="mx-auto mb-4 opacity-10" />
+                            <p className="font-semibold text-sm">No candidates match your current eligibility filters.</p>
+                            <p className="text-xs mt-1">Try lowering the minimum score limits or changing classrooms.</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Invite Modal Overlay */}
+                <AnimatePresence>
+                  {inviteModalOpen && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        exit={{ scale: 0.95, y: 20 }}
+                        className="glass-morphism w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 md:p-8 flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between border-b border-border/50 pb-4 mb-6">
+                            <div>
+                              <span className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-2 inline-block">
+                                AI Placement Outreach Planner
+                              </span>
+                              <h3 className="text-xl font-bold text-foreground">
+                                Campus Drive Mass Email Invite: {placementFilters.companyName}
+                              </h3>
+                            </div>
+                            <button
+                              onClick={() => setInviteModalOpen(false)}
+                              className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          <div className="space-y-6">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Subject Line</label>
+                              <input
+                                type="text"
+                                value={inviteSubject}
+                                onChange={(e) => setInviteSubject(e.target.value)}
+                                className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Outreach Content Template</label>
+                              <textarea
+                                rows={12}
+                                value={inviteContent}
+                                onChange={(e) => setInviteContent(e.target.value)}
+                                className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
+                          <button
+                            onClick={() => setInviteModalOpen(false)}
+                            className="px-5 py-3 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
+                          >
+                            Close
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`Subject: ${inviteSubject}\n\n${inviteContent}`);
+                              setInviteCopied(true);
+                              setTimeout(() => setInviteCopied(false), 2000);
+                            }}
+                            className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
+                          >
+                            {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
+                            {inviteCopied ? 'Copied Invitation!' : 'Copy Subject & Body'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
           </motion.div>
         )}
 
