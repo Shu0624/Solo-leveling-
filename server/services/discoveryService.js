@@ -590,6 +590,21 @@ Return a JSON array of objects with these fields:
   }
 };
 
+const VALID_BENEFIT_CATEGORIES = ['discounts', 'coding', 'laptops', 'earning', 'email', 'internship', 'ai-courses', 'placement'];
+
+const mapBenefitCategory = (cat) => {
+  if (!cat) return 'discounts';
+  const c = cat.toLowerCase().trim();
+  if (VALID_BENEFIT_CATEGORIES.includes(c)) return c;
+  if (c.includes('course') || c.includes('certif') || c.includes('learn')) return 'ai-courses';
+  if (c.includes('job') || c.includes('career') || c.includes('hiring') || c.includes('placement')) return 'placement';
+  if (c.includes('intern')) return 'internship';
+  if (c.includes('deal') || c.includes('free') || c.includes('tool') || c.includes('discount')) return 'discounts';
+  if (c.includes('laptop') || c.includes('hardware')) return 'laptops';
+  if (c.includes('earn') || c.includes('money') || c.includes('work') || c.includes('write')) return 'earning';
+  return 'discounts';
+};
+
 /**
  * Discover new benefits using AI
  */
@@ -664,6 +679,9 @@ Return a JSON array:
       if (benefit.link && !benefit.link.startsWith('http://') && !benefit.link.startsWith('https://')) {
         benefit.link = 'https://' + benefit.link.trim();
       }
+
+      // Normalize category to schema enum values
+      benefit.category = mapBenefitCategory(benefit.category);
 
       try {
         await BenefitListing.findOneAndUpdate(

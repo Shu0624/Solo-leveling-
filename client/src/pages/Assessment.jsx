@@ -535,7 +535,7 @@ const Assessment = () => {
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); setActiveFormId(null); setFormViewMode(null); setShowFormBuilder(false); }}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
