@@ -11,22 +11,46 @@ const RouteTracker = () => {
 
   // Helper to determine category from pathname
   const getCategoryFromPath = (path) => {
-    if (path.includes('/interview')) return 'interview';
+    if (path.startsWith('/dashboard') || path === '/') return 'dashboard';
+    if (path.includes('/modules') || path.includes('/learn')) {
+      if (path.includes('/java')) return 'java';
+      if (path.includes('/c')) return 'c';
+      if (path.includes('/python')) return 'python';
+      if (path.includes('/dsa')) return 'dsa';
+      if (path.includes('/ai')) return 'ai';
+      return 'learn';
+    }
     if (path.includes('/resume')) return 'resume';
-    if (path.includes('/modules/java') || path.includes('/learn/java')) return 'java';
-    if (path.includes('/modules/python') || path.includes('/learn/python')) return 'python';
-    if (path.includes('/modules/dsa') || path.includes('/learn/dsa')) return 'dsa';
-    if (path.includes('/modules/ai') || path.includes('/learn/ai')) return 'ai';
-    if (path.includes('/activities') || path.includes('/quiz')) return 'quiz';
+    if (path.includes('/interview')) return 'interview';
+    if (path.includes('/assessment') || path.includes('/quiz')) return 'assessment';
+    if (path.includes('/roadmap')) return 'roadmap';
+    if (path.includes('/language')) return 'programs';
+    if (path.includes('/benefits')) return 'benefits';
+    if (path.includes('/activities')) return 'timepass';
     return 'other'; 
   };
 
   const getLabelFromPath = (path) => {
-    return `Auto-tracked: ${path}`;
+    if (path.startsWith('/dashboard') || path === '/') return 'Dashboard';
+    if (path.includes('/modules') || path.includes('/learn')) {
+      if (path.includes('/java')) return 'Java Module';
+      if (path.includes('/c')) return 'C Programming Module';
+      if (path.includes('/python')) return 'Python Module';
+      if (path.includes('/dsa')) return 'DSA Module';
+      if (path.includes('/ai')) return 'AI/GenAI Module';
+      return 'Learning Modules';
+    }
+    if (path.includes('/resume')) return 'Resume Builder & Analysis';
+    if (path.includes('/interview')) return 'Interview Studio';
+    if (path.includes('/assessment') || path.includes('/quiz')) return 'Assessments & Quizzes';
+    if (path.includes('/roadmap')) return 'Career Roadmaps';
+    if (path.includes('/language')) return 'Language Hub';
+    if (path.includes('/benefits')) return 'Benefits & Perks';
+    return 'General App Engagement';
   };
 
   const logActivity = (path, durationSeconds) => {
-    if (!user || durationSeconds < 120) return; // Only log if spent 2+ minutes on a page
+    if (!user || durationSeconds < 5) return; // Track spent time starting from 5 seconds
 
     const category = getCategoryFromPath(path);
     const activityData = {
@@ -59,23 +83,40 @@ const RouteTracker = () => {
     }
   }, [location.pathname, user, api]);
 
-  // Handle page unload (closing tab/browser)
+  // Handle page unload (closing tab/browser or reloading)
   useEffect(() => {
     const handleBeforeUnload = () => {
       const exitTime = Date.now();
       const durationSeconds = Math.round((exitTime - entryTimeRef.current) / 1000);
       
-      if (user && durationSeconds >= 10) {
+      if (user && durationSeconds >= 5) {
         const category = getCategoryFromPath(currentPathRef.current);
         const data = JSON.stringify({
           category,
           label: getLabelFromPath(currentPathRef.current),
           duration: durationSeconds,
-          type: 'study'
+          type: 'auto'
         });
         
-        const token = localStorage.getItem('levelup_token'); // Or however they store it 
-        // fallback to just normal send if we can't reliably token sendBeacon
+        const token = localStorage.getItem('token');
+        if (token) {
+          const apiBase = import.meta.env.VITE_API_URL || '/api';
+          const fullUrl = apiBase.startsWith('http') ? `${apiBase}/activity` : `${window.location.origin}${apiBase}/activity`;
+          
+          try {
+            fetch(fullUrl, {
+              method: 'POST',
+              body: data,
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              keepalive: true
+            });
+          } catch (e) {
+            console.error('Fetch beacon error:', e);
+          }
+        }
       }
     };
 

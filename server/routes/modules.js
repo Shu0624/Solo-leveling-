@@ -9,6 +9,7 @@ import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { getGroqChatCompletion } from '../services/groqService.js';
 
 const router = express.Router();
 
@@ -336,56 +337,65 @@ router.post('/execute', protect, async (req, res) => {
     try {
       fs.writeFileSync(tempFile, code, 'utf8');
 
-      // Detect whether to use python or python3
-      let pythonCmd = 'python';
-      try {
-        execSync('python --version', { stdio: 'ignore' });
-      } catch (e) {
-        pythonCmd = 'python3';
-      }
+      const candidates = ['python', 'py', 'python3'];
+      let candidateIndex = 0;
 
-      const pyProcess = spawn(pythonCmd, [tempFile]);
-      let stdoutData = '';
-      let stderrData = '';
+      const trySpawn = () => {
+        const pythonCmd = candidates[candidateIndex];
+        const pyProcess = spawn(pythonCmd, [tempFile]);
+        let stdoutData = '';
+        let stderrData = '';
+        let spawned = false;
 
-      const timeout = setTimeout(() => {
-        pyProcess.kill();
-      }, 2000);
+        const timeout = setTimeout(() => {
+          pyProcess.kill();
+        }, 2000);
 
-      pyProcess.stdout.on('data', (data) => {
-        stdoutData += data.toString();
-      });
+        pyProcess.stdout.on('data', (data) => {
+          stdoutData += data.toString();
+        });
 
-      pyProcess.stderr.on('data', (data) => {
-        stderrData += data.toString();
-      });
+        pyProcess.stderr.on('data', (data) => {
+          stderrData += data.toString();
+        });
 
-      pyProcess.on('close', (code) => {
-        clearTimeout(timeout);
-        // Clean up temp file
-        try { fs.unlinkSync(tempFile); } catch (e) {}
+        pyProcess.on('spawn', () => {
+          spawned = true;
+        });
 
-        if (stderrData) {
+        pyProcess.on('close', (code) => {
+          clearTimeout(timeout);
+          try { fs.unlinkSync(tempFile); } catch (e) {}
+
+          if (stderrData) {
+            return res.status(200).json({
+              output: null,
+              error: stderrData.trim()
+            });
+          }
+
           return res.status(200).json({
-            output: null,
-            error: stderrData.trim()
+            output: stdoutData || '(no output)',
+            error: null
           });
-        }
-
-        return res.status(200).json({
-          output: stdoutData || '(no output)',
-          error: null
         });
-      });
 
-      pyProcess.on('error', (err) => {
-        clearTimeout(timeout);
-        try { fs.unlinkSync(tempFile); } catch (e) {}
-        return res.status(200).json({
-          output: null,
-          error: `Failed to start Python interpreter: ${err.message}`
+        pyProcess.on('error', (err) => {
+          clearTimeout(timeout);
+          if (err.code === 'ENOENT' && !spawned && candidateIndex < candidates.length - 1) {
+            candidateIndex++;
+            trySpawn();
+          } else {
+            try { fs.unlinkSync(tempFile); } catch (e) {}
+            return res.status(200).json({
+              output: null,
+              error: `Failed to start Python interpreter (tried: ${candidates.slice(0, candidateIndex + 1).join(', ')}). Error: ${err.message}. Please verify that Python is installed and added to your system's PATH. If you recently installed Python, please restart your server terminal.`
+            });
+          }
         });
-      });
+      };
+
+      trySpawn();
 
     } catch (err) {
       try { fs.unlinkSync(tempFile); } catch (e) {}

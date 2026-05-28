@@ -6,6 +6,7 @@ import Mark from '../models/Mark.js';
 import DSAProgress from '../models/DSAProgress.js';
 import User from '../models/User.js';
 import XLSX from 'xlsx';
+import { getGroqChatCompletion } from '../services/groqService.js';
 
 // @desc    Create an assignment
 // @route   POST /api/assessment/assignment
@@ -948,5 +949,222 @@ export const getDSALeaderboard = async (req, res) => {
     res.status(200).json({ leaderboard, myProgress, totalParticipants: leaderboard.length });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching DSA leaderboard', error: error.message });
+  }
+};
+
+// @desc    Draft AI grading and feedback for a student submission
+// @route   POST /api/assessment/assignment/:id/ai-grade
+// @access  Private (Faculty/HOD/Principal)
+export const aiGradeAssignment = async (req, res) => {
+  try {
+    const { studentId } = req.body;
+    const assignment = await Assignment.findById(req.params.id);
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const sub = assignment.submissions.find((s) => s.studentId.toString() === studentId);
+    if (!sub) {
+      return res.status(404).json({ message: 'Submission not found for this student' });
+    }
+
+    // Get student details
+    const studentUser = await User.findById(studentId).select('name enrollmentId');
+
+    const prompt = `You are an expert university professor grading a college assignment.
+Assignment Title: "${assignment.title}"
+Assignment Description:
+---
+${assignment.description}
+---
+Maximum Marks: ${assignment.maxMarks}
+
+Student Name: ${studentUser?.name || 'Student'}
+Student Submission Content:
+---
+${sub.text || '(No text submitted. Please evaluate only based on the prompt)'}
+---
+
+Your task is to grade the student's submission and provide a constructive, detailed feedback response.
+Analyze:
+1. Technical correctness and accuracy.
+2. Depth of understanding.
+3. Completeness of requirements.
+4. Suggestions for improvement and further reading.
+
+You MUST respond in valid JSON format only, matching this structure:
+{
+  "suggestedGrade": <number between 0 and ${assignment.maxMarks}>,
+  "feedback": "<markdown formatted detailed feedback review, including strengths, areas of improvement, and specific advice>"
+}`;
+
+    const messages = [
+      { role: 'system', content: 'You are an elite academic grading engine. Always return valid JSON only.' },
+      { role: 'user', content: prompt }
+    ];
+
+    const responseText = await getGroqChatCompletion(messages, true, 0.2);
+    const result = JSON.parse(responseText);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('AI grading error:', error);
+    res.status(500).json({ message: 'AI grading failed', error: error.message });
+  }
+};
+
+// @desc    Get AI insights and analytics for Form results
+// @route   POST /api/assessment/form/:id/ai-insights
+// @access  Private (Faculty/HOD/Principal)
+export const aiFormInsights = async (req, res) => {
+  try {
+    const form = await Form.findById(req.params.id);
+    if (!form) return res.status(404).json({ message: 'Form not found' });
+
+    // Format questions & responses for AI consumption
+    const questionsSummary = form.questions.map((q, idx) => ({
+      index: idx,
+      text: q.text,
+      type: q.type,
+      options: q.options?.map(o => ({ text: o.text, isCorrect: o.isCorrect }))
+    }));
+
+    const responsesSummary = form.responses.map(r => ({
+      studentName: r.studentName,
+      totalScore: r.totalScore,
+      answers: r.answers?.map(a => ({
+        questionIndex: a.questionIndex,
+        selectedOptions: a.selectedOptions,
+        textAnswer: a.textAnswer
+      }))
+    }));
+
+    const maxPossible = form.questions.reduce((a, q) => a + (q.points || 0), 0);
+
+    const prompt = `You are a Senior Academic Analytics Specialist at a university.
+Analyze the following Google Form-style assessment results to generate high-value, deep academic insights for the teaching faculty.
+
+Assessment Title: "${form.title}"
+Description: "${form.description || 'N/A'}"
+Total Students Responded: ${form.responses.length}
+Max Possible Score: ${maxPossible}
+
+Questions structure:
+${JSON.stringify(questionsSummary, null, 2)}
+
+Student Responses:
+${JSON.stringify(responsesSummary.slice(0, 50), null, 2)}
+
+Provide a comprehensive, professional, academic analytics report in Markdown format. The report should include:
+1. **Executive Summary**: Core metrics, overall distribution of scores, average proficiency level, and passing rates.
+2. **Concept Mastery Breakdown**: Analyze which specific questions or concepts the class struggled with the most (e.g. check questions with low correct response rates).
+3. **Student Cohort Segmentation**: Group students into categories:
+   - High Performers (Top 10-20% who mastered the material).
+   - Solid / On Track (Average performers).
+   - Critical Intervention Required (Students with very low scores who need immediate 1-on-1 tutoring).
+4. **Actionable Curricular Suggestions**: Recommend concrete changes to lectures, assignments, or study guides to address the observed gaps.
+5. **Interactive Lesson Practice Prompts**: A set of coding or conceptual quiz prompts that the faculty can write on the board in the next lecture.
+
+Use professional, encouraging, and academically-grounded language.`;
+
+    const messages = [
+      { role: 'system', content: 'You are a Senior Academic Analytics Specialist.' },
+      { role: 'user', content: prompt }
+    ];
+
+    const insights = await getGroqChatCompletion(messages, false, 0.4);
+    res.status(200).json({ insights });
+  } catch (error) {
+    console.error('AI Form insights error:', error);
+    res.status(500).json({ message: 'AI insights failed', error: error.message });
+  }
+};
+
+// @desc    Generate personalized academic study plan/intervention for a student
+// @route   POST /api/assessment/intervention
+// @access  Private
+export const aiStudentIntervention = async (req, res) => {
+  try {
+    const studentId = req.user.role === 'student' ? req.user._id : req.body.studentId;
+    const classroomCode = req.user.role === 'student' ? req.user.classroomCode : req.body.classroomCode;
+
+    if (!studentId || !classroomCode) {
+      return res.status(400).json({ message: 'Student ID and Classroom Code are required' });
+    }
+
+    const studentUser = await User.findById(studentId).select('name enrollmentId email');
+    if (!studentUser) return res.status(404).json({ message: 'Student not found' });
+
+    // Fetch marks
+    const marks = await Mark.find({ studentId, classroomCode });
+
+    // Fetch monthly attendance summary
+    const attendanceRecords = await Attendance.find({ classroomCode });
+    let totalLectures = 0;
+    let presentLectures = 0;
+    const subjectAttendance = {};
+
+    attendanceRecords.forEach(rec => {
+      const studentRec = rec.records.find(r => r.studentId?.toString() === studentId.toString());
+      if (studentRec) {
+        totalLectures++;
+        const isPresent = studentRec.status === 'present' || studentRec.status === 'late';
+        if (isPresent) presentLectures++;
+
+        const subj = rec.subject || 'General';
+        if (!subjectAttendance[subj]) subjectAttendance[subj] = { conducted: 0, present: 0 };
+        subjectAttendance[subj].conducted++;
+        if (isPresent) subjectAttendance[subj].present++;
+      }
+    });
+
+    const attendanceSummary = {
+      overallPercentage: totalLectures > 0 ? Math.round((presentLectures / totalLectures) * 100) : 0,
+      totalLectures,
+      presentLectures,
+      subjects: Object.entries(subjectAttendance).map(([subj, stats]) => ({
+        subject: subj,
+        conducted: stats.conducted,
+        present: stats.present,
+        percentage: stats.conducted > 0 ? Math.round((stats.present / stats.conducted) * 100) : 0,
+      }))
+    };
+
+    const prompt = `You are a high-level Academic Counselor and AI Personal Tutor at a university.
+Generate a highly personalized Academic Recovery & Study Intervention Plan for a student facing attendance and/or performance challenges.
+
+Student Details:
+- Name: ${studentUser.name}
+- Enrollment ID: ${studentUser.enrollmentId || 'N/A'}
+- Classroom Code: ${classroomCode}
+
+Attendance Record:
+- Overall Attendance: ${attendanceSummary.overallPercentage}% (Conducted: ${attendanceSummary.totalLectures}, Attended: ${attendanceSummary.presentLectures})
+- Subject-wise Attendance:
+${attendanceSummary.subjects.map(s => `  * ${s.subject}: ${s.percentage}% (${s.present}/${s.conducted} lectures)`).join('\n')}
+
+Academic Performance (Marks):
+${marks.map(m => `  * ${m.subject} - ${m.examType}: ${m.marksObtained}/${m.maxMarks} (${Math.round((m.marksObtained / m.maxMarks) * 100)}%)`).join('\n')}
+
+Generate a comprehensive recovery plan in Markdown format, with:
+1. **Performance Diagnostics**: Identify which subjects need the most urgent attention based on low scores (<60%) or low attendance (<75% - DBATU defaulter threshold).
+2. **Attendance Remediation Plan**: Step-by-step guidance on how the student can make up for missed classes (e.g., peer notes, online modules, instructor hours).
+3. **Personalized 4-Week Study Schedule**: Structured week-by-week timeline tailored to their weak subjects.
+4. **Interactive Coding & Concept Practice Exercises**: Provide 2-3 specific practice questions or mini-projects the student can work on in the LevelUp Code Playground.
+5. **Key Resources**: Reference topics and learning paths in the LevelUp Learning Hub they should complete.
+
+Maintain a encouraging, positive, structured, and professional academic tone. Help the student feel motivated to level up!`;
+
+    const messages = [
+      { role: 'system', content: 'You are an elite academic tutor and counselor.' },
+      { role: 'user', content: prompt }
+    ];
+
+    const intervention = await getGroqChatCompletion(messages, false, 0.4);
+    res.status(200).json({ intervention });
+  } catch (error) {
+    console.error('AI intervention error:', error);
+    res.status(500).json({ message: 'AI study plan failed to generate', error: error.message });
   }
 };

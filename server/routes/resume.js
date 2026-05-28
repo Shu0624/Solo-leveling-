@@ -7,6 +7,8 @@ import cloudinary from '../utils/cloudinary.js';
 import { protect } from '../middleware/auth.js';
 import { analyzeResume } from '../services/aiService.js';
 import Resume from '../models/Resume.js';
+import ResumeDraft from '../models/ResumeDraft.js';
+import { getGroqChatCompletion } from '../services/groqService.js';
 
 const router = express.Router();
 const upload = multer({
@@ -35,8 +37,8 @@ const uploadToCloudinary = (buffer, filename) => {
     const cld_upload_stream = cloudinary.uploader.upload_stream(
       {
         folder: 'levelup_resumes',
-        resource_type: 'raw',
-        public_id: `${Date.now()}_${filename}`
+        resource_type: 'image',
+        public_id: `${Date.now()}_${filename.replace(/\.pdf$/i, '')}`
       },
       (error, result) => {
         if (result) {
@@ -234,6 +236,129 @@ router.get('/my-top', protect, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch personal top resumes:', err);
     res.status(500).json({ message: 'Failed to fetch personal top resumes' });
+  }
+});
+
+// =====================================================================
+// RESUME BUILDER — Draft Save/Load + AI Generation
+// =====================================================================
+
+// @desc    Save or update resume builder draft
+// @route   POST /api/resume/save-draft
+// @access  Private
+router.post('/save-draft', protect, async (req, res) => {
+  try {
+    const draftData = req.body;
+    let draft = await ResumeDraft.findOne({ user: req.user._id });
+    if (draft) {
+      Object.assign(draft, draftData);
+      await draft.save();
+    } else {
+      draft = await ResumeDraft.create({ ...draftData, user: req.user._id });
+    }
+    res.status(200).json({ message: 'Draft saved', draft });
+  } catch (err) {
+    console.error('Save draft error:', err);
+    res.status(500).json({ message: 'Failed to save draft' });
+  }
+});
+
+// @desc    Get resume builder draft
+// @route   GET /api/resume/draft
+// @access  Private
+router.get('/draft', protect, async (req, res) => {
+  try {
+    const draft = await ResumeDraft.findOne({ user: req.user._id }).lean();
+    res.status(200).json(draft || null);
+  } catch (err) {
+    console.error('Get draft error:', err);
+    res.status(500).json({ message: 'Failed to fetch draft' });
+  }
+});
+
+// @desc    AI-powered resume builder — takes conversation context and generates structured resume JSON
+// @route   POST /api/resume/ai-build
+// @access  Private
+router.post('/ai-build', protect, resumeLimiter, async (req, res) => {
+  try {
+    const { messages } = req.body;
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ message: 'Messages array is required' });
+    }
+
+    const systemPrompt = `You are an expert AI Resume Writer specializing in building professional, ATS-optimized resumes for B.Tech students and early-career developers in India.
+
+Your job: Based on the conversation with the student, generate a complete, structured resume JSON.
+
+Rules:
+- Extract ALL information the student provided in the conversation.
+- Write a compelling professional summary (2-3 sentences) based on their skills and goals.
+- Rewrite bullet points using strong action verbs and quantify impact where possible.
+- Categorize skills intelligently into: languages, frontend, backend, ai, databases, tools, concepts.
+- Format experience bullets as impactful achievement statements ("Developed X using Y, resulting in Z").
+- If information is missing or sparse, use reasonable professional defaults but DO NOT fabricate facts.
+
+Output STRICTLY as valid JSON matching this schema:
+{
+  "fullName": "string",
+  "phone": "string",
+  "email": "string",
+  "location": "string",
+  "linkedin": "string",
+  "github": "string",
+  "summary": "string (2-3 sentence professional summary)",
+  "skills": {
+    "languages": ["string"],
+    "frontend": ["string"],
+    "backend": ["string"],
+    "ai": ["string"],
+    "databases": ["string"],
+    "tools": ["string"],
+    "concepts": ["string"]
+  },
+  "experience": [
+    { "title": "string", "company": "string", "dateRange": "string", "bullets": ["string"] }
+  ],
+  "projects": [
+    { "name": "string", "techStack": "string", "description": "string", "bullets": ["string"] }
+  ],
+  "education": [
+    { "degree": "string", "institution": "string", "cgpa": "string", "year": "string" }
+  ],
+  "certifications": ["string"],
+  "achievements": ["string"]
+}
+
+IMPORTANT: Return ONLY the JSON object. No markdown, no explanation.`;
+
+    const aiMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content }))
+    ];
+
+    const response = await getGroqChatCompletion(aiMessages, true, 0.3);
+
+    let resumeData;
+    try {
+      resumeData = JSON.parse(response);
+    } catch (e) {
+      const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+      resumeData = JSON.parse(cleanJson);
+    }
+
+    // Save as draft automatically
+    let draft = await ResumeDraft.findOne({ user: req.user._id });
+    if (draft) {
+      Object.assign(draft, resumeData);
+      await draft.save();
+    } else {
+      draft = await ResumeDraft.create({ ...resumeData, user: req.user._id });
+    }
+
+    res.status(200).json({ message: 'Resume generated successfully', resume: resumeData });
+  } catch (err) {
+    console.error('AI resume build error:', err);
+    res.status(500).json({ message: 'Failed to generate resume: ' + err.message });
   }
 });
 

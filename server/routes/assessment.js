@@ -24,7 +24,10 @@ import {
   getClassMarks,
   getLeaderboard,
   updateDSAProgress,
-  getDSALeaderboard
+  getDSALeaderboard,
+  aiGradeAssignment,
+  aiFormInsights,
+  aiStudentIntervention
 } from '../controllers/assessmentController.js';
 
 const router = express.Router();
@@ -38,11 +41,13 @@ router.post('/assignment', authorize('faculty', 'hod', 'principal'), createAssig
 router.get('/assignment/:code', getClassroomAssignments);
 router.post('/assignment/:id/submit', authorize('student'), submitAssignment);
 router.put('/assignment/:id/grade', authorize('faculty', 'hod', 'principal'), gradeAssignment);
+router.post('/assignment/:id/ai-grade', authorize('faculty', 'hod', 'principal'), aiGradeAssignment);
 
 // Attendance
 router.post('/attendance', authorize('faculty', 'hod', 'principal'), markAttendance);
 router.get('/attendance/:code', getClassroomAttendance);
 router.get('/attendance/:code/monthly-summary', getMonthlyAttendanceSummary);
+router.post('/intervention', aiStudentIntervention); // Available for both student (self-study plan) and faculty/admin
 
 // Announcements
 router.post('/announcement', authorize('faculty', 'hod', 'principal', 'placement'), createAnnouncement);
@@ -57,6 +62,7 @@ router.get('/form/:id/results', authorize('faculty', 'hod', 'principal'), getFor
 router.get('/form/:id/export', authorize('faculty', 'hod', 'principal'), exportFormExcel);
 router.post('/form/:id/import-csv', authorize('faculty', 'hod', 'principal'), csvUpload.single('csv'), importFormCSV);
 router.put('/form/:id/toggle', authorize('faculty', 'hod', 'principal'), toggleFormActive);
+router.post('/form/:id/ai-insights', authorize('faculty', 'hod', 'principal'), aiFormInsights);
 
 // Marks / Scores
 router.post('/marks', authorize('faculty', 'hod', 'principal'), addMarks);

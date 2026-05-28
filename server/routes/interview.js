@@ -6,6 +6,8 @@ import { z } from 'zod';
 
 const router = express.Router();
 
+import Activity from '../models/Activity.js';
+
 const saveSessionSchema = z.object({
   topic: z.string().trim().max(100).default('hr'),
   messagesCount: z.number().int().min(0).max(1000).default(0),
@@ -40,6 +42,23 @@ router.post('/session', protect, async (req, res) => {
       endedAt: new Date(),
       messages: messages || []
     });
+
+    // Automatically log this completed mock interview to general Activity tracking
+    try {
+      await Activity.create({
+        user: req.user._id,
+        classroomCode: req.user.classroomCode || '',
+        department: req.user.department || '',
+        college: req.user.college || '',
+        category: 'interview',
+        label: `AI Mock Interview (${topic})`,
+        duration: durationSeconds,
+        type: 'study',
+        date: new Date()
+      });
+    } catch (actErr) {
+      console.error('Failed to log mock interview activity:', actErr);
+    }
 
     res.status(201).json({
       message: 'Interview session saved',

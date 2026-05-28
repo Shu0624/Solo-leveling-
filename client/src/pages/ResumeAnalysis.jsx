@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, CheckCircle2, AlertTriangle, FileText, BarChart3, ChevronRight, Activity, ArrowRight, History, Clock, TrendingUp, Target } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertTriangle, FileText, BarChart3, ChevronRight, Activity, ArrowRight, History, Clock, TrendingUp, Target, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import ProgressRing from '../components/dashboard/ProgressRing';
@@ -164,9 +164,10 @@ const ResumeAnalysis = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="max-w-md mx-auto w-full flex flex-col gap-4"
+            className="max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 items-start"
           >
-            
+            {/* Left Column — Analyzer Form */}
+            <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-semibold text-muted-foreground ml-1">Company Name</label>
               <input
@@ -212,34 +213,20 @@ const ResumeAnalysis = () => {
                   ${file ? 'shadow-[0_0_0_2px_hsl(var(--success)/0.5)] bg-success/5' : ''}
                 `}
               >
-                {/* Background animate pulse if dragging */}
                 {isDragging && <div className="absolute inset-0 bg-primary/5 animate-pulse -z-10" />}
-
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={handleFileChange} 
-                />
-                
+                <input type="file" accept=".pdf" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                 <div className="flex flex-col items-center justify-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-700 text-white rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
                     <span className="font-serif italic font-bold text-lg">i</span>
                   </div>
-                  
                   {file ? (
                     <div className="inline-flex items-center gap-2 bg-primary/10 text-primary font-bold px-3 py-1.5 rounded-full mt-2 text-sm">
                        <FileText size={16} /> {file.name}
                     </div>
                   ) : (
                     <div className="text-center mt-1">
-                      <h3 className="text-[14px] font-bold text-foreground mb-1">
-                        Click to upload or drag and drop
-                      </h3>
-                      <p className="text-muted-foreground text-xs">
-                        PDF (max. 5 MB)
-                      </p>
+                      <h3 className="text-[14px] font-bold text-foreground mb-1">Click to upload or drag and drop</h3>
+                      <p className="text-muted-foreground text-xs">PDF (max. 5 MB)</p>
                     </div>
                   )}
                 </div>
@@ -263,7 +250,55 @@ const ResumeAnalysis = () => {
                 <><BarChart3 size={16} /> Generate Feedback</>
               )}
             </button>
+            </div>
 
+            {/* Right Column — Resume Builder Promo */}
+            <div className="flex flex-col gap-5">
+              <Link to="/resume-builder" className="group">
+                <div className="glass-morphism rounded-2xl p-6 border border-border/50 hover:border-primary/40 transition-all hover:shadow-lg hover:shadow-primary/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20">
+                      <FileText size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-foreground">Resume Builder</h3>
+                      <p className="text-xs text-muted-foreground">AI-powered • Professional Templates</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-5">Don't have a resume yet? Build one from scratch using our AI assistant. Answer a few questions and get a professional, ATS-optimized resume in minutes.</p>
+                  <div className="space-y-2.5 mb-5">
+                    {[
+                      ['🤖', 'AI Chat Agent builds your resume from conversation'],
+                      ['✏️', 'Manual form editor with live sections'],
+                      ['📥', 'Download as professional PDF instantly'],
+                      ['💾', 'Auto-saves drafts — come back anytime'],
+                    ].map(([emoji, text], i) => (
+                      <div key={i} className="flex items-center gap-3 text-sm">
+                        <span className="text-base">{emoji}</span>
+                        <span className="text-foreground/80">{text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-sm flex items-center justify-center gap-2 group-hover:opacity-90 shadow-lg shadow-violet-500/20 transition-all">
+                    <Sparkles size={16} /> Start Building Your Resume
+                  </div>
+                </div>
+              </Link>
+
+              {/* Quick Tips Card */}
+              <div className="glass-morphism rounded-2xl p-5 border border-border/50">
+                <h4 className="font-bold text-sm text-foreground mb-3 flex items-center gap-2">
+                  <Target size={16} className="text-primary" /> Quick Resume Tips
+                </h4>
+                <ul className="space-y-2 text-xs text-muted-foreground">
+                  <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-success mt-0.5 shrink-0" /> Use action verbs: Built, Deployed, Optimized</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-success mt-0.5 shrink-0" /> Quantify impact: "Improved load time by 40%"</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-success mt-0.5 shrink-0" /> Keep it 1 page for freshers, 2 pages max</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-success mt-0.5 shrink-0" /> Tailor keywords to the job description</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 size={12} className="text-success mt-0.5 shrink-0" /> Include GitHub & LinkedIn profile links</li>
+                </ul>
+              </div>
+            </div>
           </motion.div>
         ) : (
           <motion.div 
@@ -391,7 +426,7 @@ const ResumeAnalysis = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="mt-16 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="mt-24 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
         {/* Global Leaderboard (Left, 2/3 width) */}
         <div className="lg:col-span-2">

@@ -5,15 +5,26 @@ const ActivityContext = createContext(null);
 
 // Centralized category map to make it accessible everywhere
 export const ACTIVITY_CATEGORIES = [
-  { value: 'java', label: 'Java', color: '#f59e0b' },
-  { value: 'python', label: 'Python', color: '#3b82f6' },
-  { value: 'dsa', label: 'DSA Solving', color: '#10b981' },
-  { value: 'ai', label: 'AI / GenAI', color: '#8b5cf6' },
-  { value: 'aptitude', label: 'Aptitude', color: '#ec4899' },
-  { value: 'interview', label: 'Interview Prep', color: '#06b6d4' },
+  // High-level App Features
+  { value: 'dashboard', label: 'Dashboard', color: '#3b82f6' },
+  { value: 'learn', label: 'Learn Hub', color: '#fbbf24' },
   { value: 'resume', label: 'Resume Work', color: '#f97316' },
-  { value: 'group-discussion', label: 'Group Discussion', color: '#14b8a6' },
-  { value: 'other', label: 'Other', color: '#6b7280' },
+  { value: 'interview', label: 'Interview Prep', color: '#06b6d4' },
+  { value: 'assessment', label: 'Assessments', color: '#10b981' },
+  { value: 'roadmap', label: 'Career Roadmaps', color: '#8b5cf6' },
+  { value: 'programs', label: 'Language Hub', color: '#14b8a6' },
+  { value: 'benefits', label: 'Benefits / Perks', color: '#ec4899' },
+  { value: 'timepass', label: 'Timepass / Break', color: '#e91e63' },
+
+  // Granular Study Topics
+  { value: 'java', label: 'Java', color: '#f59e0b' },
+  { value: 'c', label: 'C Programming', color: '#0ea5e9' },
+  { value: 'python', label: 'Python', color: '#6366f1' },
+  { value: 'dsa', label: 'DSA Solving', color: '#22c55e' },
+  { value: 'ai', label: 'AI / GenAI', color: '#a855f7' },
+  { value: 'aptitude', label: 'Aptitude', color: '#f43f5e' },
+  { value: 'group-discussion', label: 'Group Discussion', color: '#115e59' },
+  { value: 'other', label: 'Other / Misc', color: '#6b7280' },
 ];
 
 // ---- Constants ----

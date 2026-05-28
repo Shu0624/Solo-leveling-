@@ -20,6 +20,7 @@ const Modules = lazy(() => import('./pages/Modules'));
 const ModuleDetail = lazy(() => import('./pages/ModuleDetail'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
 const ResumeAnalysis = lazy(() => import('./pages/ResumeAnalysis'));
+const ResumeBuilder = lazy(() => import('./pages/ResumeBuilder'));
 const InterviewLobby = lazy(() => import('./pages/InterviewLobby'));
 const InterviewRoom = lazy(() => import('./pages/InterviewRoom'));
 const InterviewHistory = lazy(() => import('./pages/InterviewHistory'));
@@ -71,6 +72,7 @@ function App() {
                 <Route path="/modules/:slug" element={<ProtectedRoute><ModuleDetail /></ProtectedRoute>} />
                 <Route path="/quiz/:quizId" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
                 <Route path="/resume" element={<ProtectedRoute><ResumeAnalysis /></ProtectedRoute>} />
+                <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilder /></ProtectedRoute>} />
                 <Route path="/interview" element={<ProtectedRoute><InterviewLobby /></ProtectedRoute>} />
                 <Route path="/interview/history" element={<ProtectedRoute><InterviewHistory /></ProtectedRoute>} />
                 <Route path="/interview/:roomId" element={<ProtectedRoute><InterviewRoom /></ProtectedRoute>} />

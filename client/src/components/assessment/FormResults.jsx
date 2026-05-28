@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Download, Users, Award, BarChart3, Upload, Loader2, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Download, Users, Award, BarChart3, Upload, Loader2, ArrowLeft, ExternalLink, Sparkles, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 
 const FormResults = ({ formId, onBack }) => {
   const { api } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [aiInsights, setAiInsights] = useState('');
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const csvInputRef = useRef(null);
 
   useEffect(() => {
@@ -22,6 +25,19 @@ const FormResults = ({ formId, onBack }) => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateInsights = async () => {
+    setLoadingInsights(true);
+    try {
+      const res = await api.post(`/assessment/form/${formId}/ai-insights`);
+      setAiInsights(res.data.insights);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate insights. Please try again.');
+    } finally {
+      setLoadingInsights(false);
     }
   };
 
@@ -95,6 +111,14 @@ const FormResults = ({ formId, onBack }) => {
             <Upload size={14} /> Import CSV
             <input ref={csvInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleCSVImport} />
           </label>
+          <button
+            onClick={generateInsights}
+            disabled={loadingInsights}
+            className="px-4 py-2.5 rounded-xl bg-accent text-white font-bold text-xs shadow-lg shadow-accent/20 hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+          >
+            {loadingInsights ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            AI Insights
+          </button>
           <button onClick={handleExport} className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity flex items-center gap-2">
             <Download size={14} /> Export Excel
           </button>
@@ -124,6 +148,31 @@ const FormResults = ({ formId, onBack }) => {
           );
         })}
       </div>
+
+      {/* AI Insights Panel */}
+      {aiInsights && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-morphism rounded-3xl overflow-hidden border border-accent/20 shadow-xl shadow-accent/5"
+        >
+          <div className="bg-gradient-to-r from-accent/10 to-primary/10 px-6 py-4 border-b border-border/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-accent animate-pulse" size={18} />
+              <h3 className="font-extrabold text-foreground text-sm">🤖 AI Cognitive Analysis & Insights</h3>
+            </div>
+            <button
+              onClick={() => setAiInsights('')}
+              className="text-muted-foreground hover:text-foreground text-xs font-bold transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="p-6 text-sm text-muted-foreground leading-relaxed space-y-4 custom-markdown-styles">
+            <ReactMarkdown>{aiInsights}</ReactMarkdown>
+          </div>
+        </motion.div>
+      )}
 
       {/* Response Table */}
       <div className="glass-morphism rounded-2xl overflow-hidden">
@@ -207,6 +256,17 @@ const FormResults = ({ formId, onBack }) => {
           </div>
         </div>
       )}
+
+      <style>{`
+        .custom-markdown-styles h1 { font-size: 1.25rem; font-weight: 800; color: hsl(var(--foreground)); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .custom-markdown-styles h2 { font-size: 1.1rem; font-weight: 700; color: hsl(var(--foreground)); margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        .custom-markdown-styles h3 { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); margin-top: 1rem; margin-bottom: 0.25rem; }
+        .custom-markdown-styles p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .custom-markdown-styles ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+        .custom-markdown-styles li { margin-bottom: 0.25rem; }
+        .custom-markdown-styles strong { color: hsl(var(--foreground)); font-weight: 700; }
+        .custom-markdown-styles code { background: hsl(var(--secondary) / 0.5); padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; }
+      `}</style>
     </div>
   );
 };

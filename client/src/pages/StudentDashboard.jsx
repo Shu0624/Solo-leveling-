@@ -803,7 +803,7 @@ const StudentDashboard = () => {
                             <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} dy={5} />
                             <YAxis tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
                             <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
-                            <Bar dataKey="minutes" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="minutes" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={32} />
                           </BarChart>
                         </ResponsiveContainer>
                       ) : (

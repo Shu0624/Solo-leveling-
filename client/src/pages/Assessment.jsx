@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 import {
   ClipboardList, CalendarCheck, Megaphone, Plus, Send, Check,
   Clock, AlertTriangle, ChevronDown, ChevronUp, FileText,
   Users, Loader2, Pin, Star, CheckCircle2, XCircle, X,
   ListChecks, ExternalLink, BarChart3, Power, BookOpen, FlaskConical, Calendar, Download,
-  Trophy, Code2, TrendingUp, Medal, Eye, EyeOff, ArrowUp, ArrowDown, Minus
+  Trophy, Code2, TrendingUp, Medal, Eye, EyeOff, ArrowUp, ArrowDown, Minus, Brain, Sparkles
 } from 'lucide-react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import FormBuilder from '../components/assessment/FormBuilder';
@@ -49,6 +50,10 @@ const Assessment = () => {
   const [submitText, setSubmitText] = useState('');
   const [gradingData, setGradingData] = useState({ studentId: '', grade: '', feedback: '' });
   const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [loadingAIGrade, setLoadingAIGrade] = useState({});
+  const [aiInterventionPlan, setAiInterventionPlan] = useState('');
+  const [loadingIntervention, setLoadingIntervention] = useState(false);
+  const [showInterventionModal, setShowInterventionModal] = useState(false);
 
   // ---- ATTENDANCE STATE ----
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -98,6 +103,24 @@ const Assessment = () => {
   const [dsaLeaderboard, setDsaLeaderboard] = useState(null);
   const [myDSA, setMyDSA] = useState(null);
   const [loadingDSA, setLoadingDSA] = useState(false);
+
+  // ---- NEW AI UTILITY STATE ----
+  const [showAIQuizModal, setShowAIQuizModal] = useState(false);
+  const [aiQuizTopic, setAiQuizTopic] = useState('');
+  const [aiQuizDifficulty, setAiQuizDifficulty] = useState('medium');
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [aiQuizQuestions, setAiQuizQuestions] = useState([]);
+  const [aiQuizCurrentIndex, setAiQuizCurrentIndex] = useState(0);
+  const [aiQuizSelectedAnswers, setAiQuizSelectedAnswers] = useState({});
+  const [showAIQuizResults, setShowAIQuizResults] = useState(false);
+
+  const [draftedNotice, setDraftedNotice] = useState('');
+  const [loadingNoticeDraft, setLoadingNoticeDraft] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+
+  const [dsaMilestones, setDsaMilestones] = useState('');
+  const [loadingDSAMilestones, setLoadingDSAMilestones] = useState(false);
+  const [showDSAMilestonesModal, setShowDSAMilestonesModal] = useState(false);
 
   const targetCode = isFaculty ? (assignmentForm.classroomCode || (user?.assignedClassrooms?.[0] || '')) : classroomCode;
 
@@ -280,6 +303,98 @@ const Assessment = () => {
       setGradingData({ studentId: '', grade: '', feedback: '' });
       fetchAssignments();
     } catch (e) { console.error(e); }
+  };
+
+  const handleAIGrade = async (assignmentId, studentId) => {
+    setLoadingAIGrade(prev => ({ ...prev, [studentId]: true }));
+    try {
+      const res = await api.post(`/assessment/assignment/${assignmentId}/ai-grade`, { studentId });
+      setGradingData({
+        studentId,
+        grade: res.data.suggestedGrade,
+        feedback: res.data.feedback
+      });
+      alert(`AI Suggestion loaded! Suggested Grade: ${res.data.suggestedGrade}.`);
+    } catch (e) {
+      console.error(e);
+      alert('AI grading failed or timed out.');
+    } finally {
+      setLoadingAIGrade(prev => ({ ...prev, [studentId]: false }));
+    }
+  };
+
+  const handleAIIntervention = async (studentId = null) => {
+    setLoadingIntervention(true);
+    const code = isFaculty ? (targetCode || user?.assignedClassrooms?.[0]) : classroomCode;
+    try {
+      const payload = studentId ? { studentId, classroomCode: code } : { studentId: user?._id, classroomCode: code };
+      const res = await api.post('/assessment/intervention', payload);
+      setAiInterventionPlan(res.data.intervention);
+      setShowInterventionModal(true);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate study recovery plan');
+    } finally {
+      setLoadingIntervention(false);
+    }
+  };
+
+  const handleGenerateAIQuiz = async (e) => {
+    if (e) e.preventDefault();
+    if (!aiQuizTopic.trim()) return;
+    setGeneratingQuiz(true);
+    setAiQuizQuestions([]);
+    setAiQuizCurrentIndex(0);
+    setAiQuizSelectedAnswers({});
+    setShowAIQuizResults(false);
+    try {
+      const res = await api.post('/ai/generate-quiz', { topic: aiQuizTopic.trim(), difficulty: aiQuizDifficulty });
+      if (res.data && res.data.questions) {
+        setAiQuizQuestions(res.data.questions);
+      } else {
+        alert('Invalid response from AI Quiz Generator.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to generate AI Quiz. Please try again.');
+    } finally {
+      setGeneratingQuiz(false);
+    }
+  };
+
+  const handleDraftNotice = async (studentName, attendancePercentage, subject = 'all subjects') => {
+    setLoadingNoticeDraft(true);
+    setDraftedNotice('');
+    setShowNoticeModal(true);
+    try {
+      const res = await api.post('/ai/draft-attendance-notice', { studentName, attendancePercentage, subject });
+      setDraftedNotice(res.data.draft);
+    } catch (e) {
+      console.error(e);
+      setDraftedNotice('⚠️ *Failed to draft notification template. Please retry.*');
+    } finally {
+      setLoadingNoticeDraft(false);
+    }
+  };
+
+  const handleGetDSAMilestones = async () => {
+    setLoadingDSAMilestones(true);
+    setDsaMilestones('');
+    setShowDSAMilestonesModal(true);
+    try {
+      const res = await api.post('/ai/dsa-milestones', {
+        easy: dsaForm.easySolved || 0,
+        medium: dsaForm.mediumSolved || 0,
+        hard: dsaForm.hardSolved || 0,
+        platform: dsaForm.platform || 'leetcode'
+      });
+      setDsaMilestones(res.data.plan);
+    } catch (e) {
+      console.error(e);
+      setDsaMilestones('⚠️ *Failed to generate coaching milestones. Please try again.*');
+    } finally {
+      setLoadingDSAMilestones(false);
+    }
   };
 
   const handleMarkAttendance = async () => {
@@ -556,9 +671,44 @@ const Assessment = () => {
                                       {sub.grade != null && <p className="text-xs text-success font-bold mt-1">Graded: {sub.grade}/{a.maxMarks}</p>}
                                     </div>
                                     {sub.grade == null && (
-                                      <div className="flex gap-2 items-center">
-                                        <input type="number" placeholder="Enter grade" className="input-field w-20 text-sm" onChange={e => setGradingData(p => ({ ...p, studentId: sub.studentId, grade: Number(e.target.value) }))} />
-                                        <button onClick={() => handleGrade(a._id)} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-xs">Grade</button>
+                                      <div className="flex flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                        <div className="flex gap-2 items-center justify-end">
+                                          <input
+                                            type="number"
+                                            placeholder="Grade"
+                                            value={gradingData.studentId === sub.studentId ? gradingData.grade : ''}
+                                            className="input-field w-20 text-sm"
+                                            onChange={e => setGradingData(p => ({ ...p, studentId: sub.studentId, grade: Number(e.target.value) }))}
+                                          />
+                                          <button
+                                            type="button"
+                                            disabled={loadingAIGrade[sub.studentId]}
+                                            onClick={() => handleAIGrade(a._id, sub.studentId)}
+                                            className="px-3 py-2 bg-accent text-white rounded-lg font-bold text-xs flex items-center gap-1 disabled:opacity-50"
+                                          >
+                                            {loadingAIGrade[sub.studentId] ? <Loader2 size={12} className="animate-spin" /> : null}
+                                            🤖 AI Grade
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (gradingData.studentId !== sub.studentId) {
+                                                setGradingData(p => ({ ...p, studentId: sub.studentId }));
+                                              }
+                                              handleGrade(a._id);
+                                            }}
+                                            className="px-3 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-xs"
+                                          >
+                                            Submit
+                                          </button>
+                                        </div>
+                                        <textarea
+                                          placeholder="Add academic feedback or advice..."
+                                          value={gradingData.studentId === sub.studentId ? gradingData.feedback : ''}
+                                          onChange={e => setGradingData(p => ({ ...p, studentId: sub.studentId, feedback: e.target.value }))}
+                                          className="input-field w-full text-xs mt-1"
+                                          rows={2}
+                                        />
                                       </div>
                                     )}
                                   </div>
@@ -601,6 +751,29 @@ const Assessment = () => {
                   >
                     <Plus size={16} /> Create New Form
                   </button>
+                )}
+
+                {/* AI Practice Quiz Card */}
+                {!isFaculty && (
+                  <div className="glass-morphism p-6 rounded-3xl border border-accent/20 mb-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                        <Sparkles size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-foreground text-sm">🤖 AI Instant Practice Quiz</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Need to prep for exam? Generate an interactive 5-question mock quiz on any topic (e.g. OOP, OS, SQL) instantly!
+                        </p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowAIQuizModal(true)} 
+                      className="w-full md:w-auto px-5 py-3 bg-accent text-white rounded-2xl font-bold text-xs shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus size={14} /> Start AI Practice
+                    </button>
+                  </div>
                 )}
 
                 {/* Form List */}
@@ -723,6 +896,14 @@ const Assessment = () => {
                           <AlertTriangle size={16} /> Below 75% — DBATU Defaulter Threshold
                         </div>
                       )}
+                      <button
+                        onClick={() => handleAIIntervention()}
+                        disabled={loadingIntervention}
+                        className="px-4 py-2.5 rounded-xl bg-accent text-white font-bold text-xs shadow-lg shadow-accent/20 hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {loadingIntervention ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        Generate AI Study recovery Plan
+                      </button>
                     </div>
                   </div>
                 )}
@@ -943,11 +1124,21 @@ const Assessment = () => {
                                 {monthlySummary.student.overall.present} / {monthlySummary.student.overall.conducted} lectures attended
                               </p>
                             </div>
-                            {monthlySummary.student.overall.isDefaulter && (
-                              <div className="px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-xl flex items-center gap-2 text-destructive text-sm font-bold">
-                                <AlertTriangle size={18} /> DEFAULTER — Below 75%
-                              </div>
-                            )}
+                            <div className="flex flex-col items-end gap-2">
+                              {monthlySummary.student.overall.isDefaulter && (
+                                <div className="px-4 py-2 bg-destructive/10 border border-destructive/20 rounded-xl flex items-center gap-2 text-destructive text-sm font-bold">
+                                  <AlertTriangle size={18} /> DEFAULTER — Below 75%
+                                </div>
+                              )}
+                              <button
+                                onClick={() => handleAIIntervention()}
+                                disabled={loadingIntervention}
+                                className="px-4 py-2 rounded-xl bg-accent text-white font-bold text-xs shadow-lg shadow-accent/20 hover:opacity-90 transition-opacity flex items-center gap-2 disabled:opacity-50"
+                              >
+                                {loadingIntervention ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
+                                Generate Recovery Study Plan
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -1001,6 +1192,7 @@ const Assessment = () => {
                                 ))}
                                 <th className="px-4 py-3 text-center">Overall</th>
                                 <th className="px-4 py-3 text-center">Status</th>
+                                <th className="px-4 py-3 text-center">Action</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-border/30">
@@ -1033,6 +1225,28 @@ const Assessment = () => {
                                     ) : (
                                       <span className="px-2 py-1 rounded-full bg-success/10 text-success text-[10px] font-bold border border-success/20">REGULAR</span>
                                     )}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        onClick={() => handleAIIntervention(stu.studentId)}
+                                        disabled={loadingIntervention}
+                                        className="px-2 py-1 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+                                        title="Draft Intervention Plan"
+                                      >
+                                        <Brain size={12} />
+                                        <span className="text-[10px] font-bold">Intervene</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleDraftNotice(stu.name, stu.overall.percentage)}
+                                        disabled={loadingNoticeDraft}
+                                        className="px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+                                        title="Draft Defaulter Warning Letter"
+                                      >
+                                        <FileText size={12} />
+                                        <span className="text-[10px] font-bold">Warning</span>
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
@@ -1406,11 +1620,21 @@ const Assessment = () => {
                   </select>
                   <input value={dsaForm.profileUrl} onChange={e => setDsaForm(p => ({ ...p, profileUrl: e.target.value }))} placeholder="Enter profile URL (optional)" className="input-field" />
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="text-sm text-muted-foreground">
                     Total Score: <strong className="text-foreground text-lg">{(dsaForm.easySolved * 1) + (dsaForm.mediumSolved * 3) + (dsaForm.hardSolved * 5)}</strong> pts
                   </div>
-                  <button onClick={handleUpdateDSA} className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2"><Send size={14} /> Save Progress</button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleGetDSAMilestones}
+                      disabled={loadingDSAMilestones}
+                      className="px-4 py-3 bg-accent text-white rounded-2xl font-bold text-sm shadow-lg shadow-accent/20 hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {loadingDSAMilestones ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      AI Coding Milestones
+                    </button>
+                    <button onClick={handleUpdateDSA} className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 flex items-center gap-2"><Send size={14} /> Save Progress</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1458,6 +1682,431 @@ const Assessment = () => {
 
       </AnimatePresence>
 
+      {/* AI Study Recovery & Intervention Plan Modal */}
+      {showInterventionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-4xl max-h-[85vh] bg-background/95 border border-border rounded-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <Brain className="text-accent animate-pulse" size={24} />
+                <div>
+                  <h3 className="font-extrabold text-foreground text-lg">🤖 Personal AI Study Recovery & Intervention Plan</h3>
+                  <p className="text-xs text-muted-foreground">Generated by LevelUp Cognitive Insights Engine</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowInterventionModal(false); setAiInterventionPlan(''); }}
+                className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="prose prose-invert max-w-none text-sm text-muted-foreground leading-relaxed space-y-4 custom-markdown-styles overflow-y-auto pr-2" style={{ maxHeight: '55vh' }}>
+              <ReactMarkdown>{aiInterventionPlan || "Analyzing record and drafting customized curriculum pathway..."}</ReactMarkdown>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4 mt-auto">
+              <button
+                onClick={() => {
+                  const blob = new Blob([aiInterventionPlan], { type: 'text/markdown' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `academic_recovery_plan.md`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 rounded-xl bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors flex items-center gap-1"
+              >
+                <Download size={14} /> Download Markdown
+              </button>
+              <button
+                onClick={() => { setShowInterventionModal(false); setAiInterventionPlan(''); }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Close Plan
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      {/* AI Practice Quiz Modal */}
+      {showAIQuizModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-2xl max-h-[85vh] bg-background/95 border border-border rounded-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-accent animate-pulse" size={24} />
+                <div>
+                  <h3 className="font-extrabold text-foreground text-lg">🤖 AI MCQ Practice Quiz</h3>
+                  <p className="text-xs text-muted-foreground">LevelUp Dynamic Assessment Engine</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAIQuizModal(false);
+                  setAiQuizQuestions([]);
+                  setAiQuizTopic('');
+                  setShowAIQuizResults(false);
+                }}
+                className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto pr-1 flex-1 flex flex-col gap-4" style={{ maxHeight: '60vh' }}>
+              {generatingQuiz ? (
+                <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="animate-spin text-accent" size={36} />
+                  <p className="text-sm text-muted-foreground font-medium">Analyzing CS curriculum & drafting MCQ questions...</p>
+                </div>
+              ) : aiQuizQuestions.length === 0 ? (
+                /* Setup form */
+                <form onSubmit={handleGenerateAIQuiz} className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    Enter a specific programming language, framework, or CS topic (e.g. "React Hooks", "B-Trees", "Database Normalization") to generate a fresh quiz.
+                  </p>
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Topic</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. SQL Joins, Binary Search, CSS Flexbox"
+                      value={aiQuizTopic}
+                      onChange={(e) => setAiQuizTopic(e.target.value)}
+                      className="input-field w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Difficulty</label>
+                    <div className="flex gap-2">
+                      {['easy', 'medium', 'hard'].map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setAiQuizDifficulty(d)}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold capitalize border transition-all ${
+                            aiQuizDifficulty === d
+                              ? 'bg-accent text-white border-accent shadow-md shadow-accent/25'
+                              : 'bg-secondary/40 text-muted-foreground border-border hover:text-foreground'
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-3 bg-accent text-white rounded-2xl font-bold text-sm shadow-lg shadow-accent/20 hover:scale-[1.01] transition-transform flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={16} /> Generate Dynamic Quiz
+                  </button>
+                </form>
+              ) : !showAIQuizResults ? (
+                /* Interactive quiz gameplay */
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-xs font-bold text-muted-foreground">
+                    <span>Question {aiQuizCurrentIndex + 1} of {aiQuizQuestions.length}</span>
+                    <span className="uppercase text-accent bg-accent/10 px-2 py-0.5 rounded-md border border-accent/20">{aiQuizDifficulty}</span>
+                  </div>
+
+                  <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent transition-all duration-300"
+                      style={{ width: `${((aiQuizCurrentIndex + 1) / aiQuizQuestions.length) * 100}%` }}
+                    />
+                  </div>
+
+                  <p className="font-bold text-foreground text-base mt-2">
+                    {aiQuizQuestions[aiQuizCurrentIndex]?.text}
+                  </p>
+
+                  <div className="space-y-2 mt-4">
+                    {aiQuizQuestions[aiQuizCurrentIndex]?.options?.map((opt, i) => {
+                      const isSelected = aiQuizSelectedAnswers[aiQuizCurrentIndex] === i;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setAiQuizSelectedAnswers(prev => ({ ...prev, [aiQuizCurrentIndex]: i }))}
+                          className={`w-full p-4 rounded-xl border text-left text-sm font-medium transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-accent/10 border-accent text-accent shadow-md shadow-accent/5 font-bold'
+                              : 'bg-secondary/20 border-border/50 hover:bg-secondary/30 hover:border-border text-foreground'
+                          }`}
+                        >
+                          <span>{opt}</span>
+                          <span className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-accent bg-accent font-bold' : 'border-muted-foreground'}`}>
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-between items-center pt-4">
+                    <button
+                      disabled={aiQuizCurrentIndex === 0}
+                      onClick={() => setAiQuizCurrentIndex(p => p - 1)}
+                      className="px-4 py-2 bg-secondary text-foreground rounded-xl text-xs font-bold hover:bg-secondary/70 disabled:opacity-40"
+                    >
+                      Previous
+                    </button>
+                    {aiQuizCurrentIndex === aiQuizQuestions.length - 1 ? (
+                      <button
+                        onClick={() => setShowAIQuizResults(true)}
+                        disabled={aiQuizSelectedAnswers[aiQuizCurrentIndex] === undefined}
+                        className="px-6 py-2.5 bg-accent text-white rounded-xl text-xs font-bold shadow-md shadow-accent/10 hover:opacity-90 disabled:opacity-50"
+                      >
+                        Finish & Grade
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setAiQuizCurrentIndex(p => p + 1)}
+                        disabled={aiQuizSelectedAnswers[aiQuizCurrentIndex] === undefined}
+                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                      >
+                        Next Question
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Results summary */
+                <div className="space-y-6">
+                  <div className="p-6 rounded-2xl bg-secondary/30 border border-border/60 text-center">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your Score</p>
+                    <p className="text-5xl font-black text-foreground mt-1">
+                      {
+                        aiQuizQuestions.reduce((score, q, idx) => {
+                          return score + (aiQuizSelectedAnswers[idx] === q.correctAnswer ? 1 : 0);
+                        }, 0)
+                      }
+                      <span className="text-xl text-muted-foreground font-normal"> / {aiQuizQuestions.length}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {
+                        aiQuizQuestions.reduce((score, q, idx) => {
+                          return score + (aiQuizSelectedAnswers[idx] === q.correctAnswer ? 1 : 0);
+                        }, 0) === aiQuizQuestions.length ? '🥇 Perfect score! Excellent work!' : 'Keep practicing to master this concept!'
+                      }
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-sm text-foreground">Detailed Question Review:</h4>
+                    {aiQuizQuestions.map((q, idx) => {
+                      const selected = aiQuizSelectedAnswers[idx];
+                      const isCorrect = selected === q.correctAnswer;
+                      return (
+                        <div key={idx} className={`p-4 rounded-xl border ${isCorrect ? 'bg-success/5 border-success/30' : 'bg-destructive/5 border-destructive/30'}`}>
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <p className="font-bold text-sm text-foreground">{idx + 1}. {q.text}</p>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isCorrect ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'}`}>
+                              {isCorrect ? 'Correct' : 'Incorrect'}
+                            </span>
+                          </div>
+                          <div className="text-xs space-y-1 text-muted-foreground mb-3">
+                            <p><strong className="text-foreground">Your Answer:</strong> {q.options[selected] || 'Not answered'}</p>
+                            {!isCorrect && <p><strong className="text-success">Correct Answer:</strong> {q.options[q.correctAnswer]}</p>}
+                          </div>
+                          <div className="p-3 rounded-lg bg-secondary/40 text-xs text-muted-foreground border border-border/40">
+                            <strong className="text-foreground block mb-0.5">Explanation:</strong>
+                            {q.explanation}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4 mt-auto">
+              {showAIQuizResults && (
+                <button
+                  onClick={() => {
+                    setAiQuizQuestions([]);
+                    setAiQuizTopic('');
+                    setShowAIQuizResults(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
+                >
+                  Try Another Quiz
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowAIQuizModal(false);
+                  setAiQuizQuestions([]);
+                  setAiQuizTopic('');
+                  setShowAIQuizResults(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* AI Attendance Warning Notice Modal */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-3xl max-h-[85vh] bg-background/95 border border-border rounded-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <FileText className="text-primary animate-pulse" size={24} />
+                <div>
+                  <h3 className="font-extrabold text-foreground text-lg">📧 AI Parent Notice / Defaulter Warning Letter</h3>
+                  <p className="text-xs text-muted-foreground">Drafted by LevelUp Academic Coordinator Assistant</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowNoticeModal(false); setDraftedNotice(''); }}
+                className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="prose prose-invert max-w-none text-sm text-muted-foreground leading-relaxed space-y-4 custom-markdown-styles overflow-y-auto pr-2" style={{ maxHeight: '55vh' }}>
+              {loadingNoticeDraft ? (
+                <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="animate-spin text-primary" size={32} />
+                  <p className="text-xs text-muted-foreground font-medium">Reviewing student details and composing official warnings...</p>
+                </div>
+              ) : (
+                <ReactMarkdown>{draftedNotice || "Failed to generate draft."}</ReactMarkdown>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4 mt-auto">
+              {!loadingNoticeDraft && draftedNotice && (
+                <>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(draftedNotice);
+                      alert('Copied to clipboard!');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
+                  >
+                    Copy Notice
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([draftedNotice], { type: 'text/markdown' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `defaulter_warning_letter.md`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1"
+                  >
+                    <Download size={14} /> Download Notice
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { setShowNoticeModal(false); setDraftedNotice(''); }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* AI DSA Milestones Modal */}
+      {showDSAMilestonesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-3xl max-h-[85vh] bg-background/95 border border-border rounded-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-accent animate-pulse" size={24} />
+                <div>
+                  <h3 className="font-extrabold text-foreground text-lg">🎯 AI DSA Milestones & Coaching Plan</h3>
+                  <p className="text-xs text-muted-foreground">Generated by LevelUp DSA Assessment Engine</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowDSAMilestonesModal(false); setDsaMilestones(''); }}
+                className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="prose prose-invert max-w-none text-sm text-muted-foreground leading-relaxed space-y-4 custom-markdown-styles overflow-y-auto pr-2" style={{ maxHeight: '55vh' }}>
+              {loadingDSAMilestones ? (
+                <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="animate-spin text-accent" size={32} />
+                  <p className="text-xs text-muted-foreground font-medium">Evaluating profile stats & creating specialized coding targets...</p>
+                </div>
+              ) : (
+                <ReactMarkdown>{dsaMilestones || "Failed to generate coaching milestones."}</ReactMarkdown>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border pt-4 mt-auto">
+              {!loadingDSAMilestones && dsaMilestones && (
+                <>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(dsaMilestones);
+                      alert('Copied to clipboard!');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
+                  >
+                    Copy Plan
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([dsaMilestones], { type: 'text/markdown' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `dsa_milestones_plan.md`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-accent text-white text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1"
+                  >
+                    <Download size={14} /> Download Plan
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => { setShowDSAMilestonesModal(false); setDsaMilestones(''); }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       {/* CSS for input fields */}
       <style>{`
         .input-field {
@@ -1477,6 +2126,14 @@ const Assessment = () => {
         .input-field::placeholder {
           color: hsl(var(--muted-foreground));
         }
+        .custom-markdown-styles h1 { font-size: 1.25rem; font-weight: 800; color: hsl(var(--foreground)); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .custom-markdown-styles h2 { font-size: 1.1rem; font-weight: 700; color: hsl(var(--foreground)); margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        .custom-markdown-styles h3 { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); margin-top: 1rem; margin-bottom: 0.25rem; }
+        .custom-markdown-styles p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .custom-markdown-styles ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+        .custom-markdown-styles li { margin-bottom: 0.25rem; }
+        .custom-markdown-styles strong { color: hsl(var(--foreground)); font-weight: 700; }
+        .custom-markdown-styles code { background: hsl(var(--secondary) / 0.5); padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; }
       `}</style>
     </div>
   );

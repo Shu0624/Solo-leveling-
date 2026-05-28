@@ -290,7 +290,12 @@ const ModuleDetail = () => {
       </div>
 
       {/* Course Group Discussion Chat */}
-      <CourseChat slug={slug} />
+      <CourseChat 
+        slug={slug} 
+        moduleTitle={module.title}
+        lessonTitle={currentLesson.title}
+        lessonContent={currentLesson.content}
+      />
     </div>
   );
 };

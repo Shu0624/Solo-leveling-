@@ -11,6 +11,7 @@ import {
   BookOpen, Target, Flame, Lightbulb, CheckCircle2, AlertCircle, ChevronRight,
   BarChart3, Zap, GraduationCap, Users
 } from 'lucide-react';
+import { ACTIVITY_CATEGORIES } from '../context/ActivityContext';
 
 const TOPIC_LABELS = {
   hr: 'Behavioral', java: 'Java', python: 'Python', dsa: 'DSA',
@@ -74,11 +75,14 @@ const StudentAnalytics = () => {
   const { readinessScore, quiz, interview, resume, modules, focus, streak, recommendations } = data;
 
   // Chart data
-  const categoryChartData = (focus.byCategory || []).map(c => ({
-    name: c._id || 'Other',
-    value: Math.round((c.totalSeconds || 0) / 60),
-    color: CATEGORY_COLORS[c._id] || '#6b7280'
-  }));
+  const categoryChartData = (focus.byCategory || []).map(c => {
+    const cat = ACTIVITY_CATEGORIES.find(a => a.value === c._id);
+    return {
+      name: cat?.label || c._id || 'Other',
+      value: Math.round((c.totalSeconds || 0) / 60),
+      color: cat?.color || '#6b7280'
+    };
+  });
 
   const dailyChartData = (() => {
     const dailyList = focus.daily || [];
@@ -253,7 +257,7 @@ const StudentAnalytics = () => {
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
                     formatter={(val) => [`${val} min`, 'Focus']}
                   />
-                  <Bar dataKey="minutes" fill="#818cf8" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="minutes" fill="#818cf8" radius={[6, 6, 0, 0]} barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
