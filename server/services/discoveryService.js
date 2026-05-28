@@ -451,6 +451,42 @@ const SEED_BENEFITS = [
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
+const CORRECT_LINKS = [
+  { company: 'infosys', contains: 'instep', link: 'https://www.infosys.com/instep.html' },
+  { company: 'tcs', contains: 'codevita', link: 'https://www.tcs.com/careers/tcs-codevita' },
+  { company: 'tcs', contains: 'ignite', link: 'https://www.tcs.com/careers/entry-level-programs' },
+  { company: 'tcs', contains: 'commune', link: 'https://www.tcs.com/careers/entry-level-programs' },
+  { company: 'google', contains: 'step', link: 'https://buildyourfuture.withgoogle.com/internships' },
+  { company: 'google', contains: 'gdsc', link: 'https://developers.google.com/community/gdsc' },
+  { company: 'google', contains: 'developer student club', link: 'https://developers.google.com/community/gdsc' },
+  { company: 'microsoft', contains: 'ambassador', link: 'https://mvp.microsoft.com/studentambassadors' },
+  { company: 'microsoft', contains: 'engage', link: 'https://careers.microsoft.com/v2/global/en/students' },
+  { company: 'microsoft', contains: 'msidc', link: 'https://careers.microsoft.com/students' },
+  { company: 'microsoft', contains: 'azure fellowship', link: 'https://careers.microsoft.com/students' },
+  { company: 'microsoft', contains: 'azure internship', link: 'https://careers.microsoft.com/students' },
+  { company: 'amazon', contains: 'sde internship', link: 'https://www.amazon.jobs/en/teams/internships-for-students' },
+  { company: 'amazon', contains: 'ml summer', link: 'https://amazonmlsummerschool.com/' },
+  { company: 'aicte', contains: 'virtual labs', link: 'https://internship.aicte-india.org/' },
+  { company: 'aicte', contains: 'ai/ml', link: 'https://internship.aicte-india.org/' },
+  { company: 'wipro', contains: 'earthian', link: 'https://www.wipro.com/sustainability/earthian/' }
+];
+
+const sanitizeLink = (link, company, title) => {
+  if (!link) return '';
+  let cleanUrl = link.trim();
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    cleanUrl = 'https://' + cleanUrl;
+  }
+  const companyNorm = company.toLowerCase();
+  const titleNorm = title.toLowerCase();
+  for (const rule of CORRECT_LINKS) {
+    if (companyNorm.includes(rule.company) && titleNorm.includes(rule.contains)) {
+      return rule.link;
+    }
+  }
+  return cleanUrl;
+};
+
 /**
  * Discover new programs using AI
  */
@@ -504,8 +540,30 @@ Return a JSON array of objects with these fields:
     const parsed = JSON.parse(raw);
     const programs = parsed.programs || parsed;
 
+    const activeList = await ProgramListing.find({ status: 'active' }).lean();
     let insertedCount = 0;
     for (const program of programs) {
+      const companyNorm = program.company.trim().toLowerCase();
+      const titleNorm = program.title.trim().toLowerCase();
+
+      // Check for similar active programs in DB to prevent duplicates
+      const isDup = activeList.some(p => {
+        const pCompany = p.company.trim().toLowerCase();
+        const pTitle = p.title.trim().toLowerCase();
+        return pCompany === companyNorm && (
+          pTitle === titleNorm ||
+          (titleNorm.length > 10 && pTitle.includes(titleNorm)) ||
+          (pTitle.length > 10 && titleNorm.includes(pTitle))
+        );
+      });
+
+      if (isDup) {
+        console.log(`[DISCOVERY] Skipping duplicate program: [${program.company}] ${program.title}`);
+        continue;
+      }
+
+      program.link = sanitizeLink(program.link, program.company, program.title);
+
       try {
         await ProgramListing.findOneAndUpdate(
           { title: program.title, company: program.company },
@@ -580,8 +638,33 @@ Return a JSON array:
     const parsed = JSON.parse(raw);
     const benefits = parsed.benefits || parsed;
 
+    const activeList = await BenefitListing.find({ status: 'active' }).lean();
     let insertedCount = 0;
     for (const benefit of benefits) {
+      const providerNorm = benefit.provider.trim().toLowerCase();
+      const nameNorm = benefit.name.trim().toLowerCase();
+
+      // Check for similar active benefits in DB to prevent duplicates
+      const isDup = activeList.some(b => {
+        const bProvider = b.provider.trim().toLowerCase();
+        const bName = b.name.trim().toLowerCase();
+        return bProvider === providerNorm && (
+          bName === nameNorm ||
+          (nameNorm.length > 8 && bName.includes(nameNorm)) ||
+          (bName.length > 8 && nameNorm.includes(bName))
+        );
+      });
+
+      if (isDup) {
+        console.log(`[DISCOVERY] Skipping duplicate benefit: [${benefit.provider}] ${benefit.name}`);
+        continue;
+      }
+
+      // Ensure it has protocol
+      if (benefit.link && !benefit.link.startsWith('http://') && !benefit.link.startsWith('https://')) {
+        benefit.link = 'https://' + benefit.link.trim();
+      }
+
       try {
         await BenefitListing.findOneAndUpdate(
           { name: benefit.name, provider: benefit.provider },
