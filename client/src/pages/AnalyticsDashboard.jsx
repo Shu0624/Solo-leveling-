@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, TrendingUp, GitCompare, MessageSquare, Download,
   RefreshCw, Loader2, Users, Clock, Trophy, Star, Flame, Activity,
-  Brain, ChevronRight, Search, Sparkles, ArrowLeft
+  Brain, ChevronRight, Search, Sparkles, ArrowLeft, AlertTriangle,
+  Mail, Copy, Check, Send, ShieldAlert
 } from 'lucide-react';
 import {
   MetricCard, TrendLineChart, ComparisonBarChart, CategoryPieChart,
@@ -15,6 +16,7 @@ import AnalyticsExport from '../components/analytics/AnalyticsExport';
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'classrooms', label: 'Classrooms', icon: Users },
+  { id: 'at-risk', label: 'At-Risk Alerts', icon: AlertTriangle },
   { id: 'compare', label: 'Compare', icon: GitCompare },
   { id: 'ask', label: 'Ask AI', icon: Brain },
   { id: 'export', label: 'Export', icon: Download },
@@ -37,10 +39,60 @@ const AnalyticsDashboard = () => {
   const [queryResults, setQueryResults] = useState([]);
   const [queryLoading, setQueryLoading] = useState(false);
 
+  // At-risk state
+  const [atRiskData, setAtRiskData] = useState(null);
+  const [atRiskLoading, setAtRiskLoading] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [mentorshipPlan, setMentorshipPlan] = useState(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContent, setEmailContent] = useState('');
+
+  const fetchAtRiskData = useCallback(async () => {
+    setAtRiskLoading(true);
+    try {
+      const res = await api.get('/analytics/at-risk');
+      setAtRiskData(res.data);
+    } catch (err) {
+      console.error('Failed to load at-risk report:', err);
+    } finally {
+      setAtRiskLoading(false);
+    }
+  }, [api]);
+
+  const generateMentorshipPlan = async (student) => {
+    setSelectedStudent(student);
+    setPlanLoading(true);
+    setMentorshipPlan(null);
+    try {
+      const res = await api.post(`/analytics/at-risk/${student._id}/mentorship-plan`);
+      setMentorshipPlan(res.data);
+      setEmailSubject(res.data.subject || '');
+      setEmailContent(res.data.emailContent || '');
+    } catch (err) {
+      console.error('Failed to generate mentorship plan:', err);
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`Subject: ${emailSubject}\n\n${emailContent}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Load overview data on mount
   useEffect(() => {
     fetchOverview();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'at-risk') {
+      fetchAtRiskData();
+    }
+  }, [activeTab, fetchAtRiskData]);
 
   const fetchOverview = async () => {
     setLoading(true);
@@ -160,24 +212,26 @@ const AnalyticsDashboard = () => {
       </header>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-8 bg-secondary/30 rounded-2xl p-1 overflow-x-auto border border-border/50">
-        {TABS.map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-              }`}
-            >
-              <Icon size={16} />
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="mb-8 bg-secondary/30 rounded-2xl p-1 overflow-x-auto border border-border/50 scrollbar-none">
+        <div className="flex gap-1 min-w-max">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -495,6 +549,264 @@ const AnalyticsDashboard = () => {
                 <p className="text-sm mt-1">Try clicking one of the suggestions above.</p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* ============ AT-RISK TAB ============ */}
+        {activeTab === 'at-risk' && (
+          <motion.div
+            key="at-risk"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {atRiskLoading ? (
+              <div className="flex flex-col items-center justify-center min-h-[30vh] text-muted-foreground">
+                <Loader2 size={36} className="animate-spin text-primary mb-3" />
+                <p className="font-semibold">Analyzing student risk metrics...</p>
+              </div>
+            ) : atRiskData ? (
+              <>
+                {/* Stats row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="glass-morphism p-6 flex items-center justify-between">
+                    <div>
+                      <span className="text-3xl font-black text-foreground">{atRiskData.atRiskCount}</span>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Students Flagged</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
+                      <AlertTriangle size={24} />
+                    </div>
+                  </div>
+                  <div className="glass-morphism p-6 flex items-center justify-between">
+                    <div>
+                      <span className="text-3xl font-black text-red-400">{atRiskData.highRiskCount}</span>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Critical Warnings</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center animate-pulse">
+                      <ShieldAlert size={24} />
+                    </div>
+                  </div>
+                  <div className="glass-morphism p-6 flex items-center justify-between">
+                    <div>
+                      <span className="text-3xl font-black text-amber-400">{atRiskData.mediumRiskCount}</span>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Interventions Needed</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                      <Activity size={24} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* List of at-risk students */}
+                <div className="glass-morphism p-6">
+                  <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
+                    <ShieldAlert className="text-red-500" size={20} /> Faculty Early Warning Roster
+                  </h3>
+
+                  {atRiskData.students.length > 0 ? (
+                    <div className="space-y-6">
+                      {atRiskData.students.map((student) => (
+                        <div
+                          key={student._id}
+                          className={`p-6 rounded-2xl border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
+                            student.riskLevel === 'high'
+                              ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/8'
+                              : 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/8'
+                          }`}
+                        >
+                          {/* Student identity & reasons */}
+                          <div className="space-y-3 max-w-xl">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-extrabold text-foreground text-lg">{student.name}</h4>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50 text-muted-foreground font-semibold uppercase">
+                                {student.classroomCode} · {student.department}
+                              </span>
+                              <span
+                                className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                  student.riskLevel === 'high'
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                }`}
+                              >
+                                {student.riskLevel === 'high' ? 'Critical Warning' : 'Needs Intervention'}
+                              </span>
+                            </div>
+
+                            {/* Trigger list */}
+                            <ul className="space-y-1">
+                              {student.reasons.map((reason, idx) => (
+                                <li key={idx} className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${student.riskLevel === 'high' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                                  {reason}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Student metrics grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center lg:text-left">
+                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
+                              <span className="text-lg font-black text-foreground">{student.readinessScore}%</span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Readiness</span>
+                            </div>
+                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
+                              <span className={`text-lg font-black ${student.attendance < 75 ? 'text-red-400' : 'text-foreground'}`}>
+                                {student.attendance}%
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Attendance</span>
+                            </div>
+                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
+                              <span className={`text-lg font-black ${student.assignmentCompletion < 60 ? 'text-red-400' : 'text-foreground'}`}>
+                                {student.assignmentCompletion}%
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Assignments</span>
+                            </div>
+                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
+                              <span className="text-lg font-black text-foreground">{student.dsaSolved}</span>
+                              <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">DSA Solved</span>
+                            </div>
+                          </div>
+
+                          {/* CTA Actions */}
+                          <div className="flex items-center justify-end">
+                            <button
+                              onClick={() => generateMentorshipPlan(student)}
+                              className={`px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${
+                                student.riskLevel === 'high'
+                                  ? 'bg-red-500 text-white shadow-red-500/10 hover:bg-red-600'
+                                  : 'bg-amber-500 text-white shadow-amber-500/10 hover:bg-amber-600'
+                              }`}
+                            >
+                              <Mail size={16} /> Mentorship Plan
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <ShieldAlert size={48} className="mx-auto mb-4 text-emerald-400/30" />
+                      <p className="font-semibold text-emerald-400">All students are on track!</p>
+                      <p className="text-sm mt-1">No students currently fall below performance or attendance warning criteria.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground glass-morphism rounded-3xl">
+                <AlertTriangle size={48} className="mx-auto mb-4 opacity-20" />
+                <p className="font-medium">Failed to load at-risk dashboard analytics data.</p>
+              </div>
+            )}
+
+            {/* Mentorship Program Builder Modal */}
+            <AnimatePresence>
+              {selectedStudent && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.95, y: 20 }}
+                    className="glass-morphism w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 md:p-8 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b border-border/50 pb-4 mb-6">
+                        <div>
+                          <span className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-2 inline-block">
+                            AI Intervention Planner
+                          </span>
+                          <h3 className="text-xl font-bold text-foreground">
+                            Mentorship Action Plan: {selectedStudent.name}
+                          </h3>
+                        </div>
+                        <button
+                          onClick={() => setSelectedStudent(null)}
+                          className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      {planLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                          <Loader2 size={36} className="animate-spin text-primary mb-3" />
+                          <p className="font-bold text-sm">Groq AI is designing personalized support template...</p>
+                          <p className="text-xs text-muted-foreground mt-1">Evaluating DSA progress, academic scores, and attendance rates</p>
+                        </div>
+                      ) : mentorshipPlan ? (
+                        <div className="space-y-6">
+                          {/* Subject */}
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Email Subject Line</label>
+                            <input
+                              type="text"
+                              value={emailSubject}
+                              onChange={(e) => setEmailSubject(e.target.value)}
+                              className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
+                            />
+                          </div>
+
+                          {/* Email Content Body */}
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Personalized Letter / Intervention Draft</label>
+                            <textarea
+                              rows={10}
+                              value={emailContent}
+                              onChange={(e) => setEmailContent(e.target.value)}
+                              className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
+                            />
+                          </div>
+
+                          {/* Suggested Steps */}
+                          {mentorshipPlan.mentorshipActionSteps?.length > 0 && (
+                            <div className="space-y-2">
+                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Recommended Action Steps</span>
+                              <div className="space-y-1.5">
+                                {mentorshipPlan.mentorshipActionSteps.map((step, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-foreground bg-background/25 border border-border/30 rounded-xl p-3">
+                                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 font-bold">
+                                      {idx + 1}
+                                    </span>
+                                    <p className="leading-5">{step}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-destructive text-center py-6">Could not generate AI action plan templates.</p>
+                      )}
+                    </div>
+
+                    {!planLoading && (
+                      <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
+                        <button
+                          onClick={() => setSelectedStudent(null)}
+                          className="px-5 py-3 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleCopy}
+                          className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
+                        >
+                          {copied ? <Check size={16} /> : <Copy size={16} />}
+                          {copied ? 'Copied Draft!' : 'Copy Draft & Steps'}
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
 

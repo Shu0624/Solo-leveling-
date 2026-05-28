@@ -7,6 +7,12 @@ import Resume from '../models/Resume.js';
 import ClassroomAnalytics from '../models/ClassroomAnalytics.js';
 import { processQuery } from '../services/analyticsQueryEngine.js';
 import { runAggregation } from '../scripts/aggregateAnalytics.js';
+import DSAProgress from '../models/DSAProgress.js';
+import LanguageProfile from '../models/LanguageProfile.js';
+import SavedRoadmap from '../models/SavedRoadmap.js';
+import Assignment from '../models/Assignment.js';
+import Attendance from '../models/Attendance.js';
+import { getGroqChatCompletion } from '../services/groqService.js';
 
 const router = express.Router();
 
@@ -494,6 +500,283 @@ router.get('/export', protect, authorize(...adminRoles), scopeData, async (req, 
   } catch (err) {
     console.error('Export error:', err);
     res.status(500).json({ message: 'Failed to export data' });
+  }
+});
+
+// =====================================================================
+// GET /api/analytics/at-risk — Early Warning System for Faculty
+// =====================================================================
+router.get('/at-risk', protect, authorize(...adminRoles), scopeData, async (req, res) => {
+  try {
+    const students = await getStudentsInScope(req.scope);
+    const studentIds = students.map(s => s._id);
+
+    // Run parallel queries to fetch metrics across all modules in batch
+    const [
+      quizAttempts,
+      resumes,
+      dsaProgressions,
+      languageProfiles,
+      savedRoadmaps,
+      assignments,
+      attendances,
+      focusAgg
+    ] = await Promise.all([
+      QuizAttempt.find({ user: { $in: studentIds } }).lean(),
+      Resume.find({ user: { $in: studentIds } }).lean(),
+      DSAProgress.find({ studentId: { $in: studentIds } }).lean(),
+      LanguageProfile.find({ user: { $in: studentIds } }).lean(),
+      SavedRoadmap.find({ user: { $in: studentIds } }).lean(),
+      Assignment.find({ classroomCode: { $in: students.map(s => s.classroomCode).filter(Boolean) } }).lean(),
+      Attendance.find({ classroomCode: { $in: students.map(s => s.classroomCode).filter(Boolean) } }).lean(),
+      Activity.aggregate([
+        { $match: { user: { $in: studentIds }, type: { $ne: 'auto' } } },
+        { $group: { _id: '$user', totalSeconds: { $sum: '$duration' } } }
+      ])
+    ]);
+
+    // Build lookup maps for optimal performance (no N+1 loops)
+    const quizMap = {};
+    quizAttempts.forEach(qa => {
+      const uid = qa.user.toString();
+      if (!quizMap[uid]) quizMap[uid] = [];
+      quizMap[uid].push(qa);
+    });
+
+    const resumeMap = {};
+    resumes.forEach(r => {
+      resumeMap[r.user.toString()] = r;
+    });
+
+    const dsaMap = {};
+    dsaProgressions.forEach(d => {
+      dsaMap[d.studentId.toString()] = d;
+    });
+
+    const langMap = {};
+    languageProfiles.forEach(lp => {
+      langMap[lp.user.toString()] = lp;
+    });
+
+    const roadmapMap = {};
+    savedRoadmaps.forEach(sr => {
+      roadmapMap[sr.user.toString()] = sr;
+    });
+
+    const focusMap = {};
+    focusAgg.forEach(f => {
+      focusMap[f._id.toString()] = f.totalSeconds;
+    });
+
+    const atRiskStudents = [];
+
+    students.forEach(student => {
+      const sid = student._id.toString();
+      const sCode = student.classroomCode;
+
+      // 1. Quizzes
+      const sQuizzes = quizMap[sid] || [];
+      const quizTotal = sQuizzes.length;
+      const quizAvgScore = quizTotal > 0
+        ? Math.round(sQuizzes.reduce((sum, q) => sum + (q.percentage || 0), 0) / quizTotal)
+        : 0;
+
+      // 2. Resume
+      const sResume = resumeMap[sid];
+      const resumeScore = sResume?.analysis?.score || 0;
+      const resumeUploaded = !!sResume;
+
+      // 3. Focus
+      const focusTotalSeconds = focusMap[sid] || 0;
+      const focusOverallHours = Math.round(focusTotalSeconds / 3600);
+
+      // 4. DSA
+      const sDsa = dsaMap[sid];
+      const dsaTotalSolved = sDsa ? ((sDsa.easySolved || 0) + (sDsa.mediumSolved || 0) + (sDsa.hardSolved || 0)) : 0;
+
+      // 5. Language
+      const sLang = langMap[sid];
+      const langXP = sLang ? (sLang.totalXP || 0) : 0;
+
+      // 6. Roadmap
+      const sRoadmap = roadmapMap[sid];
+      const targetRole = sRoadmap?.targetRole || 'Not Set';
+
+      // 7. Academic assignments
+      const sAssignments = assignments.filter(a => a.classroomCode === sCode);
+      const totalAssignments = sAssignments.length;
+      let submittedAssignments = 0;
+      sAssignments.forEach(ass => {
+        const sub = ass.submissions?.find(subm => subm.studentId?.toString() === sid);
+        if (sub) submittedAssignments++;
+      });
+      const assignmentCompletionRate = totalAssignments > 0 ? Math.round((submittedAssignments / totalAssignments) * 100) : 0;
+
+      // 8. Academic attendance
+      const sAttendances = attendances.filter(a => a.classroomCode === sCode);
+      let totalLectures = 0;
+      let lecturesAttended = 0;
+      sAttendances.forEach(att => {
+        const record = att.records?.find(rec => rec.studentId?.toString() === sid);
+        if (record) {
+          totalLectures++;
+          if (record.status === 'present' || record.status === 'late') lecturesAttended++;
+        }
+      });
+      const attendancePercentage = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
+
+      // Calculate composite Readiness Score
+      const weights = { quiz: 15, interview: 15, resume: 15, focus: 10, modules: 10, dsa: 15, academics: 10, language: 10 };
+      const dsaScore = Math.min((dsaTotalSolved / 50) * 100, 100);
+      const academicScore = Math.round((attendancePercentage + assignmentCompletionRate) / 2);
+      const languageScore = Math.min((langXP / 500) * 100, 100);
+      const focusScore = Math.min(focusTotalSeconds / 36000 * 100, 100);
+      const quizWeightScore = Math.min(quizAvgScore, 100);
+
+      const readinessScore = Math.round(
+        (quizWeightScore * weights.quiz +
+         resumeScore * weights.resume +
+         focusScore * weights.focus +
+         dsaScore * weights.dsa +
+         academicScore * weights.academics +
+         languageScore * weights.language) / 85 * 100
+      );
+
+      // Determine Risk Level
+      let riskLevel = 'good'; // 'good', 'medium' (Needs Intervention), 'high' (Critical Warning)
+      const warningReasons = [];
+
+      if (readinessScore < 50) {
+        riskLevel = 'high';
+        warningReasons.push('Low overall readiness score (< 50%)');
+      }
+      if (attendancePercentage < 75) {
+        riskLevel = 'high';
+        warningReasons.push('Attendance is below criteria (< 75%)');
+      }
+      if (assignmentCompletionRate < 60) {
+        if (riskLevel !== 'high') riskLevel = 'high';
+        warningReasons.push('Critical assignment backlog (< 60%)');
+      }
+      if (dsaTotalSolved < 10 && targetRole !== 'Not Set') {
+        if (riskLevel === 'good') riskLevel = 'medium';
+        warningReasons.push('Low DSA problem solved count (< 10 problems)');
+      }
+
+      if (riskLevel === 'good') {
+        if (readinessScore >= 50 && readinessScore < 65) {
+          riskLevel = 'medium';
+          warningReasons.push('Moderately low overall readiness');
+        }
+        if (attendancePercentage >= 75 && attendancePercentage < 80) {
+          riskLevel = 'medium';
+          warningReasons.push('Attendance is borderline (75-80%)');
+        }
+        if (assignmentCompletionRate >= 60 && assignmentCompletionRate < 75) {
+          riskLevel = 'medium';
+          warningReasons.push('Pending assignments (60-75% completion)');
+        }
+      }
+
+      if (riskLevel !== 'good') {
+        atRiskStudents.push({
+          _id: sid,
+          name: student.name,
+          classroomCode: sCode || 'N/A',
+          department: student.department || 'General',
+          readinessScore,
+          attendance: attendancePercentage,
+          assignmentCompletion: assignmentCompletionRate,
+          dsaSolved: dsaTotalSolved,
+          focusHours: focusOverallHours,
+          riskLevel,
+          reasons: warningReasons
+        });
+      }
+    });
+
+    res.json({
+      atRiskCount: atRiskStudents.length,
+      highRiskCount: atRiskStudents.filter(s => s.riskLevel === 'high').length,
+      mediumRiskCount: atRiskStudents.filter(s => s.riskLevel === 'medium').length,
+      students: atRiskStudents
+    });
+  } catch (err) {
+    console.error('At-risk report error:', err);
+    res.status(500).json({ message: 'Failed to load at-risk report' });
+  }
+});
+
+// =====================================================================
+// POST /api/analytics/at-risk/:studentId/mentorship-plan — Generate AI template
+// =====================================================================
+router.post('/at-risk/:studentId/mentorship-plan', protect, authorize(...adminRoles), async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const student = await User.findById(studentId).lean();
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    // Fetch metrics
+    const [quizAttempts, resume, dsaProgress, languageProfile, assignments, attendances] = await Promise.all([
+      QuizAttempt.find({ user: studentId }).lean(),
+      Resume.findOne({ user: studentId }).lean(),
+      DSAProgress.findOne({ studentId }).lean(),
+      LanguageProfile.findOne({ user: studentId }).lean(),
+      Assignment.find({ classroomCode: student.classroomCode }).lean(),
+      Attendance.find({ classroomCode: student.classroomCode }).lean()
+    ]);
+
+    const quizTotal = quizAttempts.length;
+    const quizAvgScore = quizTotal > 0 ? Math.round(quizAttempts.reduce((sum, q) => sum + (q.percentage || 0), 0) / quizTotal) : 0;
+    const resumeScore = resume?.analysis?.score || 0;
+    const dsaTotalSolved = dsaProgress ? ((dsaProgress.easySolved || 0) + (dsaProgress.mediumSolved || 0) + (dsaProgress.hardSolved || 0)) : 0;
+    const langXP = languageProfile ? (languageProfile.totalXP || 0) : 0;
+
+    let submittedAssignments = 0;
+    assignments.forEach(ass => {
+      if (ass.submissions?.some(sub => sub.studentId?.toString() === studentId)) submittedAssignments++;
+    });
+    const assignmentCompletion = assignments.length > 0 ? Math.round((submittedAssignments / assignments.length) * 100) : 0;
+
+    let totalLectures = 0;
+    let lecturesAttended = 0;
+    attendances.forEach(att => {
+      const record = att.records?.find(rec => rec.studentId?.toString() === studentId);
+      if (record) {
+        totalLectures++;
+        if (record.status === 'present' || record.status === 'late') lecturesAttended++;
+      }
+    });
+    const attendance = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
+
+    const prompt = `You are a helpful academic mentor and professor at an engineering college.
+Write a personalized, encouraging but firm intervention letter/email from you (the Professor) to the student: ${student.name}.
+Use their specific performance metrics to guide the recommendations:
+- Attendance: ${attendance}% (target >75%)
+- Assignment completion: ${assignmentCompletion}% (target >80%)
+- Quizzes: average score of ${quizAvgScore}%
+- DSA problems solved: ${dsaTotalSolved} solved
+- Resume score: ${resumeScore}/100
+
+Format the response exactly as a JSON object:
+{
+  "subject": "Mentorship and Placement Preparation Support - [Student Name]",
+  "emailContent": "Dear [Student Name],\\n\\n...",
+  "mentorshipActionSteps": [
+    "Step 1...",
+    "Step 2..."
+  ]
+}`;
+
+    const responseText = await getGroqChatCompletion([
+      { role: 'system', content: 'You generate structured academic mentorship templates in JSON.' },
+      { role: 'user', content: prompt }
+    ], true, 0.5);
+
+    res.json(JSON.parse(responseText));
+  } catch (err) {
+    console.error('Mentorship plan error:', err);
+    res.status(500).json({ message: 'Failed to generate mentorship plan' });
   }
 });
 

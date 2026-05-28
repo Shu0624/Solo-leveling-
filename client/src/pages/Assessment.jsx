@@ -528,23 +528,25 @@ const Assessment = () => {
       {renderClassroomSelector()}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-8 bg-secondary/30 rounded-2xl p-1 overflow-x-auto border border-border/50">
-        {TABS.map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setActiveFormId(null); setFormViewMode(null); setShowFormBuilder(false); }}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
-                activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-              }`}
-            >
-              <Icon size={16} /> {tab.label}
-            </button>
-          );
-        })}
+      <div className="mb-8 bg-secondary/30 rounded-2xl p-1 overflow-x-auto border border-border/50 scrollbar-none">
+        <div className="flex gap-1 min-w-max">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setActiveFormId(null); setFormViewMode(null); setShowFormBuilder(false); }}
+                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === tab.id
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <Icon size={16} /> {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
