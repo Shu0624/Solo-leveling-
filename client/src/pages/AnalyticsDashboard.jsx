@@ -67,6 +67,7 @@ const AnalyticsDashboard = () => {
   const [inviteSubject, setInviteSubject] = useState('');
   const [inviteContent, setInviteContent] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [blueprintModalOpen, setBlueprintModalOpen] = useState(false);
 
   const fetchAtRiskData = useCallback(async () => {
     setAtRiskLoading(true);
@@ -369,12 +370,15 @@ const AnalyticsDashboard = () => {
                     The overall study volume registered for the past 30 days is <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} hours</span>. 
                     To ensure high-quality placement results, consider reviewing the <span className="text-white">Placement Pool tab</span> to evaluate students matching prime recruiters criteria.
                   </p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
                       Open Placement Pool Screening
                     </button>
-                    <button onClick={() => setActiveTab('classrooms')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('classrooms')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
                       Inspect Departmental Classrooms
+                    </button>
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                      📘 View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -390,9 +394,12 @@ const AnalyticsDashboard = () => {
                     Average student ATS resume score is <span className="text-pink-400 font-bold">{overview.stats.avgResumeScore}/100</span>.
                     You can screen, filter, and invite cohorts matching corporate hiring policies under the <span className="text-white">Placement Pool tab</span>, and export customized drive registration sheets.
                   </p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
                       Go to Placement Screening Pool
+                    </button>
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                      📘 View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -408,12 +415,15 @@ const AnalyticsDashboard = () => {
                     Average consistency is <span className="text-emerald-400 font-bold">{overview.stats.avgStreak} days streak</span>. 
                     Ensure class teachers have resolved students flagged in the <span className="text-white">At-Risk Alerts</span> tab.
                   </p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-extrabold rounded-xl transition-all">
                       View Flagged Students
                     </button>
-                    <button onClick={() => setActiveTab('compare')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('compare')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
                       Compare Classroom Sections
+                    </button>
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                      📘 View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -428,9 +438,12 @@ const AnalyticsDashboard = () => {
                     Your assigned classroom has accumulated <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} study hours</span>.
                     You can generate personalized AI-crafted mentorship plans for students falling behind in attendance, DSA progress, or assignment completion rates.
                   </p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
                       Open At-Risk Alerts
+                    </button>
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                      📘 View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -1343,6 +1356,133 @@ const AnalyticsDashboard = () => {
             exit={{ opacity: 0, y: -10 }}
           >
             <AnalyticsExport />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* ============ SYSTEM READINESS BLUEPRINT GUIDE MODAL ============ */}
+      <AnimatePresence>
+        {blueprintModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="glass-morphism w-full max-w-3xl max-h-[85vh] overflow-y-auto p-6 md:p-8 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between border-b border-border/50 pb-4 mb-6">
+                  <div>
+                    <span className="text-xs bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-2 inline-block">
+                      System Calibration Matrix
+                    </span>
+                    <h3 className="text-xl font-bold text-foreground">
+                      LevelUp Career Readiness & Evaluation Blueprint
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setBlueprintModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Persona Header Context */}
+                  <div className="bg-primary/5 border border-primary/25 p-4 rounded-xl">
+                    <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
+                      {user?.role === 'principal' && '🏛️ Institutional Strategic Impact Audit'}
+                      {user?.role === 'placement' && '💼 Recruiter Benchmarking & Sourcing Audit'}
+                      {user?.role === 'hod' && '🎓 Curricular Integration & Compliance Audit'}
+                      {user?.role === 'faculty' && '👥 Student Mentorship & Engagement Targets'}
+                    </h4>
+                    <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                      {user?.role === 'principal' && 'This blueprint details how student metrics translate into corporate placement criteria. The composite Readiness Score represents the students aggregate progress across academic, coding, and behavioral skill modules.'}
+                      {user?.role === 'placement' && 'Use this matrix to filter and identify job-ready candidates for recruiters. High performance across these categories directly correlates with campus interview conversion ratios.'}
+                      {user?.role === 'hod' && 'This framework tracks department curriculum health, quiz performance, and coding practice consistency. Use these categories to verify section-wise target alignment.'}
+                      {user?.role === 'faculty' && 'Use this reference to counsel lagging students. Setting clear expectations for weekly focus time, DSA practices, and attendance is key to boosting their readiness score.'}
+                    </p>
+                  </div>
+
+                  {/* Module List Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">📚 Tech Fundamentals Quiz</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-primary/20 text-primary">15% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        Measures student comprehension in technical subject quizzes. It is calculated by averaging all test percentages completed within chapters.
+                      </p>
+                    </div>
+
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">📄 AI Resume Grading</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-pink-500/20 text-pink-400">15% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        Evaluates candidate resume layout, ATS keyword matches, formatting, and structural scores out of 100.
+                      </p>
+                    </div>
+
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">💻 Algorithmic DSA Problems</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">15% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        Tracks problem-solving count on the coding deck. Target is calibrated at 50 solved medium/hard level questions for full score.
+                      </p>
+                    </div>
+
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">⏱️ Workspace Consistency</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400">10% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        Focus tracker capturing student active coding duration. A target of 10 study hours per week translates to 100% of this metric.
+                      </p>
+                    </div>
+
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">🎓 Academic Integration</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">10% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        An aggregate of attendance record and assignment completion rates. Class attendance below 75% triggers critical warning.
+                      </p>
+                    </div>
+
+                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-sm text-foreground">🗣️ Language & Communication</span>
+                        <span className="text-xs font-black px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">10% Weight</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                        Language assessment points capturing listening, speaking, grammar, and pronunciation. Target is set at 500 cumulative XP.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
+                <button
+                  onClick={() => setBlueprintModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all shadow-lg shadow-primary/25"
+                >
+                  Understood
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
