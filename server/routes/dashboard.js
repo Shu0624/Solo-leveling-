@@ -9,6 +9,12 @@ import QuizAttempt from '../models/QuizAttempt.js';
 import InterviewSession from '../models/InterviewSession.js';
 import Activity from '../models/Activity.js';
 import Module from '../models/Module.js';
+import DSAProgress from '../models/DSAProgress.js';
+import LanguageProfile from '../models/LanguageProfile.js';
+import SavedRoadmap from '../models/SavedRoadmap.js';
+import Assignment from '../models/Assignment.js';
+import Attendance from '../models/Attendance.js';
+import { getGroqChatCompletion } from '../services/groqService.js';
 
 const router = express.Router();
 
@@ -186,6 +192,8 @@ router.get('/student-analytics', protect, async (req, res) => {
       startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     }
 
+    const classroomCode = req.user.classroomCode || 'NO_CLASSROOM';
+
     // Run ALL queries in parallel for max performance
     const [
       quizAttempts,
@@ -197,7 +205,12 @@ router.get('/student-analytics', protect, async (req, res) => {
       focusDaily,
       focusWeekly,
       focusMonthly,
-      focusOverall
+      focusOverall,
+      dsaProgress,
+      languageProfile,
+      savedRoadmap,
+      classroomAssignments,
+      classroomAttendance
     ] = await Promise.all([
       // 1. All quiz attempts
       QuizAttempt.find({ user: userId }).sort({ createdAt: -1 }).lean(),
@@ -239,7 +252,17 @@ router.get('/student-analytics', protect, async (req, res) => {
       Activity.aggregate([
         { $match: { user: userId, type: { $ne: 'auto' } } },
         { $group: { _id: null, totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 } } }
-      ])
+      ]),
+      // 11. DSA Progress
+      DSAProgress.findOne({ studentId: userId }).lean(),
+      // 12. Language profile
+      LanguageProfile.findOne({ user: userId }).lean(),
+      // 13. Target Roadmap
+      SavedRoadmap.findOne({ user: userId }).lean(),
+      // 14. Classroom Assignments
+      Assignment.find({ classroomCode }).lean(),
+      // 15. Classroom Attendance
+      Attendance.find({ classroomCode }).lean()
     ]);
 
     // ─── Compute Quiz Stats ───
@@ -301,31 +324,182 @@ router.get('/student-analytics', protect, async (req, res) => {
     }));
     const overallProgress = progress?.overallProgress || 0;
 
+    // ─── DSA Stats ───
+    const dsaStats = dsaProgress ? {
+      platform: dsaProgress.platform || 'leetcode',
+      profileUrl: dsaProgress.profileUrl || '',
+      easySolved: dsaProgress.easySolved || 0,
+      mediumSolved: dsaProgress.mediumSolved || 0,
+      hardSolved: dsaProgress.hardSolved || 0,
+      totalSolved: (dsaProgress.easySolved || 0) + (dsaProgress.mediumSolved || 0) + (dsaProgress.hardSolved || 0),
+      totalScore: dsaProgress.totalScore || 0,
+    } : {
+      platform: 'Not Linked',
+      profileUrl: '',
+      easySolved: 0,
+      mediumSolved: 0,
+      hardSolved: 0,
+      totalSolved: 0,
+      totalScore: 0,
+    };
+
+    // ─── Language Stats ───
+    const langStats = languageProfile ? {
+      currentLanguage: languageProfile.currentLanguage || 'German',
+      totalXP: languageProfile.totalXP || 0,
+      eloRating: languageProfile.eloRating || 800,
+      unlockedScenariosCount: languageProfile.unlockedScenarios?.length || 0,
+    } : {
+      currentLanguage: 'None Selected',
+      totalXP: 0,
+      eloRating: 800,
+      unlockedScenariosCount: 0,
+    };
+
+    // ─── Roadmap Stats ───
+    const roadmapStats = savedRoadmap ? {
+      targetRole: savedRoadmap.targetRole || 'Not Set',
+      companyType: savedRoadmap.companyType || 'Not Set',
+      experienceLevel: savedRoadmap.experienceLevel || 'Beginner',
+      estimatedReadiness: savedRoadmap.gapAnalysis?.estimatedReadiness || '0%',
+      completedTasks: savedRoadmap.completedTasks?.length || 0,
+      totalTasks: savedRoadmap.phases?.reduce((acc, p) => acc + (p.tasks?.length || 0), 0) || 0,
+    } : {
+      targetRole: 'Not Set',
+      companyType: 'Not Set',
+      experienceLevel: 'Beginner',
+      estimatedReadiness: '0%',
+      completedTasks: 0,
+      totalTasks: 0,
+    };
+
+    // ─── Classroom Assessments ───
+    const totalAssignments = classroomAssignments.length;
+    let submittedAssignments = 0;
+    let gradedAssignments = 0;
+    let totalGrades = 0;
+
+    classroomAssignments.forEach(ass => {
+      const sub = ass.submissions?.find(s => s.studentId?.toString() === userId.toString());
+      if (sub) {
+        submittedAssignments++;
+        if (sub.grade !== undefined && sub.grade !== null) {
+          gradedAssignments++;
+          totalGrades += sub.grade;
+        }
+      }
+    });
+
+    const avgAssignmentGrade = gradedAssignments > 0 ? Math.round(totalGrades / gradedAssignments) : 0;
+    const assignmentCompletionRate = totalAssignments > 0 ? Math.round((submittedAssignments / totalAssignments) * 100) : 0;
+
+    // ─── Attendance ───
+    let totalLectures = 0;
+    let lecturesAttended = 0;
+
+    classroomAttendance.forEach(att => {
+      const record = att.records?.find(r => r.studentId?.toString() === userId.toString());
+      if (record) {
+        totalLectures++;
+        if (record.status === 'present' || record.status === 'late') {
+          lecturesAttended++;
+        }
+      }
+    });
+
+    const attendancePercentage = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
+
     // ─── Readiness Score (weighted composite 0-100) ───
-    const weights = { quiz: 25, interview: 25, resume: 20, focus: 15, modules: 15 };
+    // Composite incorporating All Modules: Quiz (15), Interview (15), Resume (15), Focus (10), Modules (10), DSA (15), Academics (10), Language (10)
+    const weights = { quiz: 15, interview: 15, resume: 15, focus: 10, modules: 10, dsa: 15, academics: 10, language: 10 };
     const quizScore = Math.min(quizAvgScore, 100);
     const interviewScore = Math.min(interviewAvgScore, 100);
+    const dsaScore = Math.min((dsaStats.totalSolved / 50) * 100, 100); // 50 solved problems target
+    const academicScore = Math.round((attendancePercentage + assignmentCompletionRate) / 2);
+    const languageScore = Math.min((langStats.totalXP / 500) * 100, 100); // 500 XP target
     const focusScore = Math.min((focusOverall[0]?.totalSeconds || 0) / 36000 * 100, 100); // 10hrs = 100%
     const moduleScore = totalModules > 0 ? Math.min((modulesStarted / totalModules) * 100, 100) : 0;
+
     const readinessScore = Math.round(
       (quizScore * weights.quiz +
        interviewScore * weights.interview +
        resumeScore * weights.resume +
        focusScore * weights.focus +
-       moduleScore * weights.modules) / 100
+       moduleScore * weights.modules +
+       dsaScore * weights.dsa +
+       academicScore * weights.academics +
+       languageScore * weights.language) / 100
     );
 
     // ─── AI Recommendations ───
-    const recommendations = [];
-    if (!resumeUploaded) recommendations.push({ type: 'resume', text: 'Upload your resume to get an ATS score and improvement tips.' });
-    else if (resumeScore < 60) recommendations.push({ type: 'resume', text: `Your resume scores ${resumeScore}/100. Review the suggestions to improve it.` });
-    if (quizTotal === 0) recommendations.push({ type: 'quiz', text: 'Take your first quiz to start tracking your knowledge.' });
-    else if (quizAvgScore < 60) recommendations.push({ type: 'quiz', text: `Your quiz average is ${quizAvgScore}%. Focus on weak topics.` });
-    if (interviewTotal === 0) recommendations.push({ type: 'interview', text: 'Start a mock interview to practice your communication skills.' });
-    else if (interviewTotal < 5) recommendations.push({ type: 'interview', text: `You've done ${interviewTotal} interview sessions. Aim for at least 5 to build confidence.` });
-    if ((focusOverall[0]?.totalSeconds || 0) < 3600) recommendations.push({ type: 'focus', text: 'Use the Focus Zone to build consistent study habits. Aim for 1hr/day.' });
-    if (modulesStarted === 0) recommendations.push({ type: 'modules', text: 'Start a learning module to structure your preparation.' });
-    if (quizTrend === 'down') recommendations.push({ type: 'quiz', text: 'Your quiz scores are declining. Revisit fundamentals before attempting more.' });
+    let recommendations = [];
+    const studentProfileContext = {
+      name: req.user.name || 'Student',
+      streak: req.user.streak?.current || 0,
+      resume: { uploaded: resumeUploaded, score: resumeScore },
+      quiz: { total: quizTotal, avgScore: quizAvgScore, bestScore: quizBestScore, trend: quizTrend },
+      interview: { total: interviewTotal, avgScore: interviewAvgScore, byTopic: interviewByTopic },
+      focus: { overallHours: Math.round((focusOverall[0]?.totalSeconds || 0) / 3600), weeklyHours: Math.round((focusWeekly[0]?.totalSeconds || 0) / 3600) },
+      modules: { started: modulesStarted, total: totalModules, overallProgress },
+      dsa: dsaStats,
+      language: langStats,
+      roadmap: roadmapStats,
+      academics: { attendance: attendancePercentage, assignmentCompletion: assignmentCompletionRate, avgGrade: avgAssignmentGrade }
+    };
+
+    try {
+      const systemPrompt = `You are a Career Coach AI for LevelUp, an engineering student prep platform.
+Analyze the student's performance data across all modules (Resume, Quizzes, Mock Interviews, Focus time, DSA solved questions, Classroom Attendance & Assignments, Foreign Language learning, Roadmap target role).
+Generate exactly 4-6 highly specific, actionable, and personalized recommendations for this student.
+
+Return a JSON object containing a "recommendations" array:
+{
+  "recommendations": [
+    {
+      "type": "resume|quiz|interview|focus|modules|dsa|academics|language",
+      "text": "Concrete actionable advice."
+    }
+  ]
+}
+
+Ensure:
+1. Each suggestion is direct, specific (mention their numbers/stats), and encouraging.
+2. Keep suggestions concise (12-25 words).
+3. Do NOT recommend things they are already doing exceptionally well. Focus on areas of improvement or logical next steps.`;
+
+      const userPrompt = `Here is the student's preparation data:\n${JSON.stringify(studentProfileContext, null, 2)}`;
+
+      const responseText = await getGroqChatCompletion([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ], true, 0.4);
+
+      const parsedResponse = JSON.parse(responseText);
+      recommendations = parsedResponse.recommendations || [];
+    } catch (aiErr) {
+      console.warn('[ANALYTICS] Fallback to static recommendations:', aiErr.message);
+      
+      if (!resumeUploaded) recommendations.push({ type: 'resume', text: 'Upload your resume to get an ATS score and improvement tips.' });
+      else if (resumeScore < 60) recommendations.push({ type: 'resume', text: `Your resume scores ${resumeScore}/100. Review the suggestions to improve it.` });
+      
+      if (quizTotal === 0) recommendations.push({ type: 'quiz', text: 'Take your first quiz to start tracking your knowledge.' });
+      else if (quizAvgScore < 60) recommendations.push({ type: 'quiz', text: `Your quiz average is ${quizAvgScore}%. Focus on weak topics.` });
+      
+      if (interviewTotal === 0) recommendations.push({ type: 'interview', text: 'Start a mock interview to practice your communication skills.' });
+      else if (interviewTotal < 5) recommendations.push({ type: 'interview', text: `You've done ${interviewTotal} interview sessions. Aim for at least 5 to build confidence.` });
+      
+      if ((focusOverall[0]?.totalSeconds || 0) < 3600) recommendations.push({ type: 'focus', text: 'Use the Focus Zone to build consistent study habits. Aim for 1hr/day.' });
+      
+      if (dsaStats.totalSolved === 0) recommendations.push({ type: 'dsa', text: 'Link your LeetCode profile and solve your first easy problem.' });
+      else if (dsaStats.totalSolved < 10) recommendations.push({ type: 'dsa', text: 'Aim to solve at least 20 DSA problems on LeetCode to build confidence.' });
+      
+      if (langStats.totalXP === 0) recommendations.push({ type: 'language', text: 'Start learning a foreign language (e.g., German or Japanese) in the Languages Hub.' });
+      
+      if (attendancePercentage < 75) recommendations.push({ type: 'academics', text: `Your classroom attendance is ${attendancePercentage}%. Try to keep it above 75% to avoid academic issues.` });
+      if (assignmentCompletionRate < 80) recommendations.push({ type: 'academics', text: `You have submitted ${assignmentCompletionRate}% of classroom assignments. Complete pending submissions.` });
+      
+      if (modulesStarted === 0) recommendations.push({ type: 'modules', text: 'Start a learning module to structure your preparation.' });
+    }
 
     res.status(200).json({
       readinessScore,
@@ -369,6 +543,18 @@ router.get('/student-analytics', protect, async (req, res) => {
         overall: focusOverall[0] || { totalSeconds: 0, sessions: 0 }
       },
       streak: req.user.streak || { current: 0, longest: 0 },
+      dsa: dsaStats,
+      language: langStats,
+      roadmap: roadmapStats,
+      academics: {
+        attendance: attendancePercentage,
+        assignmentCompletion: assignmentCompletionRate,
+        avgGrade: avgAssignmentGrade,
+        totalAssignments,
+        submittedAssignments,
+        totalLectures,
+        lecturesAttended
+      },
       recommendations
     });
   } catch (err) {

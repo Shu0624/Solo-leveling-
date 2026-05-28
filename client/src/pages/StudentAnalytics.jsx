@@ -32,9 +32,14 @@ const formatDuration = (seconds) => {
 };
 
 const RECC_ICONS = {
-  resume: <FileText size={16} />, quiz: <Brain size={16} />,
-  interview: <Target size={16} />, focus: <Clock size={16} />,
-  modules: <BookOpen size={16} />
+  resume: <FileText size={16} />,
+  quiz: <Brain size={16} />,
+  interview: <Target size={16} />,
+  focus: <Clock size={16} />,
+  modules: <BookOpen size={16} />,
+  dsa: <Zap size={16} />,
+  academics: <GraduationCap size={16} />,
+  language: <Users size={16} />
 };
 
 const StudentAnalytics = () => {
@@ -72,7 +77,25 @@ const StudentAnalytics = () => {
     </div>
   );
 
-  const { readinessScore, quiz, interview, resume, modules, focus, streak, recommendations } = data;
+  const {
+    readinessScore,
+    quiz,
+    interview,
+    resume,
+    modules,
+    focus,
+    streak,
+    recommendations,
+    dsa,
+    language,
+    roadmap,
+    academics
+  } = data;
+
+  const dsaStats = dsa || { platform: 'leetcode', totalSolved: 0, easySolved: 0, mediumSolved: 0, hardSolved: 0, totalScore: 0 };
+  const languageStats = language || { currentLanguage: 'None Selected', totalXP: 0, eloRating: 800, unlockedScenariosCount: 0 };
+  const roadmapStats = roadmap || { targetRole: 'Not Set', companyType: 'Not Set', experienceLevel: 'Beginner', estimatedReadiness: '0%', completedTasks: 0, totalTasks: 0 };
+  const academicsStats = academics || { attendance: 0, assignmentCompletion: 0, avgGrade: 0, totalAssignments: 0, submittedAssignments: 0, totalLectures: 0, lecturesAttended: 0 };
 
   // Chart data
   const categoryChartData = (focus.byCategory || []).map(c => {
@@ -590,6 +613,253 @@ const StudentAnalytics = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* ─── Row 4.6: Multi-Module Detailed Performance ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* DSA Performance Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.77 }}
+          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                  <Zap size={16} />
+                </div>
+                <h4 className="font-bold text-foreground">DSA Coding Practice</h4>
+              </div>
+              <span className="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {dsaStats.platform}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 text-center mb-4">
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
+                <div className="text-lg font-bold text-emerald-400">{dsaStats.easySolved}</div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase">Easy</div>
+              </div>
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
+                <div className="text-lg font-bold text-amber-400">{dsaStats.mediumSolved}</div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase">Medium</div>
+              </div>
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
+                <div className="text-lg font-bold text-red-400">{dsaStats.hardSolved}</div>
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase">Hard</div>
+              </div>
+            </div>
+
+            {/* Solved Progress Bar */}
+            <div className="space-y-1 mb-4">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-muted-foreground">Total Solved</span>
+                <span className="text-foreground">{dsaStats.totalSolved} / 50 Problems</span>
+              </div>
+              <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden flex">
+                <div className="bg-emerald-500 h-full" style={{ width: `${Math.min((dsaStats.easySolved / 50) * 100, 100)}%` }} />
+                <div className="bg-amber-500 h-full" style={{ width: `${Math.min((dsaStats.mediumSolved / 50) * 100, 100)}%` }} />
+                <div className="bg-red-500 h-full" style={{ width: `${Math.min((dsaStats.hardSolved / 50) * 100, 100)}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-auto">
+            <div className="text-xs">
+              <span className="text-muted-foreground font-medium">Weighted Score:</span>{' '}
+              <strong className="text-foreground">{dsaStats.totalScore} pts</strong>
+            </div>
+            {dsaStats.profileUrl ? (
+              <a
+                href={dsaStats.profileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5"
+              >
+                View Profile <ChevronRight size={14} />
+              </a>
+            ) : (
+              <Link to="/leaderboard" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
+                Go to Leaderboard <ChevronRight size={14} />
+              </Link>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Languages Hub Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.79 }}
+          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-pink-500/10 text-pink-400 flex items-center justify-center">
+                  <Users size={16} />
+                </div>
+                <h4 className="font-bold text-foreground">Global Languages Hub</h4>
+              </div>
+              <span className="text-xs bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {languageStats.currentLanguage}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="p-4 rounded-2xl bg-background/20 border border-border/30 text-center">
+                <div className="text-2xl font-black text-pink-400">{languageStats.eloRating}</div>
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1">ELO Rating</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-background/20 border border-border/30 text-center">
+                <div className="text-2xl font-black text-indigo-400">{languageStats.totalXP}</div>
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1">Total XP</div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-muted-foreground font-medium">Scenarios Completed:</span>
+              <strong className="text-foreground">{languageStats.unlockedScenariosCount} Interactive Scenarios</strong>
+            </div>
+          </div>
+
+          <div className="border-t border-border/30 pt-4 mt-auto flex justify-end">
+            <Link to="/languages" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
+              Practice Conversing <ChevronRight size={14} />
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Roadmap Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.81 }}
+          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                  <Target size={16} />
+                </div>
+                <h4 className="font-bold text-foreground">Target Role Roadmap</h4>
+              </div>
+              <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+                {roadmapStats.experienceLevel}
+              </span>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div>
+                <span className="text-xs text-muted-foreground font-medium block">Target Role</span>
+                <span className="font-bold text-sm text-foreground">{roadmapStats.targetRole}</span>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground font-medium block">Target Sector</span>
+                <span className="font-semibold text-xs text-foreground uppercase tracking-wider">
+                  {roadmapStats.companyType.replace('-', ' ')}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-muted-foreground">Roadmap Progress</span>
+                  <span className="text-foreground">
+                    {roadmapStats.completedTasks} / {roadmapStats.totalTasks} Tasks
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{
+                      width: `${
+                        roadmapStats.totalTasks > 0
+                          ? (roadmapStats.completedTasks / roadmapStats.totalTasks) * 100
+                          : 0
+                      }%`
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-auto">
+            <div className="text-xs">
+              <span className="text-muted-foreground font-medium">Estimated Readiness:</span>{' '}
+              <strong className="text-emerald-400">{roadmapStats.estimatedReadiness}</strong>
+            </div>
+            <Link to="/roadmap" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
+              Review Gap Analysis <ChevronRight size={14} />
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Academics & Classroom Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.83 }}
+          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <GraduationCap size={16} />
+                </div>
+                <h4 className="font-bold text-foreground">Classroom Academics</h4>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-4">
+              {/* Attendance */}
+              <div>
+                <div className="flex justify-between items-center text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Class Attendance</span>
+                  <span className={`font-bold ${academicsStats.attendance >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {academicsStats.attendance}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${academicsStats.attendance >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                    style={{ width: `${academicsStats.attendance}%` }}
+                  />
+                </div>
+                <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  Attended {academicsStats.lecturesAttended} of {academicsStats.totalLectures} lectures
+                </div>
+              </div>
+
+              {/* Assignment Completion */}
+              <div>
+                <div className="flex justify-between items-center text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Assignment Submission Rate</span>
+                  <span className="text-indigo-400 font-bold">{academicsStats.assignmentCompletion}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${academicsStats.assignmentCompletion}%` }} />
+                </div>
+                <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                  Submitted {academicsStats.submittedAssignments} of {academicsStats.totalAssignments} assignments
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-auto">
+            <div className="text-xs">
+              <span className="text-muted-foreground font-medium">Avg Grade:</span>{' '}
+              <strong className="text-foreground">{academicsStats.avgGrade}%</strong>
+            </div>
+            <Link to="/assessment" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
+              Go to Classroom <ChevronRight size={14} />
+            </Link>
+          </div>
+        </motion.div>
+      </div>
 
       {/* ─── Row 5: AI Recommendations ─── */}
       {recommendations.length > 0 && (
