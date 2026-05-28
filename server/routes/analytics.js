@@ -555,7 +555,7 @@ router.get('/export', protect, authorize(...adminRoles), scopeData, async (req, 
          focusScore * weights.focus +
          dsaScore * weights.dsa +
          academicScore * weights.academics +
-         languageScore * weights.language) / 75 * 100
+         languageScore * weights.language) / 75
       );
 
       return {
@@ -733,7 +733,7 @@ router.get('/at-risk', protect, authorize(...adminRoles), scopeData, async (req,
          focusScore * weights.focus +
          dsaScore * weights.dsa +
          academicScore * weights.academics +
-         languageScore * weights.language) / 85 * 100
+         languageScore * weights.language) / 75
       );
 
       // Determine Risk Level
