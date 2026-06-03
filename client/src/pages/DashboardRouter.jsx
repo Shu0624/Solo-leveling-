@@ -1,13 +1,16 @@
 import { useAuth } from '../context/AuthContext';
 import StudentDashboard from './StudentDashboard';
 import FacultyDashboard from './FacultyDashboard';
+import PrincipalDashboard from './PrincipalDashboard';
 
 const DashboardRouter = () => {
   const { user } = useAuth();
   
   if (user?.role === 'student') {
     return <StudentDashboard />;
-  } else if (['faculty', 'hod', 'principal', 'placement'].includes(user?.role)) {
+  } else if (['principal', 'hod', 'placement'].includes(user?.role)) {
+    return <PrincipalDashboard />;
+  } else if (user?.role === 'faculty') {
     return <FacultyDashboard />;
   }
 
