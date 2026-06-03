@@ -170,12 +170,12 @@ const Landing = () => {
       <nav className="relative z-50 flex items-center justify-between px-6 py-5 max-w-[1400px] mx-auto">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">L</div>
-          <span className="text-lg font-semibold tracking-tight text-slate-900">LevelUp</span>
+          <span className="text-lg font-bold tracking-tight text-white">LevelUp</span>
         </div>
 
         <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors hidden sm:block">Sign in</Link>
-          <Link to="/register" className="px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors">Get Started</Link>
+          <Link to="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors hidden sm:block">Sign in</Link>
+          <Link to="/register" className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">Get Started</Link>
         </div>
       </nav>
 
@@ -197,20 +197,20 @@ const Landing = () => {
 
 
           {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/[0.06] border border-slate-900/[0.1] text-slate-700 text-xs font-medium tracking-widest uppercase mb-6">
-            <Sparkles size={12} className="text-indigo-600" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-medium tracking-widest uppercase mb-6">
+            <Sparkles size={12} className="text-indigo-400" />
             Introducing LevelUp OS
           </div>
 
           {/* Headline — sleek dark text */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tighter leading-[1.08] mb-6 text-slate-900">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.08] mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/60">
             The best way to build{' '}
             <br className="hidden sm:block" />
             your engineering career
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-slate-700 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+          <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
             An AI-powered career agent that helps you learn, practice interviews,
             optimize your resume, and ship faster.
           </p>
@@ -219,26 +219,26 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/register"
-              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-slate-900 text-white font-medium text-base hover:bg-slate-800 transition-all shadow-lg"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-white text-black font-semibold text-base hover:bg-white/90 transition-all shadow-lg"
             >
               Get Started Free
               <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-slate-300 text-slate-700 font-medium text-sm hover:border-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-white/20 text-white/80 font-medium text-sm hover:border-white/40 hover:text-white hover:bg-white/5 transition-all"
             >
               Sign In
             </Link>
           </div>
 
           {/* Trust chips */}
-          <div className="mt-10 flex items-center justify-center gap-5 text-xs text-slate-600 font-medium">
-            <CheckCircle2 size={14} className="text-emerald-600" /> Instant Access
-            <span className="w-px h-3 bg-slate-300" />
-            <CheckCircle2 size={14} className="text-emerald-600" /> No Credit Card
-            <span className="w-px h-3 bg-slate-300" />
-            <CheckCircle2 size={14} className="text-emerald-600" /> 100% Free
+          <div className="mt-10 flex items-center justify-center gap-5 text-xs text-white/40 font-medium">
+            <CheckCircle2 size={14} className="text-emerald-500" /> Instant Access
+            <span className="w-px h-3 bg-white/10" />
+            <CheckCircle2 size={14} className="text-emerald-500" /> No Credit Card
+            <span className="w-px h-3 bg-white/10" />
+            <CheckCircle2 size={14} className="text-emerald-500" /> 100% Free
           </div>
         </motion.div>
 

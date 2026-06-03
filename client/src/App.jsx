@@ -34,6 +34,7 @@ const StudentAnalytics = lazy(() => import('./pages/StudentAnalytics'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LanguageHub = lazy(() => import('./pages/LanguageHub'));
+const ExhibitionDetails = lazy(() => import('./pages/ExhibitionDetails'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -62,6 +63,7 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/exhibition" element={<ExhibitionDetails />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute allowedRoles={['student', 'faculty', 'hod', 'principal', 'placement']}>
                     <DashboardRouter />
