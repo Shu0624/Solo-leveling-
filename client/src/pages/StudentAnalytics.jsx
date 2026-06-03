@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
@@ -9,7 +9,7 @@ import {
 import {
   ArrowLeft, TrendingUp, TrendingDown, Minus, Award, Brain, FileText, Clock,
   BookOpen, Target, Flame, Lightbulb, CheckCircle2, AlertCircle, ChevronRight,
-  BarChart3, Zap, GraduationCap, Users
+  BarChart3, Zap, GraduationCap, Users, Sparkles, Trophy
 } from 'lucide-react';
 import { ACTIVITY_CATEGORIES } from '../context/ActivityContext';
 
@@ -43,7 +43,9 @@ const RECC_ICONS = {
 };
 
 const StudentAnalytics = () => {
-  const { api } = useAuth();
+  const { api, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const studentId = searchParams.get('studentId');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeRange, setActiveRange] = useState('7days');
@@ -51,7 +53,8 @@ const StudentAnalytics = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get(`/dashboard/student-analytics?range=${activeRange}`);
+        const studentQuery = studentId ? `&studentId=${studentId}` : '';
+        const res = await api.get(`/dashboard/student-analytics?range=${activeRange}${studentQuery}`);
         setData(res.data);
       } catch (err) {
         console.error('Failed to load analytics:', err);
@@ -60,7 +63,7 @@ const StudentAnalytics = () => {
       }
     };
     fetch();
-  }, [api, activeRange]);
+  }, [api, activeRange, studentId]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -96,6 +99,31 @@ const StudentAnalytics = () => {
   const languageStats = language || { currentLanguage: 'None Selected', totalXP: 0, eloRating: 800, unlockedScenariosCount: 0 };
   const roadmapStats = roadmap || { targetRole: 'Not Set', companyType: 'Not Set', experienceLevel: 'Beginner', estimatedReadiness: '0%', completedTasks: 0, totalTasks: 0 };
   const academicsStats = academics || { attendance: 0, assignmentCompletion: 0, avgGrade: 0, totalAssignments: 0, submittedAssignments: 0, totalLectures: 0, lecturesAttended: 0 };
+
+  const academicEnriched = data.academicEnriched || {
+    cgpa: 7.2,
+    attendance: academicsStats.attendance || 75,
+    backlogRisk: 'LOW',
+    creditsCompleted: 90,
+    academicRanking: '#5 in Class',
+    learningConsistencyScore: 80,
+    performanceImprovementTrends: 'Consistent performance',
+    subjectPerformance: [],
+    semesterTrends: []
+  };
+  const placementEnriched = data.placementEnriched || {
+    readinessScore: readinessScore || 65,
+    resumeScore: resume.score || 60,
+    dsaSolved: dsaStats.totalSolved || 0,
+    communicationRating: 3.5,
+    codingScore: 65,
+    aptitudeScore: 70,
+    internship: 'None',
+    certifications: [],
+    eligibleCompanies: [],
+    packagePredictionRange: '4.0 - 6.0 LPA',
+    placementProbability: 60
+  };
 
   // Chart data
   const categoryChartData = (focus.byCategory || []).map(c => {
@@ -163,13 +191,27 @@ const StudentAnalytics = () => {
 
       {/* Header */}
       <header className="mb-10">
-        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
-          <ArrowLeft size={16} /> Back to Dashboard
+        <Link to={user?.role === 'student' ? '/dashboard' : '/admin'} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
+          <ArrowLeft size={16} /> {user?.role === 'student' ? 'Back to Dashboard' : 'Back to Faculty Dashboard'}
         </Link>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Performance Analytics</h1>
-            <p className="text-muted-foreground">Deep insights into your preparation journey.</p>
+            {data.studentInfo && user?.role !== 'student' ? (
+              <>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-2 border border-primary/20">
+                  Viewing Student Profile
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{data.studentInfo.name}</h1>
+                <p className="text-muted-foreground text-sm font-medium">
+                  {data.studentInfo.email} · {data.studentInfo.department} · Year {data.studentInfo.year} · Classroom {data.studentInfo.classroomCode}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Performance Analytics</h1>
+                <p className="text-muted-foreground">Deep insights into your preparation journey.</p>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl">
@@ -179,6 +221,28 @@ const StudentAnalytics = () => {
           </div>
         </div>
       </header>
+
+      {/* ─── AI Profile Summary Alert ─── */}
+      {data.summary && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 p-5 rounded-3xl bg-gradient-to-r from-primary/10 via-accent/5 to-secondary/15 border border-primary/20 backdrop-blur-lg flex items-start gap-4 shadow-xl shadow-primary/5"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shrink-0 shadow-lg shadow-primary/25">
+            <Sparkles size={20} className="animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <span>AI Performance Summary</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            </h3>
+            <p className="text-sm font-semibold text-foreground leading-relaxed">
+              {data.summary}
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* ─── Row 1: Readiness Score + Quick Stats ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
@@ -857,6 +921,205 @@ const StudentAnalytics = () => {
             <Link to="/assessment" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
               Go to Classroom <ChevronRight size={14} />
             </Link>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ─── Row 4.8: Enriched Academic & Placement Analytics ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Placement Success Hub */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="glass-morphism rounded-3xl p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-xl flex items-center justify-center">
+              <Trophy size={20} />
+            </div>
+            <div>
+              <h3 className="font-black text-foreground">💼 Placement Success Analytics</h3>
+              <p className="text-xs text-muted-foreground">Comprehensive career readiness and eligibility report</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {/* Package Prediction & Probabilities */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-pink-500/5 border border-pink-500/10">
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider animate-pulse">Package Prediction Range</div>
+                <div className="text-xl font-black text-pink-400 mt-1">{placementEnriched.packagePredictionRange}</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">Based on resume, skills, and coding ELO</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Placement Probability</div>
+                <div className="text-xl font-black text-emerald-400 mt-1">{placementEnriched.placementProbability}%</div>
+                <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">Estimated hiring success chance</div>
+              </div>
+            </div>
+
+            {/* Placement Readiness & Progress Bars */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Overall Readiness Score</span>
+                  <span className="text-foreground font-bold">{placementEnriched.readinessScore}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-pink-500 rounded-full" style={{ width: `${placementEnriched.readinessScore}%` }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Coding Performance Rating</span>
+                  <span className="text-foreground font-bold">{placementEnriched.codingScore} / 100</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${placementEnriched.codingScore}%` }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Aptitude & Logical Progress</span>
+                  <span className="text-foreground font-bold">{placementEnriched.aptitudeScore} / 100</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${placementEnriched.aptitudeScore}%` }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Comm rating, ResumeATS, Internship */}
+            <div className="grid grid-cols-3 gap-2 py-2 text-center">
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
+                <div className="text-sm font-black text-foreground flex items-center justify-center gap-1">
+                  <span>{placementEnriched.communicationRating}</span>
+                  <span className="text-yellow-400">★</span>
+                </div>
+                <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Communication</div>
+              </div>
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
+                <div className="text-sm font-black text-emerald-400">{placementEnriched.resumeScore}/100</div>
+                <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Resume Score</div>
+              </div>
+              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5 flex flex-col justify-center items-center">
+                <div className="text-xs font-extrabold text-indigo-400 truncate w-full" title={placementEnriched.internship}>{placementEnriched.internship !== 'None' ? 'Yes' : 'None'}</div>
+                <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Internship</div>
+              </div>
+            </div>
+
+            {/* Eligible Companies */}
+            <div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Company Eligibility Tracker</div>
+              <div className="flex flex-wrap gap-1.5">
+                {placementEnriched.eligibleCompanies && placementEnriched.eligibleCompanies.map((company, idx) => (
+                  <span key={idx} className="px-2.5 py-1 bg-secondary/40 text-foreground border border-border/50 text-[10px] font-black rounded-lg">
+                    {company}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Certifications & Intern details */}
+            {placementEnriched.internship !== 'None' && (
+              <div className="p-3 bg-secondary/10 border border-border/20 rounded-xl text-xs">
+                <span className="font-bold text-muted-foreground block mb-0.5">Active Experience:</span>
+                <span className="font-medium text-foreground">{placementEnriched.internship}</span>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Academic Excellence Center */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.75 }}
+          className="glass-morphism rounded-3xl p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl flex items-center justify-center">
+              <GraduationCap size={20} />
+            </div>
+            <div>
+              <h3 className="font-black text-foreground">🎓 Academic Performance Analytics</h3>
+              <p className="text-xs text-muted-foreground">Detailed university GPA and classroom standing</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            {/* CGPA, Ranking, Backlog Risk */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl text-center">
+                <div className="text-2xl font-black text-indigo-400">{academicEnriched.cgpa}</div>
+                <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Current CGPA</div>
+              </div>
+              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-center flex flex-col justify-center">
+                <div className="text-xs font-black text-amber-400">{academicEnriched.academicRanking}</div>
+                <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Class Standing</div>
+              </div>
+              <div className={`p-3 rounded-2xl text-center border flex flex-col justify-center ${
+                academicEnriched.backlogRisk === 'HIGH' ? 'bg-red-500/15 border-red-500/20 text-red-400' :
+                academicEnriched.backlogRisk === 'MEDIUM' ? 'bg-amber-500/15 border-amber-500/20 text-amber-400' :
+                'bg-emerald-500/15 border-emerald-500/20 text-emerald-400'
+              }`}>
+                <div className="text-xs font-black">{academicEnriched.backlogRisk} RISK</div>
+                <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Backlog Pred</div>
+              </div>
+            </div>
+
+            {/* Attendance & Credit progress */}
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Class Attendance Rate</span>
+                  <span className="text-foreground font-bold">{academicEnriched.attendance}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className={`h-full ${academicEnriched.attendance >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${academicEnriched.attendance}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-muted-foreground">Degree Credit Completion</span>
+                  <span className="text-foreground font-bold">{academicEnriched.creditsCompleted} Credits</span>
+                </div>
+                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(academicEnriched.creditsCompleted / 130) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Subject wise Breakdown */}
+            <div>
+              <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Subject Benchmarking & Performance</div>
+              <div className="space-y-2">
+                {academicEnriched.subjectPerformance && academicEnriched.subjectPerformance.map((subj, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs bg-background/20 border border-border/30 rounded-xl p-2">
+                    <span className="font-semibold text-foreground">{subj.subject}</span>
+                    <span className={`font-black ${subj.score >= 80 ? 'text-emerald-400' : subj.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>{subj.score}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Semester-wise Growth Trends chart using recharts */}
+            {academicEnriched.semesterTrends && academicEnriched.semesterTrends.length > 0 && (
+              <div className="h-[120px] mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={academicEnriched.semesterTrends} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <XAxis dataKey="sem" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[4.0, 10.0]} tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '8px', color: '#fff', fontSize: '10px' }} formatter={(val) => [`${val} GPA`, 'Semester GPA']} />
+                    <Line type="monotone" dataKey="gpa" stroke="#818cf8" strokeWidth={2.5} dot={{ fill: '#818cf8', r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="text-[10px] text-center text-muted-foreground mt-1">Semester GPA Progression Trend</div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

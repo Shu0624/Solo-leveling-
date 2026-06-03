@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import {
   ClipboardList, CalendarCheck, Megaphone, Plus, Send, Check,
   Clock, AlertTriangle, ChevronDown, ChevronUp, FileText,
   Users, Loader2, Pin, Star, CheckCircle2, XCircle, X,
-  ListChecks, ExternalLink, BarChart3, Power, BookOpen, FlaskConical, Calendar, Download,
+  ListChecks, ExternalLink, BarChart3, Power, BookOpen, FlaskConical, Calendar, Download, RefreshCw,
   Trophy, Code2, TrendingUp, Medal, Eye, EyeOff, ArrowUp, ArrowDown, Minus, Brain, Sparkles
 } from 'lucide-react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -38,6 +39,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const Assessment = () => {
   const { api, user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('assignments');
   const isFaculty = ['faculty', 'hod', 'principal'].includes(user?.role);
   const classroomCode = user?.classroomCode || '';
@@ -263,6 +265,8 @@ const Assessment = () => {
       alert('DSA progress updated!');
     } catch (e) { console.error(e); alert('Error updating DSA'); }
   };
+
+
 
   // ---- FETCH STUDENTS FOR ATTENDANCE ----
   const fetchStudents = async (code) => {
@@ -1660,7 +1664,19 @@ const Assessment = () => {
                         {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${entry.rank}`}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`font-bold text-sm truncate ${entry.isMe ? 'text-primary' : 'text-foreground'}`}>{entry.isMe ? `${entry.name} (You)` : entry.name}</p>
+                        {isFaculty && entry.studentId ? (
+                          <Link
+                            to={`/my-analytics?studentId=${entry.studentId}`}
+                            className="font-bold text-sm truncate text-primary hover:underline hover:text-primary-light flex items-center gap-1"
+                          >
+                            {entry.name}
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-[10px] font-medium tracking-wide uppercase">Faculty View</span>
+                          </Link>
+                        ) : (
+                          <p className={`font-bold text-sm truncate ${entry.isMe ? 'text-primary' : 'text-foreground'}`}>
+                            {entry.isMe ? `${entry.name} (You)` : entry.name}
+                          </p>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 font-bold">E:{entry.easy}</span>
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-bold">M:{entry.medium}</span>

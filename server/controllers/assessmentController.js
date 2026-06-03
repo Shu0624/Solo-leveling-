@@ -932,6 +932,7 @@ export const getDSALeaderboard = async (req, res) => {
 
     const leaderboard = all.map((p, i) => ({
       rank: i + 1,
+      studentId: p.studentId?._id || '',
       name: p.studentId?.name || 'Student',
       enrollmentId: p.studentId?.enrollmentId || '',
       easy: p.easySolved,

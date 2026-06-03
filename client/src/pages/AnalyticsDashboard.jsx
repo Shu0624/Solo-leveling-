@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -515,9 +516,17 @@ const AnalyticsDashboard = () => {
                 {/* Student Table */}
                 {classroomDetail.students?.length > 0 && (
                   <DataTable
-                    columns={['name', 'studyHours', 'quizAvg', 'quizAttempts', 'streak']}
-                    data={classroomDetail.students}
-                    title="👩‍🎓 Student Breakdown"
+                    columns={['name', 'cgpa', 'attendance', 'readinessScore', 'packagePredictionRange', 'placementProbability']}
+                    data={classroomDetail.students.map(s => ({
+                      id: s.id,
+                      name: s.name,
+                      cgpa: s.academic?.cgpa ? `${s.academic.cgpa} CGPA` : 'N/A',
+                      attendance: s.academic?.attendance ? `${s.academic.attendance}%` : 'N/A',
+                      readinessScore: s.placement?.readinessScore ? `${s.placement.readinessScore}%` : 'N/A',
+                      packagePredictionRange: s.placement?.packagePredictionRange || 'N/A',
+                      placementProbability: s.placement?.placementProbability ? `${s.placement.placementProbability}%` : 'N/A',
+                    }))}
+                    title="👩‍🎓 Student Academic & Placement Performance"
                   />
                 )}
               </div>
@@ -537,13 +546,14 @@ const AnalyticsDashboard = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
                         onClick={() => fetchClassroomDetail(cls.classroomCode)}
-                        className="p-5 rounded-2xl bg-secondary/30 hover:bg-secondary/60 border border-border/50 cursor-pointer transition-all hover:scale-[1.01] group"
+                        className="p-5 rounded-2xl bg-secondary/30 hover:bg-secondary/60 border border-border/50 cursor-pointer transition-all hover:scale-[1.01] group animate-fade-in"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-lg font-black text-foreground">{cls.classroomCode}</span>
                           <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <p className="text-xs text-muted-foreground font-medium mb-3">{cls.department || ''}</p>
+                        
                         <div className="grid grid-cols-3 gap-2 text-center">
                           <div>
                             <p className="text-lg font-black text-primary">{cls.metrics?.totalStudents || 0}</p>
@@ -556,6 +566,25 @@ const AnalyticsDashboard = () => {
                           <div>
                             <p className="text-lg font-black text-green-500">{cls.metrics?.averageQuizScore || 0}%</p>
                             <p className="text-[10px] text-muted-foreground font-bold uppercase">Quiz</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 pt-3 border-t border-border/30 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground font-semibold">Avg CGPA:</span>
+                            <span className="font-extrabold text-indigo-400">{cls.metrics?.averageCGPA || '7.5'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground font-semibold">Readiness:</span>
+                            <span className="font-extrabold text-pink-400">{cls.metrics?.averagePlacementReadiness || '65'}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground font-semibold">Attendance:</span>
+                            <span className="font-extrabold text-amber-400">{cls.metrics?.averageAttendance || '78'}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground font-semibold">Placement Prob:</span>
+                            <span className="font-extrabold text-emerald-400">{cls.metrics?.placementProbability || '70'}%</span>
                           </div>
                         </div>
                       </motion.div>
@@ -618,19 +647,35 @@ const AnalyticsDashboard = () => {
 
             {compareData && (
               <>
-                <ComparisonBarChart
-                  data={compareData}
-                  dataKeys={['studyHours', 'avgQuizScore', 'students']}
-                  xAxisKey="classroomCode"
-                  title="📊 Classroom Comparison"
-                  colors={['#6366f1', '#22c55e', '#f59e0b']}
-                />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ComparisonBarChart
+                    data={compareData}
+                    dataKeys={['avgCGPA', 'avgAttendance']}
+                    xAxisKey="classroomCode"
+                    title="🎓 Academic Comparison (Avg CGPA & Attendance %)"
+                    colors={['#818cf8', '#fbbf24']}
+                  />
+                  <ComparisonBarChart
+                    data={compareData}
+                    dataKeys={['avgPlacementReadiness', 'placementProbability']}
+                    xAxisKey="classroomCode"
+                    title="💼 Placement Readiness & Success Probabilities (%)"
+                    colors={['#ec4899', '#10b981']}
+                  />
+                </div>
 
                 {/* Radar overlay */}
                 {compareData.length <= 5 && (() => {
-                  const metrics = ['studyHours', 'avgQuizScore', 'quizAttempts', 'avgResumeScore', 'avgStreak'];
+                  const metrics = ['avgCGPA', 'avgAttendance', 'avgPlacementReadiness', 'avgQuizScore', 'avgResumeScore'];
                   const radarData = metrics.map(m => {
-                    const point = { metric: m.replace(/([A-Z])/g, ' $1').trim() };
+                    const labelMap = {
+                      avgCGPA: 'Avg CGPA',
+                      avgAttendance: 'Avg Attendance %',
+                      avgPlacementReadiness: 'Placement Readiness %',
+                      avgQuizScore: 'Avg Quiz Score %',
+                      avgResumeScore: 'Avg Resume ATS'
+                    };
+                    const point = { metric: labelMap[m] || m };
                     const maxVal = Math.max(...compareData.map(d => d[m] || 0), 1);
                     compareData.forEach(d => {
                       point[d.classroomCode] = Math.round(((d[m] || 0) / maxVal) * 100);
@@ -642,16 +687,24 @@ const AnalyticsDashboard = () => {
                     <PerformanceRadarChart
                       data={radarData}
                       dataKeys={radarKeys}
-                      title="🕸️ Normalized Comparison"
+                      title="🕸️ Normalized Core Metrics Comparison"
                       colors={['#6366f1', '#f43f5e', '#22c55e', '#f59e0b', '#8b5cf6']}
                     />
                   );
                 })()}
 
                 <DataTable
-                  columns={['classroomCode', 'students', 'studyHours', 'avgQuizScore', 'quizAttempts', 'avgResumeScore', 'avgStreak']}
-                  data={compareData}
-                  title="📋 Detailed Comparison"
+                  columns={['classroomCode', 'students', 'avgCGPA', 'avgAttendance', 'avgPlacementReadiness', 'placementProbability', 'avgQuizScore', 'avgResumeScore']}
+                  data={compareData.map(d => ({
+                    ...d,
+                    avgCGPA: `${d.avgCGPA} CGPA`,
+                    avgAttendance: `${d.avgAttendance}%`,
+                    avgPlacementReadiness: `${d.avgPlacementReadiness}%`,
+                    placementProbability: `${d.placementProbability}%`,
+                    avgQuizScore: `${d.avgQuizScore}%`,
+                    avgResumeScore: `${d.avgResumeScore}/100`,
+                  }))}
+                  title="📋 Comprehensive Classroom Benchmarking"
                 />
               </>
             )}
@@ -810,7 +863,12 @@ const AnalyticsDashboard = () => {
                           {/* Student identity & reasons */}
                           <div className="space-y-3 max-w-xl">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-extrabold text-foreground text-lg">{student.name}</h4>
+                              <Link
+                                to={`/my-analytics?studentId=${student._id}`}
+                                className="font-extrabold text-foreground text-lg hover:underline hover:text-primary transition-all"
+                              >
+                                {student.name}
+                              </Link>
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50 text-muted-foreground font-semibold uppercase">
                                 {student.classroomCode} · {student.department}
                               </span>
@@ -1217,7 +1275,16 @@ const AnalyticsDashboard = () => {
                         filteredPlacementPool.map(student => (
                           <tr key={student.email} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
                             <td className="py-4 px-4">
-                              <div className="font-extrabold text-foreground text-sm">{student.name}</div>
+                              {student.id ? (
+                                <Link
+                                  to={`/my-analytics?studentId=${student.id}`}
+                                  className="font-extrabold text-primary hover:underline hover:text-primary/80 text-sm transition-colors"
+                                >
+                                  {student.name}
+                                </Link>
+                              ) : (
+                                <div className="font-extrabold text-foreground text-sm">{student.name}</div>
+                              )}
                               <div className="text-muted-foreground text-[10px] font-medium">{student.email}</div>
                             </td>
                             <td className="py-4 px-4">

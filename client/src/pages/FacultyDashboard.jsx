@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Users, Activity, Trophy, Building, 
@@ -147,7 +147,9 @@ const FacultyDashboard = () => {
                       #{i + 1}
                     </div>
                     <div>
-                      <p className="font-bold text-foreground text-sm">{student.name}</p>
+                      <Link to={`/my-analytics?studentId=${student.id}`} className="font-bold text-foreground text-sm hover:underline hover:text-primary transition-all">
+                        {student.name}
+                      </Link>
                       <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{student.department}</p>
                     </div>
                   </div>
@@ -181,7 +183,13 @@ const FacultyDashboard = () => {
                 <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-secondary/30 border border-border/50 gap-3">
                   <div>
                     <p className="font-bold text-foreground text-sm flex items-center gap-2">
-                       {act.studentName}
+                       {act.studentId ? (
+                         <Link to={`/my-analytics?studentId=${act.studentId}`} className="hover:underline hover:text-primary transition-all">
+                           {act.studentName}
+                         </Link>
+                       ) : (
+                         act.studentName
+                       )}
                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-background border border-border/50 text-muted-foreground uppercase">{act.department}</span>
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">{act.description}</p>

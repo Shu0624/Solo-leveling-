@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -328,6 +329,13 @@ export const DataTable = ({ columns, data, title }) => {
                     }`}>
                       {row[col]}
                     </span>
+                  ) : col === 'name' && row.id ? (
+                    <Link
+                      to={`/my-analytics?studentId=${row.id}`}
+                      className="text-primary hover:underline hover:text-primary/80 font-bold transition-colors"
+                    >
+                      {row[col]}
+                    </Link>
                   ) : (
                     row[col]
                   )}
