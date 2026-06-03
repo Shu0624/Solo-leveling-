@@ -5,7 +5,7 @@ import {
   Sparkles, CheckCircle, AlertTriangle, Play, FileText, 
   Terminal, ShieldCheck, Video, Users, BarChart3, Database,
   Mail, Settings, ChevronRight, ChevronDown, Zap, Target, BookOpen, Clock, Activity,
-  Info, TrendingUp, ShieldAlert, Award, Mic, Globe, Brain, Calendar, CheckCircle2, ChevronRightCircle, Star
+  Info, TrendingUp, ShieldAlert, Award, Mic, Globe, Brain, Calendar, CheckCircle2, ChevronRightCircle, Star, GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
