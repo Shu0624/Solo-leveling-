@@ -114,10 +114,10 @@ const InterviewLobby = () => {
 
   // Auto-speak new AI messages when TTS is enabled
   useEffect(() => {
-    if (messages.length > 0 && ttsEnabled) {
+    if (messages.length > 0 && ttsEnabled && chatStarted) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.role === 'ai') {
-        window.speechSynthesis.cancel();
+        window.speechSynthesis?.cancel();
         const cleanText = lastMsg.text.replace(/\*\*/g, '').replace(/---/g, '').replace(/💡|🎉|🤔|🔥/g, '');
         const utterance = new SpeechSynthesisUtterance(cleanText);
         const selectedVoice = pickVoiceForAccent(accent);
@@ -142,10 +142,24 @@ const InterviewLobby = () => {
           }
         };
 
-        window.speechSynthesis.speak(utterance);
+        window.speechSynthesis?.speak(utterance);
       }
     }
-  }, [messages, ttsEnabled, accent, voiceMode]);
+  }, [messages, ttsEnabled, accent, voiceMode, chatStarted]);
+
+  // Clean up speech synthesis when component unmounts
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  // Cancel speech synthesis immediately if TTS is turned off or chat session ends
+  useEffect(() => {
+    if (!ttsEnabled || !chatStarted) {
+      window.speechSynthesis?.cancel();
+    }
+  }, [ttsEnabled, chatStarted]);
 
   const startPeerRoom = () => {
     const id = roomId.trim() || `room-${Date.now().toString(36)}`;
