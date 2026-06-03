@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Users, Activity, Trophy, Building, BookOpen, Target, Clock, Star, 
   BarChart3, ArrowRight, TrendingUp, AlertTriangle, Sparkles, Download, 
-  ChevronDown, Calendar, Briefcase, FileSpreadsheet, Eye, Send, Award, 
+  ChevronDown, ChevronRight, Calendar, Briefcase, FileSpreadsheet, Eye, Send, Award, 
   BellRing, ArrowUpRight, Users2, ShieldAlert
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -530,7 +530,7 @@ const PrincipalDashboard = () => {
                   }`} />
                   <span className="text-xs text-white/80 font-medium leading-relaxed">{feed.text}</span>
                 </div>
-                <ChevronRightCircle size={14} className="text-white/20 shrink-0" />
+                <ChevronRight size={14} className="text-white/20 shrink-0" />
               </div>
             ))}
           </div>
