@@ -58,9 +58,8 @@ const dsaProgressSchema = new mongoose.Schema(
   }
 );
 
-// Leaderboard queries
+// Leaderboard queries (studentId already indexed via unique:true on the field)
 dsaProgressSchema.index({ classroomCode: 1, totalScore: -1 });
-dsaProgressSchema.index({ studentId: 1 });
 
 // Pre-save hook to calculate weighted total
 dsaProgressSchema.pre('save', function (next) {
