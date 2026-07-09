@@ -433,20 +433,20 @@ const PrincipalDashboard = () => {
               <AreaChart data={academicTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCSE" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(199 89% 48%)" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="hsl(199 89% 48%)" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorECE" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(262 83% 62%)" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="hsl(262 83% 62%)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="sem" tick={{ fontSize: 10, fill: '#71717a' }} />
-                <YAxis domain={[5.0, 9.0]} tick={{ fontSize: 10, fill: '#71717a' }} />
-                <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
-                <Area type="monotone" dataKey="CSE" stroke="#818cf8" fillOpacity={1} fill="url(#colorCSE)" strokeWidth={2} />
-                <Area type="monotone" dataKey="ECE" stroke="#ec4899" fillOpacity={1} fill="url(#colorECE)" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="sem" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[5.0, 9.0]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--popover-foreground))', fontSize: '11px', boxShadow: 'var(--shadow-md)' }} />
+                <Area type="monotone" dataKey="CSE" stroke="hsl(199 89% 48%)" fillOpacity={1} fill="url(#colorCSE)" strokeWidth={2} />
+                <Area type="monotone" dataKey="ECE" stroke="hsl(262 83% 62%)" fillOpacity={1} fill="url(#colorECE)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
