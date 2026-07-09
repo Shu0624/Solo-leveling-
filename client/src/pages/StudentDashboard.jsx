@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Square, CalendarClock, Trophy, StickyNote, 
@@ -18,10 +18,12 @@ import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
 import TodayIntelligence from '../components/dashboard/TodayIntelligence';
 import FocusScoreRing from '../components/dashboard/FocusScoreRing';
 import SessionHistory from '../components/dashboard/SessionHistory';
-import { Skeleton, SkeletonCard } from '../components/ui';
+import { Skeleton, SkeletonCard, PageHeader, StatTile, Button } from '../components/ui';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
+  const navigate = useNavigate();
+  const [reportLoading, setReportLoading] = useState(false);
   const [progress, setProgress] = useState({ programming: 0, ai: 0, aptitude: 0 });
   const [events, setEvents] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -245,47 +247,71 @@ const StudentDashboard = () => {
       <div className="fixed top-[40%] left-[50%] w-[80vw] h-[40vh] bg-indigo-500/5 rounded-full blur-[150px] -z-10 pointer-events-none -translate-x-1/2" />
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-             <h1 className="text-3xl font-bold tracking-tight text-white">
-               Welcome back, {user?.name?.split(' ')[0]}
-             </h1>
-             <div className="hidden sm:flex px-4 py-1.5 bg-[#121215]/80 border border-white/10 rounded-full items-center gap-2 shadow-inner backdrop-blur-md">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-               <span className="text-xs font-bold text-white/80 font-mono tracking-widest leading-none mt-0.5">{currentTime.toLocaleTimeString()}</span>
-             </div>
-          </div>
-          <p className="text-white/60 text-sm font-medium">Let's make today productive and meaningful.</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link 
-            to="/my-analytics" 
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white/10 backdrop-blur-md rounded-xl text-sm font-medium transition-colors"
-          >
-            <PieChartIcon size={16} /> Analytics
-          </Link>
-          <button 
-            onClick={async () => {
-              try {
-                const btn = document.getElementById('report-btn');
-                if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
-                const res = await api.get('/dashboard/report-data');
-                generateReadinessReport(res.data);
-                if (btn) { btn.disabled = false; btn.textContent = ''; }
-              } catch (err) {
-                alert('Failed to generate report. Try again.');
-                const btn = document.getElementById('report-btn');
-                if (btn) { btn.disabled = false; }
-              }
-            }}
-            id="report-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 border border-emerald-500/50 text-white hover:opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.3)] rounded-xl text-sm font-medium transition-all disabled:opacity-50 backdrop-blur-md"
-          >
-            <FileDown size={16} /> Download Report
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow={currentTime.toLocaleTimeString()}
+        title={`Welcome back, ${user?.name?.split(' ')[0] || ''}`}
+        subtitle="Let's make today productive and meaningful."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/my-analytics')}>
+              <PieChartIcon size={16} /> Analytics
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={reportLoading}
+              onClick={async () => {
+                try {
+                  setReportLoading(true);
+                  const res = await api.get('/dashboard/report-data');
+                  generateReadinessReport(res.data);
+                } catch (err) {
+                  alert('Failed to generate report. Try again.');
+                } finally {
+                  setReportLoading(false);
+                }
+              }}
+            >
+              <FileDown size={16} /> Report
+            </Button>
+          </>
+        }
+      />
+
+      {/* Fintech-style stat row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatTile
+          label="Day Streak"
+          value={streakData?.current || 0}
+          suffix="d"
+          icon={<Flame size={16} />}
+          tone="warning"
+          hero
+        />
+        <StatTile
+          label="Focus Today"
+          value={(analytics?.today?.totalSeconds || 0) / 3600}
+          decimals={1}
+          suffix="h"
+          icon={<Clock size={16} />}
+          tone="primary"
+        />
+        <StatTile
+          label="This Week"
+          value={(analytics?.weekly?.totalSeconds || 0) / 3600}
+          decimals={1}
+          suffix="h"
+          icon={<Activity size={16} />}
+          tone="accent"
+        />
+        <StatTile
+          label="Resume Score"
+          value={resumeScore || 0}
+          suffix={resumeScore ? '/100' : ''}
+          icon={<FileSearch size={16} />}
+          tone="success"
+        />
+      </div>
 
       {/* 1. TOP SECTION (ACTION ROW) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
