@@ -14,6 +14,7 @@ import Assignment from '../models/Assignment.js';
 import Attendance from '../models/Attendance.js';
 import { getGroqChatCompletion } from '../services/groqService.js';
 import { isDemoMode } from '../config/demo.js';
+import { computeReadinessScore } from '../services/readinessService.js';
 
 const router = express.Router();
 
@@ -649,21 +650,20 @@ router.get('/export', protect, authorize(...adminRoles), scopeData, async (req, 
       });
       const attendancePercentage = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
 
-      // Composite Readiness Score
-      const weights = { quiz: 15, resume: 15, focus: 10, dsa: 15, academics: 10, language: 10 };
+      // Composite Readiness Score (shared formula)
       const dsaScore = Math.min((dsaTotalSolved / 50) * 100, 100);
       const academicScore = Math.round((attendancePercentage + assignmentCompletionRate) / 2);
       const languageScore = Math.min((langXP / 500) * 100, 100);
       const focusScore = Math.min(focusTotalSeconds / 36000 * 100, 100);
-      
-      const readinessScore = Math.round(
-        (quizAvgScore * weights.quiz +
-         resumeScore * weights.resume +
-         focusScore * weights.focus +
-         dsaScore * weights.dsa +
-         academicScore * weights.academics +
-         languageScore * weights.language) / 75
-      );
+
+      const readinessScore = computeReadinessScore({
+        quiz: quizAvgScore,
+        resume: resumeScore,
+        focus: focusScore,
+        dsa: dsaScore,
+        academics: academicScore,
+        language: languageScore,
+      });
 
       return {
         id: s._id,
@@ -827,22 +827,20 @@ router.get('/at-risk', protect, authorize(...adminRoles), scopeData, async (req,
       });
       const attendancePercentage = totalLectures > 0 ? Math.round((lecturesAttended / totalLectures) * 100) : 0;
 
-      // Calculate composite Readiness Score
-      const weights = { quiz: 15, interview: 15, resume: 15, focus: 10, modules: 10, dsa: 15, academics: 10, language: 10 };
+      // Calculate composite Readiness Score (shared formula)
       const dsaScore = Math.min((dsaTotalSolved / 50) * 100, 100);
       const academicScore = Math.round((attendancePercentage + assignmentCompletionRate) / 2);
       const languageScore = Math.min((langXP / 500) * 100, 100);
       const focusScore = Math.min(focusTotalSeconds / 36000 * 100, 100);
-      const quizWeightScore = Math.min(quizAvgScore, 100);
 
-      const readinessScore = Math.round(
-        (quizWeightScore * weights.quiz +
-         resumeScore * weights.resume +
-         focusScore * weights.focus +
-         dsaScore * weights.dsa +
-         academicScore * weights.academics +
-         languageScore * weights.language) / 75
-      );
+      const readinessScore = computeReadinessScore({
+        quiz: quizAvgScore,
+        resume: resumeScore,
+        focus: focusScore,
+        dsa: dsaScore,
+        academics: academicScore,
+        language: languageScore,
+      });
 
       // Determine Risk Level
       let riskLevel = 'good'; // 'good', 'medium' (Needs Intervention), 'high' (Critical Warning)

@@ -17,6 +17,7 @@ import Attendance from '../models/Attendance.js';
 import { getGroqChatCompletion } from '../services/groqService.js';
 import { canAccessStudent } from '../middleware/auth.js';
 import { isDemoMode } from '../config/demo.js';
+import { computeReadinessScore } from '../services/readinessService.js';
 
 const router = express.Router();
 
@@ -506,7 +507,6 @@ router.get('/student-analytics', protect, async (req, res) => {
 
     // ─── Readiness Score (weighted composite 0-100) ───
     // Composite incorporating All Modules: Quiz (15), Interview (15), Resume (15), Focus (10), Modules (10), DSA (15), Academics (10), Language (10)
-    const weights = { quiz: 15, interview: 15, resume: 15, focus: 10, modules: 10, dsa: 15, academics: 10, language: 10 };
     const quizScore = Math.min(quizAvgScore, 100);
     const interviewScore = Math.min(interviewAvgScore, 100);
     const dsaScore = Math.min((dsaStats.totalSolved / 50) * 100, 100); // 50 solved problems target
@@ -515,16 +515,16 @@ router.get('/student-analytics', protect, async (req, res) => {
     const focusScore = Math.min((finalFocusOverall.totalSeconds || 0) / 36000 * 100, 100); // 10hrs = 100%
     const moduleScore = totalModules > 0 ? Math.min((modulesStarted / totalModules) * 100, 100) : 0;
 
-    const readinessScore = Math.round(
-      (quizScore * weights.quiz +
-       interviewScore * weights.interview +
-       resumeScore * weights.resume +
-       focusScore * weights.focus +
-       moduleScore * weights.modules +
-       dsaScore * weights.dsa +
-       academicScore * weights.academics +
-       languageScore * weights.language) / 100
-    );
+    const readinessScore = computeReadinessScore({
+      quiz: quizScore,
+      interview: interviewScore,
+      resume: resumeScore,
+      focus: focusScore,
+      modules: moduleScore,
+      dsa: dsaScore,
+      academics: academicScore,
+      language: languageScore,
+    });
 
     // ─── AI Recommendations ───
     let recommendations = [];
