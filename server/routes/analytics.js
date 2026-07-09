@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect, authorize, scopeData } from '../middleware/auth.js';
+import { protect, authorize, scopeData, authorizeClassroom, authorizeStudent, canAccessClassroom } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Activity from '../models/Activity.js';
 import QuizAttempt from '../models/QuizAttempt.js';
@@ -234,7 +234,7 @@ router.get('/classrooms', protect, authorize(...adminRoles), scopeData, async (r
 // =====================================================================
 // GET /api/analytics/classroom/:code — Detailed time-series for one classroom
 // =====================================================================
-router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, async (req, res) => {
+router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, authorizeClassroom(), async (req, res) => {
   try {
     const { code } = req.params;
 
@@ -351,9 +351,12 @@ router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, asy
 // =====================================================================
 router.get('/compare', protect, authorize(...adminRoles), scopeData, async (req, res) => {
   try {
-    const codes = (req.query.codes || '').split(',').filter(Boolean);
+    const requestedCodes = (req.query.codes || '').split(',').filter(Boolean);
+    // Drop any classroom the caller isn't scoped to (prevents cross-tenant comparison)
+    const access = await Promise.all(requestedCodes.map(c => canAccessClassroom(req.user, c)));
+    const codes = requestedCodes.filter((_, i) => access[i]);
     if (codes.length < 2) {
-      return res.status(400).json({ message: 'At least 2 classroom codes required' });
+      return res.status(400).json({ message: 'At least 2 accessible classroom codes required' });
     }
 
     // Batch: fetch all students for all codes in one query
@@ -425,7 +428,7 @@ router.get('/compare', protect, authorize(...adminRoles), scopeData, async (req,
 // =====================================================================
 // GET /api/analytics/students/:classroomCode — Per-student breakdown
 // =====================================================================
-router.get('/students/:classroomCode', protect, authorize(...adminRoles), scopeData, async (req, res) => {
+router.get('/students/:classroomCode', protect, authorize(...adminRoles), scopeData, authorizeClassroom((req) => req.params.classroomCode), async (req, res) => {
   try {
     const { classroomCode } = req.params;
     const students = await User.find({ classroomCode, role: 'student' })
@@ -902,7 +905,7 @@ router.get('/at-risk', protect, authorize(...adminRoles), scopeData, async (req,
 // =====================================================================
 // POST /api/analytics/at-risk/:studentId/mentorship-plan — Generate AI template
 // =====================================================================
-router.post('/at-risk/:studentId/mentorship-plan', protect, authorize(...adminRoles), async (req, res) => {
+router.post('/at-risk/:studentId/mentorship-plan', protect, authorize(...adminRoles), authorizeStudent(), async (req, res) => {
   try {
     const { studentId } = req.params;
     const student = await User.findById(studentId).lean();

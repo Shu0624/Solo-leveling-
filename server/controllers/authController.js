@@ -210,11 +210,20 @@ export const updateProfile = async (req, res) => {
       user.section = section ? String(section).substring(0, 10) : undefined;
     }
 
+    // A staff member may only self-assign classrooms within their own department.
+    // classroomCode is formatted as `${department}-${year}${section}`, so the
+    // segment before the first '-' must match the user's department.
+    const belongsToDept = (code) => {
+      if (!user.department) return false;
+      const prefix = String(code).split('-')[0];
+      return prefix.toUpperCase() === String(user.department).toUpperCase();
+    };
+
     // Dynamic classroom code auto-regeneration
     if (classroomCode !== undefined) {
       const code = String(classroomCode).substring(0, 20).toUpperCase();
       user.classroomCode = code || undefined;
-      if (user.role !== 'student' && code) {
+      if (user.role !== 'student' && code && belongsToDept(code)) {
         if (!user.assignedClassrooms) user.assignedClassrooms = [];
         if (!user.assignedClassrooms.includes(code)) {
           user.assignedClassrooms.push(code);

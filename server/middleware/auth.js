@@ -65,6 +65,82 @@ export const authorize = (...roles) => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// Object-level authorization (prevents IDOR / cross-tenant access)
+// ---------------------------------------------------------------------------
+
+const ciEquals = (a, b) => String(a || '').toUpperCase() === String(b || '').toUpperCase();
+
+// Can this user read/write data for a given classroom code?
+export const canAccessClassroom = async (user, rawCode) => {
+  if (!user || !rawCode) return false;
+  const code = String(rawCode);
+  switch (user.role) {
+    case 'student':
+      return ciEquals(user.classroomCode, code);
+    case 'faculty':
+      return (user.assignedClassrooms || []).some(c => ciEquals(c, code));
+    case 'hod':
+      return Boolean(await User.exists({ classroomCode: code, college: user.college, department: user.department }));
+    case 'principal':
+    case 'placement':
+    case 'admin':
+      return Boolean(await User.exists({ classroomCode: code, college: user.college }));
+    default:
+      return false;
+  }
+};
+
+// Can this user read another student's records?
+export const canAccessStudent = async (user, studentId) => {
+  if (!user || !studentId) return false;
+  if (String(user._id) === String(studentId)) return true;
+  const target = await User.findById(studentId).select('college department classroomCode').lean();
+  if (!target) return false;
+  switch (user.role) {
+    case 'faculty':
+      return (user.assignedClassrooms || []).some(c => ciEquals(c, target.classroomCode));
+    case 'hod':
+      return ciEquals(target.college, user.college) && ciEquals(target.department, user.department);
+    case 'principal':
+    case 'placement':
+    case 'admin':
+      return ciEquals(target.college, user.college);
+    default:
+      return false;
+  }
+};
+
+// Middleware factory: guard a route by classroom code (default: req.params.code)
+export const authorizeClassroom = (getCode = (req) => req.params.code) => async (req, res, next) => {
+  try {
+    const code = getCode(req);
+    if (!code) return res.status(400).json({ message: 'Classroom code is required' });
+    if (!(await canAccessClassroom(req.user, code))) {
+      return res.status(403).json({ message: 'Not authorized to access this classroom' });
+    }
+    next();
+  } catch (err) {
+    console.error('authorizeClassroom error:', err);
+    res.status(500).json({ message: 'Authorization check failed' });
+  }
+};
+
+// Middleware factory: guard a route by student id (default: req.params.studentId)
+export const authorizeStudent = (getId = (req) => req.params.studentId) => async (req, res, next) => {
+  try {
+    const studentId = getId(req);
+    if (!studentId) return res.status(400).json({ message: 'Student id is required' });
+    if (!(await canAccessStudent(req.user, studentId))) {
+      return res.status(403).json({ message: 'Not authorized to access this student' });
+    }
+    next();
+  } catch (err) {
+    console.error('authorizeStudent error:', err);
+    res.status(500).json({ message: 'Authorization check failed' });
+  }
+};
+
 // Data scope middleware
 export const scopeData = (req, res, next) => {
   const user = req.user;

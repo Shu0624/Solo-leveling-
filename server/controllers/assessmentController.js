@@ -7,6 +7,10 @@ import DSAProgress from '../models/DSAProgress.js';
 import User from '../models/User.js';
 import XLSX from 'xlsx';
 import { getGroqChatCompletion } from '../services/groqService.js';
+import { canAccessClassroom } from '../middleware/auth.js';
+
+// Shared 403 helper for object-level authorization failures
+const denyClassroom = (res) => res.status(403).json({ message: 'Not authorized to access this classroom' });
 
 // @desc    Create an assignment
 // @route   POST /api/assessment/assignment
@@ -56,6 +60,11 @@ export const submitAssignment = async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
+    // Students may only submit to assignments for their own classroom
+    if (!(await canAccessClassroom(req.user, assignment.classroomCode))) {
+      return denyClassroom(res);
+    }
+
     const isLate = new Date() > new Date(assignment.deadline);
 
     // Check if user already submitted
@@ -97,6 +106,10 @@ export const gradeAssignment = async (req, res) => {
 
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    if (!(await canAccessClassroom(req.user, assignment.classroomCode))) {
+      return denyClassroom(res);
     }
 
     const subIndex = assignment.submissions.findIndex((sub) => sub.studentId.toString() === studentId);
@@ -199,7 +212,9 @@ export const getClassroomAttendance = async (req, res) => {
 export const getMonthlyAttendanceSummary = async (req, res) => {
   try {
     const { code } = req.params;
-    const { month, year, studentId } = req.query;
+    const { month, year } = req.query;
+    // Students may only see their own summary, never the full-class roster
+    const studentId = req.user.role === 'student' ? req.user._id.toString() : req.query.studentId;
 
     const m = Number(month) || (new Date().getMonth() + 1);
     const y = Number(year) || new Date().getFullYear();
@@ -324,6 +339,17 @@ export const createAnnouncement = async (req, res) => {
   try {
     const { classroomCodes, title, content, isPinned } = req.body;
 
+    const codes = Array.isArray(classroomCodes) ? classroomCodes : [classroomCodes].filter(Boolean);
+    // Only college-wide roles may broadcast to 'ALL'; everyone else needs access to each code
+    const broadcasting = codes.some(c => String(c).toUpperCase() === 'ALL');
+    if (broadcasting && !['hod', 'principal', 'placement', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized to broadcast to all classrooms' });
+    }
+    const specificCodes = codes.filter(c => String(c).toUpperCase() !== 'ALL');
+    for (const c of specificCodes) {
+      if (!(await canAccessClassroom(req.user, c))) return denyClassroom(res);
+    }
+
     const announcement = await Announcement.create({
       classroomCodes,
       title,
@@ -405,6 +431,10 @@ export const getFormDetail = async (req, res) => {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
 
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) {
+      return denyClassroom(res);
+    }
+
     const isFaculty = ['faculty', 'hod', 'principal'].includes(req.user.role);
 
     if (isFaculty) {
@@ -444,6 +474,9 @@ export const submitFormResponse = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) {
+      return denyClassroom(res);
+    }
     if (!form.isActive) return res.status(400).json({ message: 'This form is no longer accepting responses' });
 
     // Check for existing submission
@@ -496,6 +529,7 @@ export const getFormResults = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) return denyClassroom(res);
 
     res.status(200).json({
       title: form.title,
@@ -516,6 +550,7 @@ export const exportFormExcel = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) return denyClassroom(res);
 
     // Build spreadsheet data
     const headers = ['Student Name', 'Enrollment ID', 'Submitted At', 'Total Score'];
@@ -574,6 +609,7 @@ export const importFormCSV = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) return denyClassroom(res);
 
     if (!req.file) return res.status(400).json({ message: 'Please upload a CSV file' });
 
@@ -599,6 +635,7 @@ export const toggleFormActive = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) return denyClassroom(res);
     form.isActive = !form.isActive;
     await form.save();
     res.status(200).json({ message: `Form is now ${form.isActive ? 'active' : 'closed'}`, isActive: form.isActive });
@@ -629,6 +666,12 @@ export const addMarks = async (req, res) => {
 
       if (!studentId || !classroomCode || !subject || !examType || marksObtained == null || !maxMarks) {
         results.push({ studentId, status: 'skipped', reason: 'Missing required fields' });
+        continue;
+      }
+
+      // Enforce classroom scope per-entry to prevent cross-classroom writes
+      if (!(await canAccessClassroom(req.user, classroomCode))) {
+        results.push({ studentId, status: 'skipped', reason: 'Not authorized for this classroom' });
         continue;
       }
 
@@ -965,6 +1008,10 @@ export const aiGradeAssignment = async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
+    if (!(await canAccessClassroom(req.user, assignment.classroomCode))) {
+      return denyClassroom(res);
+    }
+
     const sub = assignment.submissions.find((s) => s.studentId.toString() === studentId);
     if (!sub) {
       return res.status(404).json({ message: 'Submission not found for this student' });
@@ -1022,6 +1069,7 @@ export const aiFormInsights = async (req, res) => {
   try {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: 'Form not found' });
+    if (!(await canAccessClassroom(req.user, form.classroomCode))) return denyClassroom(res);
 
     // Format questions & responses for AI consumption
     const questionsSummary = form.questions.map((q, idx) => ({
@@ -1092,6 +1140,11 @@ export const aiStudentIntervention = async (req, res) => {
 
     if (!studentId || !classroomCode) {
       return res.status(400).json({ message: 'Student ID and Classroom Code are required' });
+    }
+
+    // Staff may only generate interventions for classrooms within their scope
+    if (req.user.role !== 'student' && !(await canAccessClassroom(req.user, classroomCode))) {
+      return denyClassroom(res);
     }
 
     const studentUser = await User.findById(studentId).select('name enrollmentId email');
