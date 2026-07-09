@@ -62,7 +62,7 @@ export default function StatTile({
       </div>
 
       <div className="flex items-end justify-between gap-2">
-        <div className={cn('tnum text-3xl sm:text-4xl font-bold leading-none tracking-tight', toneStyles[tone])}>
+        <div className={cn('font-display tnum text-3xl sm:text-4xl font-bold leading-none tracking-display', toneStyles[tone])}>
           {prefix}{shown}{suffix}
         </div>
         {(delta != null) && (

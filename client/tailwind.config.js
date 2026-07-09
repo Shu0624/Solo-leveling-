@@ -18,7 +18,12 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        'display': '-0.02em',
+        'tightest': '-0.03em',
       },
       colors: {
         border: "hsl(var(--border))",
