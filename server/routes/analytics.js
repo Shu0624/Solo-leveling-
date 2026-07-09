@@ -571,8 +571,8 @@ router.get('/export', protect, authorize(...adminRoles), scopeData, async (req, 
       focusAgg,
       assignments
     ] = await Promise.all([
-      QuizAttempt.find({ user: { $in: studentIds } }).lean(),
-      Resume.find({ user: { $in: studentIds } }).lean(),
+      QuizAttempt.find({ user: { $in: studentIds } }).select('user percentage').lean(),
+      Resume.find({ user: { $in: studentIds } }).select('user analysis.score').lean(),
       DSAProgress.find({ studentId: { $in: studentIds } }).lean(),
       LanguageProfile.find({ user: { $in: studentIds } }).lean(),
       Attendance.find({ classroomCode: { $in: students.map(s => s.classroomCode).filter(Boolean) } }).lean(),
@@ -724,8 +724,8 @@ router.get('/at-risk', protect, authorize(...adminRoles), scopeData, async (req,
       attendances,
       focusAgg
     ] = await Promise.all([
-      QuizAttempt.find({ user: { $in: studentIds } }).lean(),
-      Resume.find({ user: { $in: studentIds } }).lean(),
+      QuizAttempt.find({ user: { $in: studentIds } }).select('user percentage').lean(),
+      Resume.find({ user: { $in: studentIds } }).select('user analysis.score').lean(),
       DSAProgress.find({ studentId: { $in: studentIds } }).lean(),
       LanguageProfile.find({ user: { $in: studentIds } }).lean(),
       SavedRoadmap.find({ user: { $in: studentIds } }).lean(),

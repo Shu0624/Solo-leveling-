@@ -58,5 +58,8 @@ const assignmentSchema = new mongoose.Schema(
   }
 );
 
+// Assignments are almost always queried by classroom
+assignmentSchema.index({ classroomCode: 1, createdAt: -1 });
+
 const Assignment = mongoose.model('Assignment', assignmentSchema);
 export default Assignment;

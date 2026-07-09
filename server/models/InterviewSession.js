@@ -45,4 +45,7 @@ const sessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// History and analytics query interview sessions by host
+sessionSchema.index({ host: 1, createdAt: -1 });
+
 export default mongoose.model('InterviewSession', sessionSchema);
