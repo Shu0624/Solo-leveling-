@@ -23,7 +23,7 @@ const loginSchema = z.object({
 // Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
 };
 
@@ -254,7 +254,9 @@ export const updateProfile = async (req, res) => {
 
     const updatedUser = await user.save();
 
-    res.json(buildUserResponse(updatedUser, generateToken(updatedUser._id)));
+    // Do not re-mint a token on profile edits — the client keeps its existing
+    // session, and re-issuing needlessly extends token lifetime.
+    res.json(buildUserResponse(updatedUser));
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

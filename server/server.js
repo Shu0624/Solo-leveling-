@@ -29,6 +29,7 @@ import {
   initSessionManager
 } from './services/sessionManager.js';
 import User from './models/User.js';
+import mongoSanitize from './middleware/sanitize.js';
 
 dotenv.config();
 
@@ -115,6 +116,9 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Strip MongoDB operator injection vectors ($-prefixed / dotted keys)
+app.use(mongoSanitize);
 
 // Health check for monitoring (UptimeRobot, etc.)
 app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
@@ -396,4 +400,4 @@ if (process.env.VERCEL !== '1') {
 }
 
 // Export for Vercel Serverless
-export default app;
+export default app; // trigger restart
