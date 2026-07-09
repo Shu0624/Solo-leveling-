@@ -21,6 +21,11 @@ import { computeReadinessScore } from '../services/readinessService.js';
 
 const router = express.Router();
 
+// In-memory cache for the AI-generated analytics summary/recommendations.
+// Avoids re-calling Groq (seconds of latency + cost) on every dashboard load.
+const aiRecCache = new Map(); // userId -> { at, summary, recommendations }
+const AI_REC_TTL = 30 * 60 * 1000; // 30 minutes
+
 const getHash = (idStr) => {
   let hash = 0;
   for (let i = 0; i < idStr.length; i++) {
@@ -543,6 +548,12 @@ router.get('/student-analytics', protect, async (req, res) => {
       academics: { attendance: attendancePercentage, assignmentCompletion: assignmentCompletionRate, avgGrade: avgAssignmentGrade }
     };
 
+    const aiCacheKey = userId.toString();
+    const cachedAi = aiRecCache.get(aiCacheKey);
+    if (cachedAi && Date.now() - cachedAi.at < AI_REC_TTL) {
+      summary = cachedAi.summary;
+      recommendations = cachedAi.recommendations;
+    } else {
     try {
       const systemPrompt = `You are a Career Coach AI for LevelUp, an engineering student prep platform.
 Analyze the student's performance data across all modules (Resume, Quizzes, Mock Interviews, Focus time, DSA solved questions, Classroom Attendance & Assignments, Foreign Language learning, Roadmap target role).
@@ -576,6 +587,7 @@ Ensure:
       const parsedResponse = JSON.parse(responseText);
       recommendations = parsedResponse.recommendations || [];
       summary = parsedResponse.summary || `Overall preparation readiness is at ${readinessScore}%. Target areas of improvement to boost overall metrics.`;
+      aiRecCache.set(aiCacheKey, { at: Date.now(), summary, recommendations });
     } catch (aiErr) {
       console.warn('[ANALYTICS] Fallback to static recommendations:', aiErr.message);
       summary = `Overall preparation readiness is at ${readinessScore}%. Try uploading/improving your resume or taking more coding assessments to raise stats.`;
@@ -600,6 +612,7 @@ Ensure:
       if (assignmentCompletionRate < 80) recommendations.push({ type: 'academics', text: `You have submitted ${assignmentCompletionRate}% of classroom assignments. Complete pending submissions.` });
       
       if (modulesStarted === 0) recommendations.push({ type: 'modules', text: 'Start a learning module to structure your preparation.' });
+    }
     }
 
     // ─── Synthesized academic & placement metrics (DEMO ONLY) ───
