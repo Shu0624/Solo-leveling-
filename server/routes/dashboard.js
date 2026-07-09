@@ -16,6 +16,7 @@ import Assignment from '../models/Assignment.js';
 import Attendance from '../models/Attendance.js';
 import { getGroqChatCompletion } from '../services/groqService.js';
 import { canAccessStudent } from '../middleware/auth.js';
+import { isDemoMode } from '../config/demo.js';
 
 const router = express.Router();
 
@@ -308,8 +309,8 @@ router.get('/student-analytics', protect, async (req, res) => {
     let prev5Avg = quizAttempts.slice(5, 10).reduce((s, a) => s + (a.percentage || 0), 0) / Math.max(quizAttempts.slice(5, 10).length, 1);
     let quizTrend = quizAttempts.length < 2 ? 'neutral' : last5Avg > prev5Avg ? 'up' : last5Avg < prev5Avg ? 'down' : 'neutral';
 
-    // Mock quiz history if none exists in db
-    if (quizTotal === 0) {
+    // Mock quiz history if none exists in db (demo mode only)
+    if (isDemoMode() && quizTotal === 0) {
       quizTotal = 4;
       quizAvgScore = 74;
       quizBestScore = 85;
@@ -354,8 +355,8 @@ router.get('/student-analytics', protect, async (req, res) => {
       date: s.endedAt || s.createdAt
     }));
 
-    // Mock interview history if none exists in db
-    if (interviewTotal === 0) {
+    // Mock interview history if none exists in db (demo mode only)
+    if (isDemoMode() && interviewTotal === 0) {
       interviewTotal = 3;
       interviewAvgScore = 78;
       interviewTotalTime = 2400; // 40 minutes total
@@ -601,9 +602,14 @@ Ensure:
       if (modulesStarted === 0) recommendations.push({ type: 'modules', text: 'Start a learning module to structure your preparation.' });
     }
 
+    // ─── Synthesized academic & placement metrics (DEMO ONLY) ───
+    // These are derived from a hash of the student id, not real records, and
+    // must never be surfaced as real data in production.
+    const demoMode = isDemoMode();
+
     const cgpa = parseFloat((6.8 + (quizAvgScore / 50) + ((hash % 12) / 10)).toFixed(2));
     const attendance = attendancePercentage > 0 ? attendancePercentage : (72 + (hash % 24));
-    
+
     // Placement details
     const communicationRating = parseFloat((3.2 + (hash % 15) / 10).toFixed(1));
     const packageRangeMin = parseFloat((4.0 + (readinessScore / 20) + (hash % 4)).toFixed(1));
@@ -612,7 +618,7 @@ Ensure:
     const codingScore = Math.min(100, 45 + (dsaStats.totalSolved || 0) + (hash % 18));
     const aptitudeScore = 55 + (hash % 41);
 
-    const academicEnriched = {
+    const academicEnriched = !demoMode ? null : {
       cgpa,
       attendance,
       backlogRisk: cgpa < 6.8 || attendance < 75 ? 'HIGH' : cgpa < 7.5 ? 'MEDIUM' : 'LOW',
@@ -633,7 +639,7 @@ Ensure:
       ]
     };
 
-    const placementEnriched = {
+    const placementEnriched = !demoMode ? null : {
       readinessScore,
       resumeScore,
       dsaSolved: dsaStats.totalSolved || 0,
@@ -711,6 +717,7 @@ Ensure:
       },
       academicEnriched,
       placementEnriched,
+      demoMode,
       summary,
       recommendations
     });

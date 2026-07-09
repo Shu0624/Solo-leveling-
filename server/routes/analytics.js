@@ -13,6 +13,7 @@ import SavedRoadmap from '../models/SavedRoadmap.js';
 import Assignment from '../models/Assignment.js';
 import Attendance from '../models/Attendance.js';
 import { getGroqChatCompletion } from '../services/groqService.js';
+import { isDemoMode } from '../config/demo.js';
 
 const router = express.Router();
 
@@ -203,8 +204,10 @@ router.get('/classrooms', protect, authorize(...adminRoles), scopeData, async (r
       rawList = Object.values(latestMap);
     }
 
-    // Enrich with Placement & Academic metrics
-    const enrichedList = rawList.map(item => {
+    // Enrich with synthesized Placement & Academic metrics (DEMO ONLY).
+    // Outside demo mode we return only real metrics rather than hash-derived
+    // CGPA/attendance/placement figures.
+    const enrichedList = !isDemoMode() ? rawList : rawList.map(item => {
       const code = item.classroomCode;
       const hash = getHash(code);
       const avgCGPA = parseFloat((7.2 + (hash % 15) / 10).toFixed(2));
@@ -273,14 +276,16 @@ router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, aut
     const dsaMap = {};
     dsaProgress.forEach(d => { dsaMap[d.studentId.toString()] = (d.easySolved || 0) + (d.mediumSolved || 0) + (d.hardSolved || 0); });
 
+    const demo = isDemoMode();
     const studentBreakdown = actAgg.map(a => {
       const stu = students.find(s => s._id.toString() === a._id.toString());
       const quiz = quizMap[a._id.toString()];
       const hash = getHash(a._id.toString());
       const quizAvgScore = Math.round(quiz?.avg || 0);
-      const resumeScore = resumesMap[a._id.toString()] || (55 + (hash % 36));
-      const dsaSolved = dsaMap[a._id.toString()] || (hash % 29);
-      
+      // Real values in production; hash-derived placeholders only in demo mode
+      const resumeScore = resumesMap[a._id.toString()] || (demo ? (55 + (hash % 36)) : 0);
+      const dsaSolved = dsaMap[a._id.toString()] || (demo ? (hash % 29) : 0);
+
       const cgpa = parseFloat((6.8 + (quizAvgScore / 50) + ((hash % 12) / 10)).toFixed(2));
       const attendance = 72 + (hash % 24);
       const readinessScore = Math.min(100, Math.round(
@@ -299,7 +304,7 @@ router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, aut
         quizAttempts: quiz?.attempts || 0,
         streak: stu?.streak?.current || 0,
         lastActive: a.lastActive,
-        academic: {
+        academic: !demo ? null : {
           cgpa,
           attendance,
           backlogRisk: cgpa < 6.8 || attendance < 75 ? 'HIGH' : cgpa < 7.5 ? 'MEDIUM' : 'LOW',
@@ -316,7 +321,7 @@ router.get('/classroom/:code', protect, authorize(...adminRoles), scopeData, aut
             { sem: 'Sem 3', gpa: cgpa }
           ]
         },
-        placement: {
+        placement: !demo ? null : {
           readinessScore,
           resumeScore,
           dsaSolved,
@@ -385,6 +390,7 @@ router.get('/compare', protect, authorize(...adminRoles), scopeData, async (req,
     const resumeMap = {};
     resumeAgg.forEach(r => { resumeMap[r._id.toString()] = r.avg; });
 
+    const demo = isDemoMode();
     const results = codes.map(code => {
       const codeStudents = allStudents.filter(s => s.classroomCode === code);
       let totalSeconds = 0, quizAvgs = [], quizAttempts = 0, resumeAvgs = [];
@@ -396,10 +402,11 @@ router.get('/compare', protect, authorize(...adminRoles), scopeData, async (req,
       });
 
       const hash = getHash(code);
-      const avgCGPA = parseFloat((7.2 + (hash % 15) / 10).toFixed(2));
-      const avgAttendance = 75 + (hash % 20);
-      const avgPlacementReadiness = 50 + (hash % 40);
-      const placementProbability = Math.round(30 + avgPlacementReadiness * 0.65);
+      // Synthesized figures only in demo mode; null in production
+      const avgCGPA = demo ? parseFloat((7.2 + (hash % 15) / 10).toFixed(2)) : null;
+      const avgAttendance = demo ? 75 + (hash % 20) : null;
+      const avgPlacementReadiness = demo ? 50 + (hash % 40) : null;
+      const placementProbability = demo ? Math.round(30 + (50 + (hash % 40)) * 0.65) : null;
 
       return {
         classroomCode: code,
