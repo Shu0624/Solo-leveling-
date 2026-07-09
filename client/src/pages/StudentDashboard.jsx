@@ -18,6 +18,7 @@ import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
 import TodayIntelligence from '../components/dashboard/TodayIntelligence';
 import FocusScoreRing from '../components/dashboard/FocusScoreRing';
 import SessionHistory from '../components/dashboard/SessionHistory';
+import { Skeleton, SkeletonCard } from '../components/ui';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
@@ -213,9 +214,24 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground">
-        <Activity className="animate-pulse mb-4 text-primary" size={48} />
-        <p className="animate-pulse">Loading dashboard...</p>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center mb-10">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl" rounded="rounded-xl" />
+        </div>
+        {/* Stat row skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        {/* Body skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80 rounded-2xl" rounded="rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" rounded="rounded-2xl" />
+        </div>
       </div>
     );
   }
