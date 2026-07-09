@@ -120,7 +120,11 @@
     font-family: theme('fontFamily.display');
     letter-spacing: -0.02em;
   }
-  h1, h2 {
+  /* Global heading treatment: geometric display face, tight tracking.
+     Escape with `font-sans` on any heading that needs the body face. */
+  h1, h2, h3 {
+    font-family: theme('fontFamily.display');
+    letter-spacing: -0.02em;
     font-feature-settings: "ss01";
   }
 }
