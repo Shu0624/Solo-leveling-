@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const initialState = {
-  theme: 'light',
+  theme: 'dark',
   setTheme: () => null,
 };
 
@@ -9,7 +9,7 @@ const ThemeProviderContext = createContext(initialState);
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'light',
+  defaultTheme = 'dark',
   storageKey = 'levelup-ui-theme',
   ...props
 }) {

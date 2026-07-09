@@ -48,7 +48,7 @@ const PageLoader = () => (
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="levelup-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="levelup-ui-theme">
       <AuthProvider>
         <ActivityProvider>
           <BrowserRouter>
