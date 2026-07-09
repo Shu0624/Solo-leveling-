@@ -18,7 +18,7 @@ import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
 import TodayIntelligence from '../components/dashboard/TodayIntelligence';
 import FocusScoreRing from '../components/dashboard/FocusScoreRing';
 import SessionHistory from '../components/dashboard/SessionHistory';
-import { Skeleton, SkeletonCard, PageHeader, StatTile, Button } from '../components/ui';
+import { Skeleton, SkeletonCard, PageHeader, StatTile, Button, tooltipStyle, axisProps, CHART_COLORS } from '../components/ui';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
@@ -242,9 +242,8 @@ const StudentDashboard = () => {
     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in min-h-screen font-sans">
       {/* Dynamic Background Blurs for Dark Neon Vibe */}
       <div className="fixed inset-0 z-[-1] bg-[#09090b]"></div>
-      <div className="fixed top-[-20%] left-[-10%] w-[50vh] h-[50vh] bg-purple-600/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[60vh] h-[60vh] bg-blue-600/10 rounded-full blur-[150px] -z-10 pointer-events-none" />
-      <div className="fixed top-[40%] left-[50%] w-[80vw] h-[40vh] bg-indigo-500/5 rounded-full blur-[150px] -z-10 pointer-events-none -translate-x-1/2" />
+      <div className="fixed top-[-15%] left-[-5%] w-[45vh] h-[45vh] bg-primary/[0.06] rounded-full blur-[130px] -z-10 pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[45vh] h-[45vh] bg-accent/[0.05] rounded-full blur-[140px] -z-10 pointer-events-none" />
 
       {/* Header */}
       <PageHeader
@@ -601,17 +600,14 @@ const StudentDashboard = () => {
                  <AreaChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                    <defs>
                      <linearGradient id="colorBlueDark" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#818cf8" stopOpacity={0.6}/>
-                       <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                       <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.5}/>
+                       <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0}/>
                      </linearGradient>
                    </defs>
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} dy={10} />
-                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                   <Tooltip 
-                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', border: '1px solid #3f3f46', color: '#fff', fontSize: '12px' }}
-                     itemStyle={{ color: '#fff' }}
-                   />
-                   <Area type="monotone" dataKey="minutes" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#colorBlueDark)" />
+                   <XAxis dataKey="name" {...axisProps()} dy={10} />
+                   <YAxis {...axisProps()} />
+                   <Tooltip contentStyle={tooltipStyle()} itemStyle={{ color: 'inherit' }} cursor={{ stroke: CHART_COLORS[0], strokeOpacity: 0.3 }} />
+                   <Area type="monotone" dataKey="minutes" stroke={CHART_COLORS[0]} strokeWidth={2.5} fillOpacity={1} fill="url(#colorBlueDark)" />
                  </AreaChart>
                </ResponsiveContainer>
              ) : (
@@ -825,7 +821,7 @@ const StudentDashboard = () => {
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                            <Tooltip contentStyle={tooltipStyle()} itemStyle={{ color: 'inherit' }} />
                             <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                           </PieChart>
                         </ResponsiveContainer>
@@ -842,10 +838,10 @@ const StudentDashboard = () => {
                       {dailyChartData.some(d => d.minutes > 0) ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} dy={5} />
-                            <YAxis tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
-                            <Bar dataKey="minutes" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={32} />
+                            <XAxis dataKey="name" {...axisProps()} dy={5} />
+                            <YAxis {...axisProps()} />
+                            <Tooltip cursor={{ fill: 'rgba(125,125,140,0.08)' }} contentStyle={tooltipStyle()} />
+                            <Bar dataKey="minutes" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} barSize={32} />
                           </BarChart>
                         </ResponsiveContainer>
                       ) : (
