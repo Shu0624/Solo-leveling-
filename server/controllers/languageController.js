@@ -12,7 +12,7 @@ export const getMyProfile = async (req, res) => {
     }
     res.status(200).json(profile);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching language profile', error: error.message });
+    res.status(500).json({ message: 'Error fetching language profile' });
   }
 };
 
@@ -51,7 +51,7 @@ export const updateProfile = async (req, res) => {
     await profile.save();
     res.status(200).json(profile);
   } catch (error) {
-    res.status(500).json({ message: 'Error updating language profile', error: error.message });
+    res.status(500).json({ message: 'Error updating language profile' });
   }
 };
 
@@ -104,6 +104,6 @@ Rules for your reply:
       feedback: feedback
     });
   } catch (error) {
-    res.status(500).json({ message: 'AI roleplay failed', error: error.message });
+    res.status(500).json({ message: 'AI roleplay failed' });
   }
 };

@@ -31,7 +31,7 @@ export const createAssignment = async (req, res) => {
 
     res.status(201).json(assignment);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating assignment', error: error.message });
+    res.status(500).json({ message: 'Error creating assignment' });
   }
 };
 
@@ -44,7 +44,7 @@ export const getClassroomAssignments = async (req, res) => {
     const assignments = await Assignment.find({ classroomCode: code }).sort({ createdAt: -1 });
     res.status(200).json(assignments);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching assignments', error: error.message });
+    res.status(500).json({ message: 'Error fetching assignments' });
   }
 };
 
@@ -92,7 +92,7 @@ export const submitAssignment = async (req, res) => {
     await assignment.save();
     res.status(200).json({ message: 'Assignment submitted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error submitting assignment', error: error.message });
+    res.status(500).json({ message: 'Error submitting assignment' });
   }
 };
 
@@ -123,7 +123,7 @@ export const gradeAssignment = async (req, res) => {
     await assignment.save();
     res.status(200).json({ message: 'Assignment graded successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error grading assignment', error: error.message });
+    res.status(500).json({ message: 'Error grading assignment' });
   }
 };
 
@@ -169,7 +169,7 @@ export const markAttendance = async (req, res) => {
     await attendance.save();
     res.status(200).json({ message: 'Attendance recorded', attendance });
   } catch (error) {
-    res.status(500).json({ message: 'Error marking attendance', error: error.message });
+    res.status(500).json({ message: 'Error marking attendance' });
   }
 };
 
@@ -202,7 +202,7 @@ export const getClassroomAttendance = async (req, res) => {
       .populate('markedBy', 'name email');
     res.status(200).json(attendanceRecords);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching attendance', error: error.message });
+    res.status(500).json({ message: 'Error fetching attendance' });
   }
 };
 
@@ -327,7 +327,7 @@ export const getMonthlyAttendanceSummary = async (req, res) => {
     });
   } catch (error) {
     console.error('Monthly summary error:', error);
-    res.status(500).json({ message: 'Error generating summary', error: error.message });
+    res.status(500).json({ message: 'Error generating summary' });
   }
 };
 
@@ -360,7 +360,7 @@ export const createAnnouncement = async (req, res) => {
 
     res.status(201).json(announcement);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating announcement', error: error.message });
+    res.status(500).json({ message: 'Error creating announcement' });
   }
 };
 
@@ -377,7 +377,7 @@ export const getClassroomAnnouncements = async (req, res) => {
     
     res.status(200).json(announcements);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching announcements', error: error.message });
+    res.status(500).json({ message: 'Error fetching announcements' });
   }
 };
 
@@ -404,7 +404,7 @@ export const createForm = async (req, res) => {
 
     res.status(201).json(form);
   } catch (error) {
-    res.status(500).json({ message: 'Error creating form', error: error.message });
+    res.status(500).json({ message: 'Error creating form' });
   }
 };
 
@@ -419,7 +419,7 @@ export const getClassroomForms = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(forms);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching forms', error: error.message });
+    res.status(500).json({ message: 'Error fetching forms' });
   }
 };
 
@@ -463,7 +463,7 @@ export const getFormDetail = async (req, res) => {
 
     res.status(200).json(studentForm);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching form', error: error.message });
+    res.status(500).json({ message: 'Error fetching form' });
   }
 };
 
@@ -518,7 +518,7 @@ export const submitFormResponse = async (req, res) => {
     await form.save();
     res.status(200).json({ message: 'Response submitted successfully', totalScore });
   } catch (error) {
-    res.status(500).json({ message: 'Error submitting response', error: error.message });
+    res.status(500).json({ message: 'Error submitting response' });
   }
 };
 
@@ -539,7 +539,7 @@ export const getFormResults = async (req, res) => {
       importedData: form.importedData || [],
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching results', error: error.message });
+    res.status(500).json({ message: 'Error fetching results' });
   }
 };
 
@@ -598,7 +598,7 @@ export const exportFormExcel = async (req, res) => {
     res.send(buffer);
   } catch (error) {
     console.error('Excel export error:', error);
-    res.status(500).json({ message: 'Error exporting form data', error: error.message });
+    res.status(500).json({ message: 'Error exporting form data' });
   }
 };
 
@@ -624,7 +624,7 @@ export const importFormCSV = async (req, res) => {
 
     res.status(200).json({ message: `Successfully imported ${data.length} rows`, count: data.length });
   } catch (error) {
-    res.status(500).json({ message: 'Error importing CSV', error: error.message });
+    res.status(500).json({ message: 'Error importing CSV' });
   }
 };
 
@@ -640,7 +640,7 @@ export const toggleFormActive = async (req, res) => {
     await form.save();
     res.status(200).json({ message: `Form is now ${form.isActive ? 'active' : 'closed'}`, isActive: form.isActive });
   } catch (error) {
-    res.status(500).json({ message: 'Error toggling form', error: error.message });
+    res.status(500).json({ message: 'Error toggling form' });
   }
 };
 
@@ -693,7 +693,7 @@ export const addMarks = async (req, res) => {
     res.status(200).json({ message: `Processed ${results.length} entries`, results });
   } catch (error) {
     console.error('Add marks error:', error);
-    res.status(500).json({ message: 'Error saving marks', error: error.message });
+    res.status(500).json({ message: 'Error saving marks' });
   }
 };
 
@@ -729,7 +729,7 @@ export const getMyScores = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching scores', error: error.message });
+    res.status(500).json({ message: 'Error fetching scores' });
   }
 };
 
@@ -755,7 +755,7 @@ export const getClassMarks = async (req, res) => {
 
     res.status(200).json({ marks, subjects, examTypes });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching class marks', error: error.message });
+    res.status(500).json({ message: 'Error fetching class marks' });
   }
 };
 
@@ -887,7 +887,7 @@ export const getLeaderboard = async (req, res) => {
     });
   } catch (error) {
     console.error('Leaderboard error:', error);
-    res.status(500).json({ message: 'Error fetching leaderboard', error: error.message });
+    res.status(500).json({ message: 'Error fetching leaderboard' });
   }
 };
 
@@ -958,7 +958,7 @@ export const updateDSAProgress = async (req, res) => {
 
     res.status(200).json({ message: 'DSA progress updated', progress });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating DSA progress', error: error.message });
+    res.status(500).json({ message: 'Error updating DSA progress' });
   }
 };
 
@@ -992,7 +992,7 @@ export const getDSALeaderboard = async (req, res) => {
 
     res.status(200).json({ leaderboard, myProgress, totalParticipants: leaderboard.length });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching DSA leaderboard', error: error.message });
+    res.status(500).json({ message: 'Error fetching DSA leaderboard' });
   }
 };
 
@@ -1058,7 +1058,7 @@ You MUST respond in valid JSON format only, matching this structure:
     res.status(200).json(result);
   } catch (error) {
     console.error('AI grading error:', error);
-    res.status(500).json({ message: 'AI grading failed', error: error.message });
+    res.status(500).json({ message: 'AI grading failed' });
   }
 };
 
@@ -1126,7 +1126,7 @@ Use professional, encouraging, and academically-grounded language.`;
     res.status(200).json({ insights });
   } catch (error) {
     console.error('AI Form insights error:', error);
-    res.status(500).json({ message: 'AI insights failed', error: error.message });
+    res.status(500).json({ message: 'AI insights failed' });
   }
 };
 
@@ -1219,6 +1219,6 @@ Maintain a encouraging, positive, structured, and professional academic tone. He
     res.status(200).json({ intervention });
   } catch (error) {
     console.error('AI intervention error:', error);
-    res.status(500).json({ message: 'AI study plan failed to generate', error: error.message });
+    res.status(500).json({ message: 'AI study plan failed to generate' });
   }
 };

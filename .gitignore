@@ -8,3 +8,15 @@ build/
 .hackathon_submission.md
 .LevelUp_Master_Prompt.html
 .CHANGELOG.md
+
+# Scratch / one-off dev artifacts (keep them out of the repo)
+scratch.txt
+the_3n+1.py
+*.zip
+image.png
+image copy.png
+poster/
+expo_poster/
+server/debug*.js
+server/test_*.js
+server/tmp_*.js
