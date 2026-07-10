@@ -2,7 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import ProgramListing from '../models/ProgramListing.js';
 import BenefitListing from '../models/BenefitListing.js';
-import { runDailyDiscovery } from '../services/discoveryService.js';
+import { runDailyDiscovery, sanitizeListingsForDisplay } from '../services/discoveryService.js';
 
 const router = express.Router();
 
@@ -18,14 +18,18 @@ router.get('/programs', protect, async (req, res) => {
     if (status && status !== 'all') filter.status = status;
     if (tag && tag !== 'All') filter.tags = tag;
 
-    const active = await ProgramListing.find({ ...filter, status: { $in: ['active', 'upcoming'] } })
+    const activeRaw = await ProgramListing.find({ ...filter, status: { $in: ['active', 'upcoming'] } })
       .sort({ addedAt: -1 })
       .lean({ virtuals: true });
 
-    const expired = await ProgramListing.find({ ...filter, status: 'expired' })
+    const expiredRaw = await ProgramListing.find({ ...filter, status: 'expired' })
       .sort({ addedAt: -1 })
-      .limit(20)
+      .limit(40)
       .lean({ virtuals: true });
+
+    // Dedupe (alias/variant-aware) and repair links before sending to clients
+    const active = sanitizeListingsForDisplay(activeRaw, 'program');
+    const expired = sanitizeListingsForDisplay(expiredRaw, 'program').slice(0, 20);
 
     // Add isNew flag manually for lean queries (virtuals don't work with lean)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -61,14 +65,18 @@ router.get('/benefits', protect, async (req, res) => {
     const filter = { status: 'active' };
     if (category && category !== 'all') filter.category = category;
 
-    const active = await BenefitListing.find(filter)
+    const activeRaw = await BenefitListing.find(filter)
       .sort({ addedAt: -1 })
       .lean({ virtuals: true });
 
-    const expired = await BenefitListing.find({ ...( category && category !== 'all' ? { category } : {}), status: 'expired' })
+    const expiredRaw = await BenefitListing.find({ ...( category && category !== 'all' ? { category } : {}), status: 'expired' })
       .sort({ addedAt: -1 })
-      .limit(20)
+      .limit(40)
       .lean({ virtuals: true });
+
+    // Dedupe (alias/variant-aware) and repair links before sending to clients
+    const active = sanitizeListingsForDisplay(activeRaw, 'benefit');
+    const expired = sanitizeListingsForDisplay(expiredRaw, 'benefit').slice(0, 20);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const addFlags = (items) => items.map(item => ({

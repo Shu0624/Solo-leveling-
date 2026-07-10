@@ -487,6 +487,102 @@ const sanitizeLink = (link, company, title) => {
   return cleanUrl;
 };
 
+// =====================================================================
+// DEDUP + LINK TRUST — makes listings safe to show students
+// =====================================================================
+
+// Companies the AI refers to under multiple names.
+const COMPANY_ALIASES = {
+  'tata consultancy services': 'tcs',
+  'tata consultancy service': 'tcs',
+  'google llc': 'google',
+  'google cloud': 'google',
+  'alphabet': 'google',
+  'meta platforms': 'meta',
+  'facebook': 'meta',
+  'amazon web services': 'amazon',
+  'aws': 'amazon',
+  'microsoft corporation': 'microsoft',
+  'international business machines': 'ibm',
+  'all india council for technical education': 'aicte',
+};
+
+const normCompany = (c) => {
+  const n = String(c || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return COMPANY_ALIASES[n] || n;
+};
+
+// Words that don't distinguish one program from another.
+const TITLE_STOPWORDS = new Set([
+  'program', 'programme', 'the', 'for', 'students', 'student', 'course', 'courses',
+  'by', 'and', 'of', 'india', 'indian', 'free', 'online', 'virtual', 'scheme',
+  'challenge', 'fellowship', 'internship', 'a', 'an', 'to', 'in', 'with', 's',
+]);
+
+// Canonical token set for a title, so "Free AI/ML Course" == "AI and ML Course".
+const titleTokens = (t) => {
+  const tokens = String(t || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(' ')
+    .filter((w) => w && w.length > 1 && !TITLE_STOPWORDS.has(w) && !/^20\d\d$/.test(w));
+  return [...new Set(tokens)].sort();
+};
+
+// Stable dedup key: normalized company + canonical title token set.
+export const dedupKey = (company, title) => `${normCompany(company)}|${titleTokens(title).join(' ')}`;
+
+// Return a link we can TRUST, else a Google search that always resolves.
+// We only trust: (a) verified seed entries, and (b) links matching the
+// hand-maintained CORRECT_LINKS whitelist. Every other AI-supplied URL is
+// replaced with a search query — a hallucinated URL can 404 and damage
+// trust, whereas a search always lands the student on the real program.
+const trustedLink = (item, type) => {
+  const name = type === 'program' ? item.title : item.name;
+  const company = type === 'program' ? item.company : item.provider;
+  const link = String(item.link || '').trim();
+
+  if (link && item.source === 'verified') return link;
+
+  const cN = String(company || '').toLowerCase();
+  const tN = String(name || '').toLowerCase();
+  for (const rule of CORRECT_LINKS) {
+    if (cN.includes(rule.company) && tN.includes(rule.contains)) return rule.link;
+  }
+
+  const q = encodeURIComponent([company, name].filter(Boolean).join(' '));
+  return `https://www.google.com/search?q=${q}`;
+};
+
+/**
+ * Dedupe a list of listings and repair their links before sending to clients.
+ * Keeps verified entries over ai-generated ones on collision, then the oldest.
+ * `type` is 'program' or 'benefit'.
+ */
+export const sanitizeListingsForDisplay = (items, type) => {
+  const keyOf = (it) => type === 'program'
+    ? dedupKey(it.company, it.title)
+    : dedupKey(it.provider, it.name);
+
+  const byKey = new Map();
+  for (const it of items) {
+    const key = keyOf(it);
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, it);
+      continue;
+    }
+    // Prefer verified; then the earliest-added (stable, avoids churn).
+    const better =
+      (it.source === 'verified' && existing.source !== 'verified') ? it :
+      (existing.source === 'verified' && it.source !== 'verified') ? existing :
+      (new Date(it.addedAt || 0) < new Date(existing.addedAt || 0) ? it : existing);
+    byKey.set(key, better);
+  }
+
+  return [...byKey.values()].map((it) => ({ ...it, link: trustedLink(it, type) }));
+};
+
 /**
  * Discover new programs using AI
  */
@@ -535,32 +631,24 @@ Return a JSON array of objects with these fields:
     const raw = await getGroqChatCompletion([
       { role: 'system', content: 'You are a student career advisor AI. Return ONLY valid JSON, no markdown.' },
       { role: 'user', content: prompt }
-    ], true, 0.7);
+    ], true, 0.3);
 
     const parsed = JSON.parse(raw);
     const programs = parsed.programs || parsed;
 
-    const activeList = await ProgramListing.find({ status: 'active' }).lean();
+    const activeList = await ProgramListing.find().lean();
+    const existingKeys = new Set(activeList.map(p => dedupKey(p.company, p.title)));
     let insertedCount = 0;
     for (const program of programs) {
-      const companyNorm = program.company.trim().toLowerCase();
-      const titleNorm = program.title.trim().toLowerCase();
+      if (!program?.company || !program?.title) continue;
 
-      // Check for similar active programs in DB to prevent duplicates
-      const isDup = activeList.some(p => {
-        const pCompany = p.company.trim().toLowerCase();
-        const pTitle = p.title.trim().toLowerCase();
-        return pCompany === companyNorm && (
-          pTitle === titleNorm ||
-          (titleNorm.length > 10 && pTitle.includes(titleNorm)) ||
-          (pTitle.length > 10 && titleNorm.includes(pTitle))
-        );
-      });
-
-      if (isDup) {
+      // Canonical-key dedup — catches company aliases and title variants.
+      const key = dedupKey(program.company, program.title);
+      if (existingKeys.has(key)) {
         console.log(`[DISCOVERY] Skipping duplicate program: [${program.company}] ${program.title}`);
         continue;
       }
+      existingKeys.add(key);
 
       program.link = sanitizeLink(program.link, program.company, program.title);
 
@@ -648,32 +736,24 @@ Return a JSON array:
     const raw = await getGroqChatCompletion([
       { role: 'system', content: 'You are a student career advisor AI. Return ONLY valid JSON, no markdown.' },
       { role: 'user', content: prompt }
-    ], true, 0.7);
+    ], true, 0.3);
 
     const parsed = JSON.parse(raw);
     const benefits = parsed.benefits || parsed;
 
-    const activeList = await BenefitListing.find({ status: 'active' }).lean();
+    const activeList = await BenefitListing.find().lean();
+    const existingKeys = new Set(activeList.map(b => dedupKey(b.provider, b.name)));
     let insertedCount = 0;
     for (const benefit of benefits) {
-      const providerNorm = benefit.provider.trim().toLowerCase();
-      const nameNorm = benefit.name.trim().toLowerCase();
+      if (!benefit?.name) continue;
 
-      // Check for similar active benefits in DB to prevent duplicates
-      const isDup = activeList.some(b => {
-        const bProvider = b.provider.trim().toLowerCase();
-        const bName = b.name.trim().toLowerCase();
-        return bProvider === providerNorm && (
-          bName === nameNorm ||
-          (nameNorm.length > 8 && bName.includes(nameNorm)) ||
-          (bName.length > 8 && nameNorm.includes(bName))
-        );
-      });
-
-      if (isDup) {
+      // Canonical-key dedup — catches provider aliases and name variants.
+      const key = dedupKey(benefit.provider, benefit.name);
+      if (existingKeys.has(key)) {
         console.log(`[DISCOVERY] Skipping duplicate benefit: [${benefit.provider}] ${benefit.name}`);
         continue;
       }
+      existingKeys.add(key);
 
       // Ensure it has protocol
       if (benefit.link && !benefit.link.startsWith('http://') && !benefit.link.startsWith('https://')) {
@@ -765,7 +845,16 @@ export const runDailyDiscovery = async () => {
   console.log('[DISCOVERY] 🚀 Starting daily discovery run...');
   await seedIfEmpty();
   await markExpired();
-  await discoverNewPrograms();
-  await discoverNewBenefits();
+
+  // AI auto-discovery is OFF by default. An LLM inventing "new" programs and
+  // URLs every day is what produced the duplicate, broken-link listings that
+  // erode trust. Only run it when explicitly enabled (and even then, results
+  // are deduped by canonical key and links are trust-checked at read time).
+  if (process.env.ENABLE_AI_DISCOVERY === 'true') {
+    await discoverNewPrograms();
+    await discoverNewBenefits();
+  } else {
+    console.log('[DISCOVERY] ⏸️  AI auto-discovery disabled (set ENABLE_AI_DISCOVERY=true to enable)');
+  }
   console.log('[DISCOVERY] ✅ Daily discovery complete');
 };
