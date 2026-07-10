@@ -13,7 +13,6 @@ import { useActivity, ACTIVITY_CATEGORIES } from '../context/ActivityContext';
 import confetti from 'canvas-confetti';
 import BinauralBeatsPlayer from '../components/dashboard/BinauralBeatsPlayer';
 import TaskChecklist from '../components/dashboard/TaskChecklist';
-import { generateReadinessReport } from '../utils/generateReport';
 import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
 import TodayIntelligence from '../components/dashboard/TodayIntelligence';
 import FocusScoreRing from '../components/dashboard/FocusScoreRing';
@@ -263,6 +262,8 @@ const StudentDashboard = () => {
                 try {
                   setReportLoading(true);
                   const res = await api.get('/dashboard/report-data');
+                  // Load the heavy PDF generator (jsPDF) only when actually needed
+                  const { generateReadinessReport } = await import('../utils/generateReport');
                   generateReadinessReport(res.data);
                 } catch (err) {
                   alert('Failed to generate report. Try again.');
