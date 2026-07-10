@@ -45,8 +45,8 @@ export default function StatTile({
   return (
     <div
       className={cn(
-        'relative rounded-2xl border p-5 bg-card overflow-hidden transition-all duration-200 ease-out-expo',
-        hero ? 'border-primary/30 shadow-glow' : 'border-border shadow-sm-token hover:border-border/80',
+        'relative rounded-2xl border p-6 bg-card overflow-hidden transition-all duration-200 ease-out-expo',
+        hero ? 'border-primary/30 shadow-glow' : 'border-border shadow-sm-token hover:border-border/80 hover:-translate-y-0.5',
         className
       )}
     >

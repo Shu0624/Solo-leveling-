@@ -11,50 +11,51 @@
   /* ═══════════════════════════════════════════════════════════════ */
   :root,
   .dark {
-    /* Surfaces — three depth layers: background -> card -> elevated */
-    --background: 240 10% 4%;      /* obsidian */
-    --foreground: 0 0% 98%;
-    --card: 240 8% 7%;
-    --card-foreground: 0 0% 98%;
-    --elevated: 240 8% 11%;        /* raised card / hover surface */
-    --popover: 240 8% 8%;
-    --popover-foreground: 0 0% 98%;
+    /* Surfaces — warm sumi-ink charcoal (not cold blue-black) for a calm,
+       Japanese/Korean night tone. Three depth layers: bg -> card -> elevated */
+    --background: 30 8% 5%;        /* warm sumi charcoal */
+    --foreground: 40 12% 96%;      /* warm off-white */
+    --card: 30 7% 8%;
+    --card-foreground: 40 12% 96%;
+    --elevated: 30 7% 12%;         /* raised card / hover surface */
+    --popover: 30 7% 9%;
+    --popover-foreground: 40 12% 96%;
 
-    /* Brand */
-    --primary: 199 89% 48%;        /* electric cyan */
+    /* Brand — calmer, less-neon cyan; softer violet for AI accents */
+    --primary: 195 72% 52%;
     --primary-foreground: 0 0% 100%;
-    --accent: 262 83% 62%;         /* cyber violet — AI accents only */
+    --accent: 255 52% 68%;
     --accent-foreground: 0 0% 100%;
 
-    /* Neutrals */
-    --secondary: 240 4% 14%;
-    --secondary-foreground: 0 0% 92%;
-    --muted: 240 5% 12%;
-    --muted-foreground: 240 5% 66%;
+    /* Neutrals (warm) */
+    --secondary: 30 5% 15%;
+    --secondary-foreground: 40 10% 90%;
+    --muted: 30 6% 13%;
+    --muted-foreground: 35 8% 64%;
 
-    /* Semantic */
-    --destructive: 350 80% 58%;
+    /* Semantic — natural, muted (sage / terracotta / amber) */
+    --destructive: 6 62% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 68% 45%;
+    --success: 150 42% 48%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 52%;
+    --warning: 35 78% 56%;
     --warning-foreground: 0 0% 100%;
-    --info: 199 89% 55%;
+    --info: 200 68% 58%;
     --info-foreground: 0 0% 100%;
 
     /* Lines & focus */
-    --border: 240 6% 16%;
-    --input: 240 6% 16%;
-    --ring: 199 89% 48%;
+    --border: 34 7% 17%;
+    --input: 34 7% 17%;
+    --ring: 195 72% 52%;
 
     /* Shape */
     --radius: 1rem;
 
-    /* Elevation scale (shadows tuned for dark surfaces) */
-    --shadow-sm: 0 1px 2px 0 hsl(240 10% 2% / 0.4);
-    --shadow-md: 0 4px 16px -4px hsl(240 10% 2% / 0.5);
-    --shadow-lg: 0 24px 48px -12px hsl(240 10% 2% / 0.65);
-    --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 8px 30px -8px hsl(var(--primary) / 0.35);
+    /* Elevation — soft, diffuse (restraint over drama) */
+    --shadow-sm: 0 1px 2px 0 hsl(30 10% 2% / 0.4);
+    --shadow-md: 0 6px 20px -6px hsl(30 10% 2% / 0.5);
+    --shadow-lg: 0 24px 50px -14px hsl(30 10% 2% / 0.6);
+    --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 6px 24px -8px hsl(var(--primary) / 0.28);
 
     /* Motion */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -73,9 +74,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 28 16% 13%;
 
-    --primary: 199 90% 38%;        /* deep indigo-cyan, AA on paper */
+    --primary: 196 72% 38%;        /* calm deep cyan, AA on paper */
     --primary-foreground: 0 0% 100%;
-    --accent: 262 66% 52%;
+    --accent: 255 50% 54%;
     --accent-foreground: 0 0% 100%;
 
     --secondary: 38 22% 93%;
@@ -83,13 +84,13 @@
     --muted: 38 22% 94%;
     --muted-foreground: 30 8% 40%;
 
-    --destructive: 350 70% 45%;
+    --destructive: 6 60% 46%;      /* terracotta */
     --destructive-foreground: 0 0% 100%;
-    --success: 152 55% 32%;
+    --success: 150 45% 30%;        /* forest sage */
     --success-foreground: 0 0% 100%;
-    --warning: 32 88% 40%;
+    --warning: 30 80% 38%;
     --warning-foreground: 0 0% 100%;
-    --info: 199 85% 38%;
+    --info: 200 70% 36%;
     --info-foreground: 0 0% 100%;
 
     --border: 36 18% 87%;          /* warm hairline */
