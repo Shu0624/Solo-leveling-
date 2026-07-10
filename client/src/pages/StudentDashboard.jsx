@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Square, CalendarClock, Trophy, StickyNote, 
@@ -18,9 +18,12 @@ import LiveSessionWidget from '../components/dashboard/LiveSessionWidget';
 import TodayIntelligence from '../components/dashboard/TodayIntelligence';
 import FocusScoreRing from '../components/dashboard/FocusScoreRing';
 import SessionHistory from '../components/dashboard/SessionHistory';
+import { Skeleton, SkeletonCard, PageHeader, StatTile, Button, tooltipStyle, axisProps, CHART_COLORS } from '../components/ui';
 
 const StudentDashboard = () => {
   const { user, api } = useAuth();
+  const navigate = useNavigate();
+  const [reportLoading, setReportLoading] = useState(false);
   const [progress, setProgress] = useState({ programming: 0, ai: 0, aptitude: 0 });
   const [events, setEvents] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -213,9 +216,24 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground">
-        <Activity className="animate-pulse mb-4 text-primary" size={48} />
-        <p className="animate-pulse">Loading dashboard...</p>
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center mb-10">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl" rounded="rounded-xl" />
+        </div>
+        {/* Stat row skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        {/* Body skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80 rounded-2xl" rounded="rounded-2xl" />
+          <Skeleton className="h-80 rounded-2xl" rounded="rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -224,52 +242,75 @@ const StudentDashboard = () => {
     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in min-h-screen font-sans">
       {/* Dynamic Background Blurs for Dark Neon Vibe */}
       <div className="fixed inset-0 z-[-1] bg-[#09090b]"></div>
-      <div className="fixed top-[-20%] left-[-10%] w-[50vh] h-[50vh] bg-purple-600/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[60vh] h-[60vh] bg-blue-600/10 rounded-full blur-[150px] -z-10 pointer-events-none" />
-      <div className="fixed top-[40%] left-[50%] w-[80vw] h-[40vh] bg-indigo-500/5 rounded-full blur-[150px] -z-10 pointer-events-none -translate-x-1/2" />
+      <div className="fixed top-[-15%] left-[-5%] w-[45vh] h-[45vh] bg-primary/[0.06] rounded-full blur-[130px] -z-10 pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[45vh] h-[45vh] bg-accent/[0.05] rounded-full blur-[140px] -z-10 pointer-events-none" />
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-             <h1 className="text-3xl font-bold tracking-tight text-white">
-               Welcome back, {user?.name?.split(' ')[0]}
-             </h1>
-             <div className="hidden sm:flex px-4 py-1.5 bg-[#121215]/80 border border-white/10 rounded-full items-center gap-2 shadow-inner backdrop-blur-md">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-               <span className="text-xs font-bold text-white/80 font-mono tracking-widest leading-none mt-0.5">{currentTime.toLocaleTimeString()}</span>
-             </div>
-          </div>
-          <p className="text-white/60 text-sm font-medium">Let's make today productive and meaningful.</p>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link 
-            to="/my-analytics" 
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white hover:bg-white/10 backdrop-blur-md rounded-xl text-sm font-medium transition-colors"
-          >
-            <PieChartIcon size={16} /> Analytics
-          </Link>
-          <button 
-            onClick={async () => {
-              try {
-                const btn = document.getElementById('report-btn');
-                if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
-                const res = await api.get('/dashboard/report-data');
-                generateReadinessReport(res.data);
-                if (btn) { btn.disabled = false; btn.textContent = ''; }
-              } catch (err) {
-                alert('Failed to generate report. Try again.');
-                const btn = document.getElementById('report-btn');
-                if (btn) { btn.disabled = false; }
-              }
-            }}
-            id="report-btn"
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/80 to-teal-500/80 border border-emerald-500/50 text-white hover:opacity-90 shadow-[0_0_15px_rgba(16,185,129,0.3)] rounded-xl text-sm font-medium transition-all disabled:opacity-50 backdrop-blur-md"
-          >
-            <FileDown size={16} /> Download Report
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow={currentTime.toLocaleTimeString()}
+        title={`Welcome back, ${user?.name?.split(' ')[0] || ''}`}
+        subtitle="Let's make today productive and meaningful."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => navigate('/my-analytics')}>
+              <PieChartIcon size={16} /> Analytics
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={reportLoading}
+              onClick={async () => {
+                try {
+                  setReportLoading(true);
+                  const res = await api.get('/dashboard/report-data');
+                  generateReadinessReport(res.data);
+                } catch (err) {
+                  alert('Failed to generate report. Try again.');
+                } finally {
+                  setReportLoading(false);
+                }
+              }}
+            >
+              <FileDown size={16} /> Report
+            </Button>
+          </>
+        }
+      />
+
+      {/* Fintech-style stat row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatTile
+          label="Day Streak"
+          value={streakData?.current || 0}
+          suffix="d"
+          icon={<Flame size={16} />}
+          tone="warning"
+          hero
+        />
+        <StatTile
+          label="Focus Today"
+          value={(analytics?.today?.totalSeconds || 0) / 3600}
+          decimals={1}
+          suffix="h"
+          icon={<Clock size={16} />}
+          tone="primary"
+        />
+        <StatTile
+          label="This Week"
+          value={(analytics?.weekly?.totalSeconds || 0) / 3600}
+          decimals={1}
+          suffix="h"
+          icon={<Activity size={16} />}
+          tone="accent"
+        />
+        <StatTile
+          label="Resume Score"
+          value={resumeScore || 0}
+          suffix={resumeScore ? '/100' : ''}
+          icon={<FileSearch size={16} />}
+          tone="success"
+        />
+      </div>
 
       {/* 1. TOP SECTION (ACTION ROW) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -559,17 +600,14 @@ const StudentDashboard = () => {
                  <AreaChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                    <defs>
                      <linearGradient id="colorBlueDark" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#818cf8" stopOpacity={0.6}/>
-                       <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                       <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.5}/>
+                       <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0}/>
                      </linearGradient>
                    </defs>
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} dy={10} />
-                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                   <Tooltip 
-                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', border: '1px solid #3f3f46', color: '#fff', fontSize: '12px' }}
-                     itemStyle={{ color: '#fff' }}
-                   />
-                   <Area type="monotone" dataKey="minutes" stroke="#818cf8" strokeWidth={3} fillOpacity={1} fill="url(#colorBlueDark)" />
+                   <XAxis dataKey="name" {...axisProps()} dy={10} />
+                   <YAxis {...axisProps()} />
+                   <Tooltip contentStyle={tooltipStyle()} itemStyle={{ color: 'inherit' }} cursor={{ stroke: CHART_COLORS[0], strokeOpacity: 0.3 }} />
+                   <Area type="monotone" dataKey="minutes" stroke={CHART_COLORS[0]} strokeWidth={2.5} fillOpacity={1} fill="url(#colorBlueDark)" />
                  </AreaChart>
                </ResponsiveContainer>
              ) : (
@@ -783,7 +821,7 @@ const StudentDashboard = () => {
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
-                            <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
+                            <Tooltip contentStyle={tooltipStyle()} itemStyle={{ color: 'inherit' }} />
                             <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                           </PieChart>
                         </ResponsiveContainer>
@@ -800,10 +838,10 @@ const StudentDashboard = () => {
                       {dailyChartData.some(d => d.minutes > 0) ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={dailyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} dy={5} />
-                            <YAxis tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
-                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '12px', color: '#fff', fontSize: '12px' }} />
-                            <Bar dataKey="minutes" fill="#818cf8" radius={[4, 4, 0, 0]} barSize={32} />
+                            <XAxis dataKey="name" {...axisProps()} dy={5} />
+                            <YAxis {...axisProps()} />
+                            <Tooltip cursor={{ fill: 'rgba(125,125,140,0.08)' }} contentStyle={tooltipStyle()} />
+                            <Bar dataKey="minutes" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} barSize={32} />
                           </BarChart>
                         </ResponsiveContainer>
                       ) : (

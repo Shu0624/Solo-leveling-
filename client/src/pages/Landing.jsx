@@ -175,7 +175,7 @@ const Landing = () => {
 
         <div className="flex items-center gap-4">
           <Link to="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors hidden sm:block">Sign in</Link>
-          <Link to="/register" className="px-4 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors">Get Started</Link>
+          <Link to="/register" className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-glow hover:brightness-110 transition-all">Get Started</Link>
         </div>
       </nav>
 
@@ -198,7 +198,7 @@ const Landing = () => {
 
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs font-medium tracking-widest uppercase mb-6">
-            <Sparkles size={12} className="text-indigo-400" />
+            <Sparkles size={12} className="text-primary" />
             Introducing LevelUp OS
           </div>
 
@@ -219,7 +219,7 @@ const Landing = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/register"
-              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-white text-black font-semibold text-base hover:bg-white/90 transition-all shadow-lg"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-primary text-primary-foreground font-semibold text-base shadow-glow hover:brightness-110 hover:-translate-y-0.5 transition-all duration-200"
             >
               Get Started Free
               <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
@@ -471,7 +471,7 @@ const Landing = () => {
           </p>
           <Link
             to="/register"
-            className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-white text-black font-semibold text-base hover:bg-white/90 transition-all glow-pulse"
+            className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-primary text-primary-foreground font-semibold text-base hover:brightness-110 transition-all glow-pulse"
           >
             Get Started Free
             <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />

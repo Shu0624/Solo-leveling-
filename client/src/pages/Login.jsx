@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Button } from '../components/ui';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -48,7 +49,11 @@ const Login = () => {
       >
         <div className="glass-morphism rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Welcome Back</h1>
+            <Link to="/" className="inline-flex items-center gap-2.5 mb-6 no-underline">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg shadow-glow">L</div>
+              <span className="font-display text-lg font-bold tracking-tight text-foreground">LevelUp</span>
+            </Link>
+            <h1 className="font-display text-3xl font-bold tracking-display text-foreground mb-2">Welcome back</h1>
             <p className="text-muted-foreground text-sm">Sign in to continue your career preparation.</p>
           </div>
 
@@ -96,15 +101,9 @@ const Login = () => {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-medium shadow-lg shadow-primary/25 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-            >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : (
-                <>Sign In <ArrowRight size={18} /></>
-              )}
-            </button>
+            <Button type="submit" loading={loading} size="lg" className="w-full mt-4">
+              Sign In <ArrowRight size={18} />
+            </Button>
           </form>
 
           <div className="mt-8 text-center text-sm text-muted-foreground border-t border-border/50 pt-6">

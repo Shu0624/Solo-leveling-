@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Users, Activity, Trophy, Building, 
-  BookOpen, Target, Clock, Star, Flame, BarChart3, ArrowRight 
+import {
+  Users, Activity, Trophy, Building,
+  Clock, Star, Flame, BarChart3, ArrowRight
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import LiveStudentGrid from '../components/dashboard/LiveStudentGrid';
+import { PageHeader, StatTile, Button, Skeleton, SkeletonCard, EmptyState } from '../components/ui';
 
 const FacultyDashboard = () => {
   const { api, user } = useAuth();
@@ -40,9 +40,21 @@ const FacultyDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground">
-        <Activity className="animate-pulse mb-4 text-primary" size={48} />
-        <p className="animate-pulse font-medium">Aggregating hierarchy data...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-10">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-72" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <Skeleton className="h-11 w-44 rounded-2xl" rounded="rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {[0, 1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-72 rounded-2xl" rounded="rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" rounded="rounded-2xl" />
+        </div>
       </div>
     );
   }
@@ -53,72 +65,52 @@ const FacultyDashboard = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       
       {/* Header Profile & Scope */}
-      <header className="mb-10 pb-8 border-b border-border/50 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4 border border-primary/20">
-            <Building size={14} /> {getRoleTitle(user.role)}
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-2">Welcome, {user.name}</h1>
-          <p className="text-muted-foreground font-medium flex gap-3 text-sm">
-            <span className="flex items-center gap-1"><Target size={14}/> {data.scope.college}</span>
-            <span className="flex items-center gap-1"><BookOpen size={14}/> {data.scope.department}</span>
-            {user.role === 'faculty' && <span className="flex items-center gap-1"><Users size={14}/> Year {data.scope.year}</span>}
-          </p>
-        </div>
-
-        {/* Analytics Dashboard CTA */}
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          onClick={() => navigate('/analytics')}
-          className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all flex items-center gap-2 whitespace-nowrap"
-        >
-          <BarChart3 size={18} />
-          {['hod', 'principal', 'placement'].includes(user.role) ? 'AI Analytics Dashboard' : 'View Analytics'}
-          <ArrowRight size={16} />
-        </motion.button>
-      </header>
+      <PageHeader
+        icon={<Building size={22} />}
+        eyebrow={getRoleTitle(user.role)}
+        title={`Welcome, ${user.name}`}
+        subtitle={[data.scope.college, data.scope.department, user.role === 'faculty' ? `Year ${data.scope.year}` : null].filter(Boolean).join('  •  ')}
+        actions={
+          <Button variant="primary" onClick={() => navigate('/analytics')}>
+            <BarChart3 size={18} />
+            {['hod', 'principal', 'placement'].includes(user.role) ? 'AI Analytics' : 'View Analytics'}
+            <ArrowRight size={16} />
+          </Button>
+        }
+      />
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        
-        <motion.div initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: 0.1}} className="glass-morphism p-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
-            <Users size={24} />
-          </div>
-          <div className="text-3xl font-black text-foreground mb-1">{data.stats.totalStudents}</div>
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Students</div>
-          <div className="text-xs text-success font-medium mt-2 flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div> {data.stats.activeThisWeek} active this week
-          </div>
-        </motion.div>
-
-        <motion.div initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: 0.2}} className="glass-morphism p-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center mb-4">
-            <Clock size={24} />
-          </div>
-          <div className="text-3xl font-black text-foreground mb-1">{data.stats.totalStudyHours}<span className="text-lg text-muted-foreground font-semibold">h</span></div>
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Aggregate Study Time</div>
-        </motion.div>
-
-        <motion.div initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: 0.3}} className="glass-morphism p-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-full bg-success/10 text-success flex items-center justify-center mb-4">
-            <Trophy size={24} />
-          </div>
-          <div className="text-3xl font-black text-foreground mb-1">{data.stats.avgQuizScore}%</div>
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Avg Quiz Score</div>
-          <div className="text-xs text-muted-foreground mt-2">{data.stats.totalAttempts} total attempts</div>
-        </motion.div>
-
-        <motion.div initial={{y: 20, opacity: 0}} animate={{y: 0, opacity: 1}} transition={{delay: 0.4}} className="glass-morphism p-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-full bg-accent/10 text-accent flex items-center justify-center mb-4">
-            <Star size={24} />
-          </div>
-          <div className="text-3xl font-black text-foreground mb-1">{data.stats.avgResumeScore}</div>
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Avg Resume Score</div>
-        </motion.div>
-
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <StatTile
+          label="Total Students"
+          value={data.stats.totalStudents}
+          icon={<Users size={16} />}
+          tone="primary"
+          hero
+          delta={`${data.stats.activeThisWeek} active`}
+          trend="up"
+        />
+        <StatTile
+          label="Aggregate Study Time"
+          value={data.stats.totalStudyHours}
+          suffix="h"
+          icon={<Clock size={16} />}
+          tone="warning"
+        />
+        <StatTile
+          label="Avg Quiz Score"
+          value={data.stats.avgQuizScore}
+          suffix="%"
+          icon={<Trophy size={16} />}
+          tone="success"
+          delta={`${data.stats.totalAttempts} attempts`}
+        />
+        <StatTile
+          label="Avg Resume Score"
+          value={data.stats.avgResumeScore}
+          icon={<Star size={16} />}
+          tone="accent"
+        />
       </div>
 
       {/* Live Monitoring Station */}
@@ -168,7 +160,7 @@ const FacultyDashboard = () => {
               ))}
             </div>
           ) : (
-             <div className="text-center p-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">No active students on leaderboard yet.</div>
+             <EmptyState icon={<Flame size={24} />} title="No engagement yet" message="Once students start studying, your top performers will appear here." />
           )}
         </div>
 
@@ -205,7 +197,7 @@ const FacultyDashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center p-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">No recent student activity.</div>
+            <EmptyState icon={<Activity size={24} />} title="Nothing recent" message="Live student activity — quizzes, interviews, study sessions — will stream in here." />
           )}
         </div>
 

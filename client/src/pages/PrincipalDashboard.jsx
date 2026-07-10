@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { PageHeader, Button, Skeleton, SkeletonCard } from '../components/ui';
 
 const PrincipalDashboard = () => {
   const { api, user } = useAuth();
@@ -38,9 +39,18 @@ const PrincipalDashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground">
-        <Activity className="animate-pulse mb-4 text-primary" size={48} />
-        <p className="animate-pulse font-bold tracking-wider text-xs uppercase">Assembling Institutional Cockpit...</p>
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-80" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-11 w-52 rounded-xl" rounded="rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          {[0, 1, 2, 3, 4, 5].map((i) => <SkeletonCard key={i} />)}
+        </div>
+        <Skeleton className="h-72 rounded-2xl" rounded="rounded-2xl" />
       </div>
     );
   }
@@ -79,65 +89,51 @@ const PrincipalDashboard = () => {
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in font-sans">
       
       {/* ─── Header: Cockpit Navigation ─── */}
-      <header className="mb-8 pb-6 border-b border-white/[0.06] flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-black uppercase tracking-wider mb-3">
-            <Building size={12} /> Principal Command Center
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-white mb-1.5">Institutional Analytics Portal</h1>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">{data?.scope?.college || 'KIET Group of Institutions'}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-            <span>Academic Year: <strong className="text-white">{academicYear}</strong></span>
-          </div>
-        </div>
-
-        {/* Action controls & selectors */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Year selector */}
-          <div className="relative">
-            <select 
-              value={academicYear} 
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="appearance-none bg-secondary/50 border border-border/60 rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-white focus:outline-none focus:border-primary/50 transition-colors"
-            >
-              <option value="2025-2026">AY 2025-2026</option>
-              <option value="2024-2025">AY 2024-2025</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-
-          {/* Department filter */}
-          <div className="relative">
-            <select 
-              value={deptFilter} 
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="appearance-none bg-secondary/50 border border-border/60 rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-white focus:outline-none focus:border-primary/50 transition-colors"
-            >
-              <option value="All">All Departments</option>
-              <option value="CSE">CSE Only</option>
-              <option value="AIML">AIML Only</option>
-              <option value="ECE">ECE Only</option>
-              <option value="Mechanical">Mechanical Only</option>
-              <option value="Civil">Civil Only</option>
-            </select>
-            <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-
-          {/* Detailed Analytics CTA */}
-          <button
-            onClick={() => navigate('/analytics')}
-            className="px-4 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-primary/10"
-          >
-            <Eye size={14} /> View Detailed Analytics
-          </button>
-
-          {/* Export button */}
-          <button className="p-2.5 bg-secondary/50 border border-border/60 hover:bg-secondary text-white rounded-xl transition-colors" title="Export CSV Report">
-            <Download size={14} />
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        className="pb-6 border-b border-border/50"
+        icon={<Building size={22} />}
+        eyebrow="Principal Command Center"
+        title="Institutional Analytics Portal"
+        subtitle={data?.scope?.college || 'KIET Group of Institutions'}
+        actions={
+          <>
+            <div className="relative">
+              <select
+                value={academicYear}
+                onChange={(e) => setAcademicYear(e.target.value)}
+                aria-label="Academic year"
+                className="appearance-none bg-secondary border border-border rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+              >
+                <option value="2025-2026">AY 2025-2026</option>
+                <option value="2024-2025">AY 2024-2025</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            </div>
+            <div className="relative">
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                aria-label="Department filter"
+                className="appearance-none bg-secondary border border-border rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+              >
+                <option value="All">All Departments</option>
+                <option value="CSE">CSE Only</option>
+                <option value="AIML">AIML Only</option>
+                <option value="ECE">ECE Only</option>
+                <option value="Mechanical">Mechanical Only</option>
+                <option value="Civil">Civil Only</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            </div>
+            <Button variant="primary" size="sm" onClick={() => navigate('/analytics')}>
+              <Eye size={14} /> Detailed Analytics
+            </Button>
+            <Button variant="secondary" size="icon" title="Export CSV Report" aria-label="Export CSV report">
+              <Download size={14} />
+            </Button>
+          </>
+        }
+      />
 
       {/* ─── Row 1: Executive KPIs ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
@@ -437,20 +433,20 @@ const PrincipalDashboard = () => {
               <AreaChart data={academicTrendData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCSE" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#818cf8" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(199 89% 48%)" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="hsl(199 89% 48%)" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorECE" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="hsl(262 83% 62%)" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="hsl(262 83% 62%)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="sem" tick={{ fontSize: 10, fill: '#71717a' }} />
-                <YAxis domain={[5.0, 9.0]} tick={{ fontSize: 10, fill: '#71717a' }} />
-                <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', borderRadius: '8px', color: '#fff', fontSize: '10px' }} />
-                <Area type="monotone" dataKey="CSE" stroke="#818cf8" fillOpacity={1} fill="url(#colorCSE)" strokeWidth={2} />
-                <Area type="monotone" dataKey="ECE" stroke="#ec4899" fillOpacity={1} fill="url(#colorECE)" strokeWidth={2} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="sem" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <YAxis domain={[5.0, 9.0]} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--popover-foreground))', fontSize: '11px', boxShadow: 'var(--shadow-md)' }} />
+                <Area type="monotone" dataKey="CSE" stroke="hsl(199 89% 48%)" fillOpacity={1} fill="url(#colorCSE)" strokeWidth={2} />
+                <Area type="monotone" dataKey="ECE" stroke="hsl(262 83% 62%)" fillOpacity={1} fill="url(#colorECE)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

@@ -18,7 +18,12 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        'display': '-0.02em',
+        'tightest': '-0.03em',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -61,13 +66,28 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+        },
+        elevated: "hsl(var(--elevated))",
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
         }
+      },
+      boxShadow: {
+        'sm-token': 'var(--shadow-sm)',
+        'md-token': 'var(--shadow-md)',
+        'lg-token': 'var(--shadow-lg)',
+        glow: 'var(--shadow-glow)',
+      },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "float": "float 3s ease-in-out infinite",
         "fade-in": "fadeIn 0.5s ease-out forwards",
+        "shimmer": "shimmer 1.6s cubic-bezier(0.16,1,0.3,1) infinite",
       },
       keyframes: {
         "accordion-down": {

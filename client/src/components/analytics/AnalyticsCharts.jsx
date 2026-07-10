@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 
 // =====================================================================
-// THEME COLORS — works with both light/dark mode
+// THEME COLORS — brand-anchored categorical palette (cyan primary first)
 // =====================================================================
 const CHART_COLORS = [
-  '#6366f1', '#22c55e', '#f59e0b', '#f43f5e',
-  '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16',
-  '#14b8a6', '#e11d48',
+  'hsl(199 89% 48%)', 'hsl(262 83% 62%)', 'hsl(142 68% 45%)', 'hsl(38 92% 52%)',
+  'hsl(199 89% 68%)', 'hsl(330 75% 60%)', 'hsl(160 60% 45%)', 'hsl(280 65% 60%)',
+  'hsl(48 90% 55%)', 'hsl(220 70% 60%)',
 ];
 
 // =====================================================================
@@ -47,7 +47,7 @@ export const MetricCard = ({ label, value, icon, color, trend, delay = 0 }) => {
       <div className="text-3xl font-black text-foreground mb-1">{value}</div>
       <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</div>
       {trend !== undefined && (
-        <div className={`text-xs font-medium mt-2 flex items-center gap-1 ${trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+        <div className={`text-xs font-medium mt-2 flex items-center gap-1 ${trend >= 0 ? 'text-success' : 'text-destructive'}`}>
           {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
           {Math.abs(trend)}% vs last period
         </div>
@@ -251,7 +251,7 @@ export const StudyHeatmap = ({ data, title, height = 200 }) => {
               key={i}
               className="aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all hover:scale-110"
               style={{
-                backgroundColor: `rgba(99, 102, 241, ${0.05 + intensity * 0.85})`,
+                backgroundColor: `hsl(199 89% 48% / ${0.05 + intensity * 0.85})`,
                 color: intensity > 0.5 ? '#fff' : 'hsl(var(--muted-foreground))',
               }}
               title={`${d.label || days[i % 7]}: ${d.hours || 0}h`}
