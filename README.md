@@ -23,6 +23,7 @@ LevelUp is designed to act as your **personal AI career coach**. It tracks how y
 - **🗺️ Dynamic Career Roadmaps:** Stop guessing what to study. Tell us your target role, your current experience level, and your highly specific goals, and we'll generate a day-by-day, phase-by-phase learning plan just for you.
 - **⏱️ Automated Study Analytics:** The moment you log into the platform, we start tracking your productivity. Jump into a learning module, take a quiz, or use the timer—your dashboard will organize everything into beautiful charts so you can visually see your progress and streaks.
 - **👩‍🏫 Elite Faculty Dashboards:** Teachers and HODs have access to a powerful "Ask AI" dashboard. They can literally type *"Who are my top 5 at-risk students this week?"* and the system will pull live data, render charts, and show them exactly who needs help.
+- **🏛️ Department Console:** The HOD view of a whole department — every CSE student's marks, subject-wise attendance against the 75% examination requirement, pending arrears, and placement eligibility, in one register you can filter and sort. Everything on screen exports to Excel, and the same workbook uploads back in: you get a row-by-row preview of what would change before anything is written. Cold detail (attendance ledgers, IA rows, old proctor notes) can be archived out to a workbook and pruned from the database, then restored by re-uploading it. See [docs/department-console.md](docs/department-console.md).
 - **🎥 P2P Video Rooms:** Want to practice with a real human? Spin up a WebRTC video room instantly and peer-interview your classmates.
 
 ---
@@ -68,6 +69,19 @@ Want to spin this up on your own machine? It’s super easy.
 
 4. **Open your browser!** 
    Head over to `http://localhost:5173` and start leveling up!
+
+---
+
+## ⚡ 1-Click Vercel Deployment
+
+Deploying LevelUp to Vercel takes less than 2 minutes:
+1. Push your code to GitHub and import the repository into [Vercel](https://vercel.com/new).
+2. Set Environment Variables:
+   - `MONGO_URI`: Your MongoDB Atlas connection string.
+   - `JWT_SECRET`: A secure 64+ char random string.
+   - `GROQ_API_KEY`: Your Groq API key (optional for AI coaching).
+3. Hit **Deploy**! Vercel will automatically build the client and host serverless API endpoints at `/api/*`.
+4. Check out [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment details and persistent WebSocket options.
 
 ---
 

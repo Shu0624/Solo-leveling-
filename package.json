@@ -2,13 +2,43 @@
   "name": "levelup",
   "version": "1.0.0",
   "description": "MERN-Stack Career-Prep Web App for B.Tech Students",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
+    "build": "npm run build --prefix client",
+    "vercel-build": "npm run build --prefix client",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "vercel-build": "cd client && npm install && npm run build",
-    "seed": "cd server && node seed.js"
+    "seed": "cd server && node scripts/seed.js",
+    "start": "cd server && npm start",
+    "verify:workbook": "node server/scripts/verifyWorkbook.js",
+    "verify:department": "node server/scripts/verifyDepartmentApi.js",
+    "verify": "npm run verify:workbook && npm run verify:department"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.9.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.2.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.3.2",
+    "groq-sdk": "^1.1.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.7.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "pdf-parse": "^1.1.4",
+    "socket.io": "^4.8.0",
+    "streamifier": "^0.1.1",
+    "xlsx": "^0.18.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

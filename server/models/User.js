@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema(
       min: 1,
       max: 4,
     },
+    semester: {
+      type: Number,
+      min: 1,
+      max: 8,
+    },
+    admissionYear: {
+      type: Number,
+    },
     section: {
       type: String,
     },
@@ -83,6 +91,89 @@ const userSchema = new mongoose.Schema(
       roles: [String],
       timeline: String,
     },
+    // Academic & Department Management Fields (for Students)
+    rollNo: {
+      type: String,
+      sparse: true,
+    },
+    usn: {
+      type: String,
+      sparse: true,
+    },
+    cgpa: {
+      type: Number,
+      default: 0,
+    },
+    sgpa: {
+      type: Number,
+      default: 0,
+    },
+    phone: {
+      type: String,
+    },
+    parentPhone: {
+      type: String,
+    },
+    mentorName: {
+      type: String,
+    },
+    attendance: {
+      percentage: { type: Number, default: 85 },
+      totalLectures: { type: Number, default: 120 },
+      attendedLectures: { type: Number, default: 102 },
+      status: { type: String, default: 'safe' }, // 'safe' | 'caution' | 'defaulter'
+      // Per-paper ledger. This is the bulky part of a student document and the
+      // first thing the Excel archive moves off the record at end of term.
+      subjects: [
+        {
+          code: String,
+          subject: String,
+          kind: { type: String, default: 'Theory' }, // 'Theory' | 'Laboratory'
+          held: { type: Number, default: 0 },
+          attended: { type: Number, default: 0 },
+        }
+      ],
+    },
+    backlogs: {
+      activeCount: { type: Number, default: 0 },
+      historyCount: { type: Number, default: 0 },
+      subjects: { type: [String], default: [] },
+    },
+    iaMarks: [
+      {
+        code: String,
+        subject: String,
+        ia1: Number,
+        ia2: Number,
+        total: Number,
+        maxMarks: { type: Number, default: 50 },
+      }
+    ],
+    placementStatus: {
+      status: { type: String, default: 'eligible' }, // 'eligible' | 'placed' | 'ineligible'
+      company: String,
+      package: String,
+    },
+    resumeScore: {
+      type: Number,
+      default: 0,
+    },
+    mentorRemarks: [
+      {
+        date: { type: Date, default: Date.now },
+        author: String,
+        note: String,
+        category: { type: String, default: 'academic' },
+      }
+    ],
+    // Set when detail has been exported to a workbook and pruned from this
+    // document. Its presence is what lets the console offer a restore.
+    archive: {
+      archiveId: String,
+      archivedAt: Date,
+      archivedBy: String,
+      categories: { type: [String], default: undefined },
+    },
   },
   {
     timestamps: true,
@@ -93,6 +184,9 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ classroomCode: 1, role: 1 });
 userSchema.index({ college: 1, department: 1, role: 1 });
 userSchema.index({ role: 1 });
+// Workbook imports match on USN first — this is the hot path for a 400-row
+// file. That index already comes from `sparse: true` on the path itself;
+// declaring it again here only produces a duplicate-index warning at boot.
 
 const User = mongoose.model('User', userSchema);
 export default User;

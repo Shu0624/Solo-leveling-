@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, authorize, blockDemoWrites } from '../middleware/auth.js';
 import Progress from '../models/Progress.js';
 import Event from '../models/Event.js';
 import Note from '../models/Note.js';
@@ -18,6 +18,12 @@ import { getGroqChatCompletion } from '../services/groqService.js';
 import { canAccessStudent } from '../middleware/auth.js';
 import { isDemoMode } from '../config/demo.js';
 import { computeReadinessScore } from '../services/readinessService.js';
+import {
+  resolveCohort,
+  applyFilters,
+  computeSummary,
+  normaliseStudent,
+} from '../services/departmentService.js';
 
 const router = express.Router();
 
@@ -1167,5 +1173,80 @@ router.get('/report-data', protect, authorize('student'), async (req, res) => {
     res.status(500).json({ message: 'Failed to generate report data' });
   }
 });
+
+// =====================================================================
+// DEPARTMENT CONSOLE — COMPATIBILITY ALIASES
+// =====================================================================
+// The roster, the dossier and the Excel round-trip live in routes/department.js
+// and services/departmentService.js. These two paths are kept because clients
+// already point at them; both delegate to the same service, so there is one
+// implementation of the roster, not two that drift apart.
+
+// @desc    Department roster (legacy path — prefer GET /api/department/roster)
+// @route   GET /api/dashboard/hod/cse-students
+// @access  HOD, Faculty, Principal, Placement, Admin
+router.get(
+  '/hod/cse-students',
+  protect,
+  authorize('hod', 'faculty', 'principal', 'placement', 'admin'),
+  async (req, res, next) => {
+    try {
+      const { students, origin } = await resolveCohort(req.user);
+      res.json({
+        summary: computeSummary(students, 'department'),
+        students: applyFilters(students, req.query),
+        meta: { origin, deprecated: 'Use GET /api/department/roster' },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// @desc    Update a record (legacy path — prefer PUT /api/department/students/:id)
+// @route   PUT /api/dashboard/student-record/:id
+router.put(
+  '/student-record/:id',
+  protect,
+  authorize('hod', 'faculty', 'principal', 'admin'),
+  blockDemoWrites,
+  async (req, res, next) => {
+    try {
+      const { cgpa, sgpa, attendance, backlogs, placementStatus, newRemark } = req.body;
+      const student = await User.findById(req.params.id);
+      if (!student) {
+        return res.status(404).json({
+          code: 'NOT_IN_DATABASE',
+          message: 'This record comes from the reference roster and is not stored yet. Import your department register to edit it.',
+        });
+      }
+
+      if (cgpa !== undefined) student.cgpa = Number(cgpa);
+      if (sgpa !== undefined) student.sgpa = Number(sgpa);
+      if (attendance) student.attendance = { ...student.attendance, ...attendance };
+      if (backlogs) {
+        const subjects = backlogs.subjects ?? student.backlogs?.subjects ?? [];
+        student.backlogs = { ...student.backlogs, ...backlogs, subjects, activeCount: subjects.length };
+      }
+      if (placementStatus) student.placementStatus = { ...student.placementStatus, ...placementStatus };
+      if (newRemark?.note) {
+        student.mentorRemarks = [
+          ...(student.mentorRemarks || []),
+          {
+            date: new Date(),
+            author: req.user.name,
+            note: String(newRemark.note).slice(0, 2000),
+            category: newRemark.category || 'counselling',
+          },
+        ];
+      }
+
+      await student.save();
+      res.json({ success: true, student: normaliseStudent(student.toObject()) });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

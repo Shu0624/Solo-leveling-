@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { 
   LogOut, Home, BookOpen, FileText, Video, Rocket, Sun, Moon, 
-  ShieldCheck, Globe, Gift, ClipboardList, User, Menu, X 
+  ShieldCheck, Globe, Gift, ClipboardList, User, Menu, X, Building 
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,9 +55,12 @@ const Navbar = () => {
     { path: '/roadmap', icon: <Rocket size={18} />, label: 'Roadmap' },
     { path: '/activities', icon: <Globe size={18} />, label: 'Programs' },
     { path: '/benefits', icon: <Gift size={18} />, label: 'Benefits' },
-    // Admin link — only shown for non-student roles
+    // Staff / HOD links
     ...(['faculty','hod','principal','placement','admin'].includes(user?.role)
-      ? [{ path: '/admin', icon: <ShieldCheck size={18} />, label: 'Admin' }]
+      ? [
+          { path: '/hod', icon: <Building size={18} />, label: 'Department' },
+          { path: '/admin', icon: <ShieldCheck size={18} />, label: 'Admin' }
+        ]
       : []
     )
   ];

@@ -11,7 +11,12 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
+
+  const handleDemoLogin = (role) => {
+    demoLogin(role);
+    navigate('/dashboard');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -106,7 +111,37 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-muted-foreground border-t border-border/50 pt-6">
+          {/* Look around without an account. Sample data only — see middleware/auth.js */}
+          <div className="mt-6 pt-5 border-t border-border/40">
+            <div className="flex items-baseline justify-between mb-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Look around first
+              </span>
+              <span className="text-[11px] text-muted-foreground/70">Sample data, read only</span>
+            </div>
+            <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+              {[
+                { role: 'student', title: 'Student', detail: 'Third year, CSE-3A' },
+                { role: 'faculty', title: 'Teaching faculty', detail: 'Two classes, marks and attendance' },
+                { role: 'hod', title: 'Head of department', detail: 'Full CSE register and workbook tools' },
+              ].map((d) => (
+                <button
+                  key={d.role}
+                  type="button"
+                  onClick={() => handleDemoLogin(d.role)}
+                  className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[0.8125rem] font-medium text-foreground">{d.title}</span>
+                    <span className="block text-[11px] text-muted-foreground">{d.detail}</span>
+                  </span>
+                  <ArrowRight size={14} className="shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 text-center text-sm text-muted-foreground border-t border-border/50 pt-5">
             Don't have an account?{' '}
             <Link to="/register" className="text-primary font-medium hover:underline">
               Create one

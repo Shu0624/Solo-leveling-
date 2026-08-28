@@ -5,6 +5,49 @@ import { motion } from 'framer-motion';
 import { PlayCircle, Award, BookOpen, Clock, BrainCircuit, Code2, Coffee, Calculator, Activity, Search, Filter } from 'lucide-react';
 import ProgressRing from '../components/dashboard/ProgressRing';
 
+const FALLBACK_MODULES = [
+  {
+    _id: 'mod_java_01',
+    title: 'Core Java & OOP Architecture',
+    slug: 'core-java-oop',
+    description: 'Master classes, interfaces, inheritance, multithreading, and JVM internals for technical product rounds.',
+    category: 'programming',
+    difficulty: 'intermediate',
+    icon: '☕',
+    lessons: [{ title: 'JVM Architecture', duration: 15 }, { title: 'OOP Principles', duration: 20 }, { title: 'Collections & Streams', duration: 25 }]
+  },
+  {
+    _id: 'mod_python_01',
+    title: 'Python for Production & Data Structures',
+    slug: 'python-data-structures',
+    description: 'From memory profiling to generators, decorators, and high-throughput Python patterns.',
+    category: 'programming',
+    difficulty: 'beginner',
+    icon: '🐍',
+    lessons: [{ title: 'Python Memory Model', duration: 15 }, { title: 'Built-in Data Structures', duration: 20 }, { title: 'Iterators & Decorators', duration: 20 }]
+  },
+  {
+    _id: 'mod_genai_01',
+    title: 'Generative AI & LLM Systems Engineering',
+    slug: 'genai-llm-engineering',
+    description: 'Architect production GenAI applications using RAG, vector embeddings, and prompt optimizations.',
+    category: 'ai',
+    difficulty: 'advanced',
+    icon: '🤖',
+    lessons: [{ title: 'Transformer Architecture', duration: 25 }, { title: 'Vector DBs & RAG', duration: 30 }, { title: 'Agentic Workflows', duration: 35 }]
+  },
+  {
+    _id: 'mod_apt_01',
+    title: 'Quantitative & Logical Problem Solving',
+    slug: 'quantitative-aptitude',
+    description: 'Deconstruct complex placement puzzles, probability models, series reasoning, and rapid mental math.',
+    category: 'programming',
+    difficulty: 'intermediate',
+    icon: '🧮',
+    lessons: [{ title: 'Combinatorics & Probability', duration: 20 }, { title: 'Time, Speed & Distance', duration: 20 }, { title: 'Data Sufficiency', duration: 20 }]
+  }
+];
+
 const iconMap = {
   '☕': <Coffee size={24} />,
   '🐍': <Code2 size={24} />,
@@ -25,13 +68,15 @@ const Modules = () => {
     const fetchModules = async () => {
       try {
         const [modRes, progRes] = await Promise.all([
-          api.get('/modules'),
-          api.get('/modules/progress')
+          api.get('/modules').catch(() => ({ data: [] })),
+          api.get('/modules/progress').catch(() => ({ data: { modules: [] } }))
         ]);
-        setModules(modRes.data);
-        setProgressData(progRes.data.modules || []);
+        const list = (modRes.data && modRes.data.length > 0) ? modRes.data : FALLBACK_MODULES;
+        setModules(list);
+        setProgressData(progRes.data?.modules || []);
       } catch (err) {
-        console.error('Failed to fetch modules', err);
+        console.warn('Using fallback modules:', err.message);
+        setModules(FALLBACK_MODULES);
       } finally {
         setLoading(false);
       }

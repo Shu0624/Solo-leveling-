@@ -1,6 +1,42 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
+// ---------------------------------------------------------------------------
+// Demo sessions
+// ---------------------------------------------------------------------------
+// The login page offers one-click demo access so a reviewer can see the product
+// without an account. Those sessions carry a `demo_token_<role>_<ts>` string
+// rather than a JWT. They are recognised here and given a synthetic identity
+// flagged `isDemo`, which every data route uses to serve the reference cohort
+// and refuse database writes. A demo session can therefore never read or touch
+// a real student record.
+const DEMO_IDENTITIES = {
+  student: { _id: 'demo_student_01', name: 'Alex Chen', role: 'student', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', classroomCode: 'CSE-3A', year: 3, section: 'A' },
+  faculty: { _id: 'demo_faculty_01', name: 'Dr. Sarah Jenkins', role: 'faculty', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', assignedClassrooms: ['CSE-3A', 'CSE-4B'] },
+  hod: { _id: 'demo_hod_01', name: 'Dr. Ramesh Kulkarni', role: 'hod', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', employeeId: 'HOD-CSE-001' },
+  principal: { _id: 'demo_principal_01', name: 'Dr. A. R. Sundaram', role: 'principal', department: 'Administration', college: 'Apex Institute of Technology' },
+};
+
+const demoAllowed = () => process.env.ALLOW_DEMO_LOGIN !== 'false';
+
+export const resolveDemoUser = (token) => {
+  if (!token || !token.startsWith('demo_token_') || !demoAllowed()) return null;
+  const role = token.split('_')[2];
+  const identity = DEMO_IDENTITIES[role] || DEMO_IDENTITIES.student;
+  return { ...identity, isDemo: true };
+};
+
+/** Refuse writes from a demo session, with an explanation the UI can show. */
+export const blockDemoWrites = (req, res, next) => {
+  if (req.user?.isDemo) {
+    return res.status(403).json({
+      code: 'DEMO_READ_ONLY',
+      message: 'This is a demo session. Sign in with a department account to save changes.',
+    });
+  }
+  next();
+};
+
 // Protect routes (requires DB query)
 export const protect = async (req, res, next) => {
   let token;
@@ -12,6 +48,12 @@ export const protect = async (req, res, next) => {
     try {
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
+
+      const demoUser = resolveDemoUser(token);
+      if (demoUser) {
+        req.user = demoUser;
+        return next();
+      }
 
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

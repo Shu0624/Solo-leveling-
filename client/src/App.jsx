@@ -35,6 +35,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LanguageHub = lazy(() => import('./pages/LanguageHub'));
 const ExhibitionDetails = lazy(() => import('./pages/ExhibitionDetails'));
+const HODDashboard = lazy(() => import('./pages/HODDashboard'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -96,6 +97,11 @@ function App() {
                 <Route path="/analytics" element={
                   <ProtectedRoute allowedRoles={['faculty', 'hod', 'principal', 'placement', 'admin']}>
                     <AnalyticsDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/hod" element={
+                  <ProtectedRoute allowedRoles={['faculty', 'hod', 'principal', 'placement', 'admin']}>
+                    <HODDashboard />
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={<NotFound />} />
