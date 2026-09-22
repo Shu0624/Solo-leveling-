@@ -482,10 +482,7 @@ export default function DataWorkbook({ controller: dc, isFiltered, viewCount, to
               </div>
 
               <p className="text-xs text-muted-foreground mt-3 leading-relaxed max-w-prose">
-                The workbook downloads first; records are only trimmed once the file is on its way.{' '}
-                {readOnly
-                  ? 'This is a demo session, so nothing will actually be pruned.'
-                  : 'Upload it again under "Bring a workbook back in" to restore every archived row.'}
+                The workbook downloads first; records are only trimmed once the file is on its way. Upload it again under "Bring a workbook back in" to restore every archived row.
               </p>
             </div>
           </div>

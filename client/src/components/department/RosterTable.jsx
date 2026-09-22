@@ -149,16 +149,23 @@ export default function RosterTable({
                 </td>
 
                 <td className="py-3 px-4">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onOpen(s); }}
-                    className="font-medium text-foreground text-left hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                  >
-                    {s.name}
-                    <span className="sr-only"> — open full record</span>
-                  </button>
-                  <div className="text-xs text-muted-foreground truncate max-w-[16rem]" title={s.mentorName}>
-                    {s.mentorName || 'No proctor assigned'}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onOpen(s); }}
+                      className="font-medium text-foreground text-left hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                    >
+                      {s.name}
+                      <span className="sr-only"> — open full record</span>
+                    </button>
+                    {s.preferredDomain && (
+                      <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-semibold border border-primary/20 whitespace-nowrap">
+                        {s.preferredDomain.split(' ')[0]}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[16rem] mt-0.5" title={s.mentorName}>
+                    {s.mentorName ? `Proctor: ${s.mentorName}` : (s.careerInterest || 'No proctor assigned')}
                   </div>
                 </td>
 

@@ -325,15 +325,28 @@ export function buildCohort() {
         placementStatus = { status: 'placed', company: offer.company, package: offer.package };
       }
 
+      const cleanName = name.toLowerCase().replace(/[^a-z]/g, '');
+      const domains = ['Full-Stack Web', 'AI/ML', 'Data Science', 'Cloud & DevOps', 'Cybersecurity', 'Mobile App Dev'];
+      const interests = ['Job', 'Job', 'Higher Studies', 'Entrepreneurship'];
+      const domain = domains[i % domains.length];
+      const interest = interests[(i + year) % interests.length];
+
       const student = {
         _id: `cse-${usn.toLowerCase()}`,
         source: 'reference',
         usn,
+        prn: `PRN202${usnBatch}0${String(serial).padStart(3, '0')}`,
         rollNo: `CSE-${usnBatch}-${String(serial).padStart(3, '0')}`,
         name,
         email: slugEmail(name, admissionYear),
+        personalEmail: `${cleanName}@gmail.com`,
         phone: `+91 9${intBetween(rng, 100000000, 899999999)}`,
+        parentName: `Mr./Mrs. ${name.split(' ').slice(-1)[0]}`,
         parentPhone: `+91 9${intBetween(rng, 100000000, 899999999)}`,
+        address: 'Bangalore, Karnataka, India',
+        dob: `${2006 - year}-0${(i % 9) + 1}-1${(i % 8) + 1}`,
+        gender: i % 2 === 0 ? 'Female' : 'Male',
+        academicYear: DEPARTMENT.academicYear,
         department: DEPARTMENT.name,
         college: DEPARTMENT.college,
         year,
@@ -344,6 +357,10 @@ export function buildCohort() {
         mentorName: MENTORS[(year + i) % MENTORS.length],
         cgpa,
         sgpa,
+        prevSgpa: round2(Math.min(10, Math.max(4.5, sgpa + between(rng, -0.4, 0.4)))),
+        currentSubjects: CURRICULUM[year].theory.map((t) => t.subject),
+        academicStrengths: ['Data Structures', 'Operating Systems', 'System Design'].slice(0, (i % 3) + 1),
+        weakSubjects: arrearSubjects.length > 0 ? arrearSubjects : (cgpa < 7.5 ? ['Theory of Computation'] : []),
         attendance,
         backlogs: {
           activeCount: arrearSubjects.length,
@@ -353,6 +370,38 @@ export function buildCohort() {
         iaMarks: buildIaMarks(rng, year, cgpa),
         placementStatus,
         resumeScore: intBetween(rng, archetype.resume[0], archetype.resume[1]),
+        // Professional & Career
+        linkedinUrl: `https://linkedin.com/in/${cleanName}`,
+        githubUrl: `https://github.com/${cleanName}`,
+        portfolioUrl: `https://${cleanName}.dev`,
+        careerInterest: interest,
+        preferredDomain: domain,
+        skills: ['JavaScript', 'Python', 'React', 'Data Structures', 'SQL', 'Git'].slice(0, 3 + (i % 4)),
+        projects: [
+          {
+            title: `${domain} Portal & Engine`,
+            description: `A production-ready platform featuring modular architecture, API endpoints, and real-time state sync.`,
+            techStack: ['React', 'Node.js', 'TailwindCSS'],
+            githubLink: `https://github.com/${cleanName}/project`,
+            liveLink: `https://${cleanName}-demo.vercel.app`,
+          }
+        ],
+        internships: year >= 3 ? [
+          {
+            company: 'TechVentures Labs',
+            role: `${domain.split(' ')[0]} Engineering Intern`,
+            duration: '2 Months',
+            description: 'Assisted in building responsive UI components and automating unit test suites.'
+          }
+        ] : [],
+        certifications: [
+          {
+            name: `${domain} Professional Specialization`,
+            issuer: 'Coursera / AWS',
+            year: '2025',
+            credentialUrl: 'https://coursera.org/verify/demo',
+          }
+        ],
         mentorRemarks: [],
         updatedAt: new Date('2026-02-24'),
       };

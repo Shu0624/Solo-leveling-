@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { getJwtSecret } from '../config/jwt.js';
 
 // ---------------------------------------------------------------------------
 // Demo sessions
@@ -7,21 +8,78 @@ import User from '../models/User.js';
 // The login page offers one-click demo access so a reviewer can see the product
 // without an account. Those sessions carry a `demo_token_<role>_<ts>` string
 // rather than a JWT. They are recognised here and given a synthetic identity
-// flagged `isDemo`, which every data route uses to serve the reference cohort
-// and refuse database writes. A demo session can therefore never read or touch
-// a real student record.
-const DEMO_IDENTITIES = {
-  student: { _id: 'demo_student_01', name: 'Alex Chen', role: 'student', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', classroomCode: 'CSE-3A', year: 3, section: 'A' },
-  faculty: { _id: 'demo_faculty_01', name: 'Dr. Sarah Jenkins', role: 'faculty', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', assignedClassrooms: ['CSE-3A', 'CSE-4B'] },
-  hod: { _id: 'demo_hod_01', name: 'Dr. Ramesh Kulkarni', role: 'hod', department: 'Computer Science & Engineering', college: 'Apex Institute of Technology', employeeId: 'HOD-CSE-001' },
-  principal: { _id: 'demo_principal_01', name: 'Dr. A. R. Sundaram', role: 'principal', department: 'Administration', college: 'Apex Institute of Technology' },
+// flagged `isDemo`.
+//
+// IDs use valid 24-character hex ObjectIds so downstream Mongoose queries
+// never fail on schema casting.
+const LEGACY_ID_MAP = {
+  'demo_student_01': '65f1a1a1a1a1a1a1a1a10001',
+  'demo_faculty_01': '65f1a1a1a1a1a1a1a1a10002',
+  'demo_hod_01': '65f1a1a1a1a1a1a1a1a10003',
+  'demo_principal_01': '65f1a1a1a1a1a1a1a1a10004',
 };
 
-const demoAllowed = () => process.env.ALLOW_DEMO_LOGIN !== 'false';
+export const DEMO_IDENTITIES = {
+  student: {
+    _id: '65f1a1a1a1a1a1a1a1a10001',
+    name: 'Alex Chen',
+    email: 'alex.chen@student.levelup.edu',
+    role: 'student',
+    department: 'Computer Science & Engineering',
+    college: 'Apex Institute of Technology',
+    classroomCode: 'CSE-3A',
+    year: 3,
+    section: 'A',
+    enrollmentId: '21BCE1042',
+    cgpa: 8.85
+  },
+  faculty: {
+    _id: '65f1a1a1a1a1a1a1a1a10002',
+    name: 'Dr. Sarah Jenkins',
+    email: 'sarah.jenkins@faculty.levelup.edu',
+    role: 'faculty',
+    department: 'Computer Science & Engineering',
+    college: 'Apex Institute of Technology',
+    assignedClassrooms: ['CSE-3A', 'CSE-4B'],
+    employeeId: 'FAC-2024-089'
+  },
+  hod: {
+    _id: '65f1a1a1a1a1a1a1a1a10003',
+    name: 'Dr. Ramesh Kulkarni',
+    email: 'hod.cse@apex.edu.in',
+    role: 'hod',
+    department: 'Computer Science & Engineering',
+    college: 'Apex Institute of Technology',
+    employeeId: 'HOD-CSE-001'
+  },
+  principal: {
+    _id: '65f1a1a1a1a1a1a1a1a10004',
+    name: 'Dr. A. R. Sundaram',
+    email: 'principal@apex.edu.in',
+    role: 'principal',
+    department: 'Administration',
+    college: 'Apex Institute of Technology',
+    employeeId: 'PRIN-2024-001'
+  },
+};
+
+export const demoAllowed = () => process.env.ALLOW_DEMO_LOGIN !== 'false';
+
+export const normalizeUserIdentity = (user) => {
+  if (!user) return user;
+  const legacyId = user._id || user.id;
+  if (legacyId && LEGACY_ID_MAP[legacyId]) {
+    const fixed = LEGACY_ID_MAP[legacyId];
+    return { ...user, _id: fixed, id: fixed };
+  }
+  return user;
+};
 
 export const resolveDemoUser = (token) => {
-  if (!token || !token.startsWith('demo_token_') || !demoAllowed()) return null;
-  const role = token.split('_')[2];
+  if (!token || !demoAllowed()) return null;
+  if (!token.startsWith('demo_token_')) return null;
+  const parts = token.split('_');
+  const role = parts[2] || 'student';
   const identity = DEMO_IDENTITIES[role] || DEMO_IDENTITIES.student;
   return { ...identity, isDemo: true };
 };
@@ -51,20 +109,28 @@ export const protect = async (req, res, next) => {
 
       const demoUser = resolveDemoUser(token);
       if (demoUser) {
-        req.user = demoUser;
+        req.user = normalizeUserIdentity(demoUser);
         return next();
       }
 
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, getJwtSecret());
+      const lookupId = LEGACY_ID_MAP[decoded.id] || decoded.id;
 
       // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(lookupId).select('-password');
 
       if (!req.user) {
+        // Fallback for demo identities when queried by mock id
+        const matchedDemo = Object.values(DEMO_IDENTITIES).find(d => d._id === lookupId);
+        if (matchedDemo && demoAllowed()) {
+          req.user = { ...matchedDemo, isDemo: true };
+          return next();
+        }
         return res.status(401).json({ message: 'Not authorized, user not found' });
       }
 
+      req.user = normalizeUserIdentity(req.user);
       return next();
     } catch (error) {
       console.error(error);
@@ -83,8 +149,15 @@ export const protectTokenOnly = (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = { id: decoded.id }; // Minimal user object
+      const demoUser = resolveDemoUser(token);
+      if (demoUser) {
+        req.user = normalizeUserIdentity(demoUser);
+        return next();
+      }
+      const decoded = jwt.verify(token, getJwtSecret());
+      const resolvedId = LEGACY_ID_MAP[decoded.id] || decoded.id;
+      // Minimal user object. `_id` mirrors `id` so downstream handlers work
+      req.user = { id: resolvedId, _id: resolvedId };
       return next();
     } catch (error) {
       return res.status(401).json({ message: 'Not authorized, token failed' });

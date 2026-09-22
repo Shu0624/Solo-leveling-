@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { motion } from 'framer-motion';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
-import { Button } from '../components/ui';
+import { Button, Input } from '../components/ui';
+
+// ═══════════════════════════════════════════════════════════════
+// Login — a title page and a form, on paper.
+//
+// Two columns on desktop: the left is a standing colophon, the right
+// is the form. On mobile the colophon drops away entirely rather than
+// stacking above the form and pushing it below the fold.
+// ═══════════════════════════════════════════════════════════════
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,122 +21,129 @@ const Login = () => {
   const { login, demoLogin } = useAuth();
 
   const handleDemoLogin = (role) => {
-    demoLogin(role);
-    navigate('/dashboard');
+    if (demoLogin) {
+      demoLogin(role);
+      navigate('/dashboard');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       await login(email, password);
-      // Let animation play before redirecting
-      setTimeout(() => navigate('/dashboard'), 400);
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      setError(err.response?.data?.message || 'Invalid email or password');
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden noise-overlay" style={{ background: '#050505', color: '#fff' }}>
-      {/* ─── Gradient Mesh Background ─── */}
-      <div className="absolute inset-0 h-[1200px] z-0 overflow-hidden pointer-events-none">
-        <div className="gradient-mesh" />
-      </div>
+    <div className="min-h-screen bg-background text-foreground grid lg:grid-cols-[1fr_minmax(420px,44%)]">
 
+      {/* ─── Colophon (desktop only) ─── */}
+      <aside className="hidden lg:flex flex-col justify-between border-r border-border px-12 py-10 bg-elevated/40">
+        <Link to="/" className="font-display text-lg font-semibold tracking-tight text-foreground no-underline">
+          LevelUp
+        </Link>
 
+        <div className="max-w-measure">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground mb-5">
+            Academic & Career Management
+          </p>
+          <p className="font-display text-[30px] leading-[1.25] text-foreground">
+            Every academic milestone, attendance record and career credential,
+            <span className="italic text-[hsl(var(--primary-accent))]"> unified in one platform.</span>
+          </p>
+        </div>
 
+        <p className="text-[13px] text-muted-foreground">
+          © {new Date().getFullYear()} LevelUp
+        </p>
+      </aside>
 
-      {/* ─── Login Form Container ─── */}
-      <div className="flex-1 flex items-center justify-center py-12">
+      {/* ─── Form ─── */}
+      <main className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[380px]">
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-md mx-4"
-      >
-        <div className="glass-morphism rounded-2xl p-8 shadow-2xl">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2.5 mb-6 no-underline">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg shadow-glow">L</div>
-              <span className="font-display text-lg font-bold tracking-tight text-foreground">LevelUp</span>
-            </Link>
-            <h1 className="font-display text-3xl font-bold tracking-display text-foreground mb-2">Welcome back</h1>
-            <p className="text-muted-foreground text-sm">Sign in to continue your career preparation.</p>
-          </div>
+          <Link
+            to="/"
+            className="lg:hidden inline-block font-display text-lg font-semibold tracking-tight text-foreground no-underline mb-10"
+          >
+            LevelUp
+          </Link>
+
+          <h1 className="font-display text-[30px] font-semibold text-foreground">Sign in</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Enter your college or university credentials.
+          </p>
 
           {error && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+            <div
+              role="alert"
+              className="mt-6 px-3.5 py-3 rounded-md border border-destructive/40 bg-destructive/5 text-[13px] text-destructive leading-relaxed"
             >
               {error}
-            </motion.div>
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground ml-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Enter your email address"
-                  required
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+            <Input
+              label="Email Address"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              icon={<Mail size={15} />}
+              placeholder="you@college.edu"
+              required
+            />
+
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<Lock size={15} />}
+                placeholder="••••••••"
+                required
+              />
+              <p className="mt-1.5 text-[12px] text-muted-foreground">
+                Forgotten password? Contact your department administrator.
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-sm font-medium text-foreground">Password</label>
-                <span className="text-xs text-muted-foreground/50 cursor-default" title="Contact your administrator to reset your password">Forgot password?</span>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-background/50 border border-border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button type="submit" loading={loading} size="lg" className="w-full mt-4">
-              Sign In <ArrowRight size={18} />
+            <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+              Sign in
+              <ArrowRight size={15} aria-hidden="true" />
             </Button>
           </form>
 
-          {/* Look around without an account. Sample data only — see middleware/auth.js */}
-          <div className="mt-6 pt-5 border-t border-border/40">
+          {/* 1-Click Demo Login */}
+          <div className="mt-6 pt-5 border-t border-border">
             <div className="flex items-baseline justify-between mb-2.5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Look around first
               </span>
-              <span className="text-[11px] text-muted-foreground/70">Sample data, read only</span>
+              <span className="text-[11px] text-muted-foreground/70">Sample cohort, instant access</span>
             </div>
-            <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+            <div className="rounded-xl border border-border divide-y divide-border overflow-hidden bg-elevated/40">
               {[
-                { role: 'student', title: 'Student', detail: 'Third year, CSE-3A' },
-                { role: 'faculty', title: 'Teaching faculty', detail: 'Two classes, marks and attendance' },
-                { role: 'hod', title: 'Head of department', detail: 'Full CSE register and workbook tools' },
+                { role: 'student', title: 'Student', detail: 'Alex Chen (Third year, CSE-3A)' },
+                { role: 'faculty', title: 'Teaching Faculty', detail: 'Dr. Jenkins (Two classes, attendance)' },
+                { role: 'hod', title: 'Head of Department', detail: 'Dr. Kulkarni (Full CSE & workbooks)' },
+                { role: 'principal', title: 'Principal', detail: 'Dr. Sundaram (College-wide metrics)' },
               ].map((d) => (
                 <button
                   key={d.role}
                   type="button"
                   onClick={() => handleDemoLogin(d.role)}
-                  className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-secondary/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-secondary/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary text-foreground"
                 >
                   <span className="min-w-0">
                     <span className="block text-[0.8125rem] font-medium text-foreground">{d.title}</span>
@@ -141,15 +155,14 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground border-t border-border/50 pt-5">
+          <div className="mt-6 pt-5 border-t border-border text-center text-xs text-muted-foreground">
             Don't have an account?{' '}
-            <Link to="/register" className="text-primary font-medium hover:underline">
-              Create one
+            <Link to="/register" className="text-primary font-semibold hover:underline">
+              Create an account
             </Link>
           </div>
         </div>
-      </motion.div>
-      </div>
+      </main>
     </div>
   );
 };

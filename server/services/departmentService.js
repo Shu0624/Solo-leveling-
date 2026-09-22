@@ -105,6 +105,36 @@ export function normaliseStudent(raw, index = 0) {
   s.placementEligible = s.cgpa >= DEPARTMENT.placementCgpaCutoff && s.backlogs.activeCount === 0;
   s.archive = s.archive || null;
 
+  // 1. Basic Information
+  s.prn = s.prn || '';
+  s.dob = s.dob || '';
+  s.gender = s.gender || '';
+  s.academicYear = s.academicYear || '2025–2026';
+
+  // 2. Contact Information
+  s.personalEmail = s.personalEmail || '';
+  s.address = s.address || '';
+  s.parentName = s.parentName || '';
+  s.parentPhone = s.parentPhone || '';
+
+  // 3. Academic Details
+  s.prevSgpa = num(s.prevSgpa);
+  s.currentSubjects = Array.isArray(s.currentSubjects) ? s.currentSubjects : [];
+  s.academicStrengths = Array.isArray(s.academicStrengths) ? s.academicStrengths : [];
+  s.weakSubjects = Array.isArray(s.weakSubjects) ? s.weakSubjects : [];
+
+  // 4. Professional & Career Details
+  s.linkedinUrl = s.linkedinUrl || '';
+  s.githubUrl = s.githubUrl || '';
+  s.portfolioUrl = s.portfolioUrl || '';
+  s.resumeUrl = s.resumeUrl || '';
+  s.careerInterest = s.careerInterest || 'Job';
+  s.preferredDomain = s.preferredDomain || 'Full-Stack Web';
+  s.skills = Array.isArray(s.skills) ? s.skills : [];
+  s.certifications = Array.isArray(s.certifications) ? s.certifications : [];
+  s.projects = Array.isArray(s.projects) ? s.projects : [];
+  s.internships = Array.isArray(s.internships) ? s.internships : [];
+
   return s;
 }
 

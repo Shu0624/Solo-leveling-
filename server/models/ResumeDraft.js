@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const resumeDraftSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  user: { type: mongoose.Schema.Types.Mixed, ref: 'User', required: true, unique: true },
   fullName: { type: String, default: '' },
   phone: { type: String, default: '' },
   email: { type: String, default: '' },

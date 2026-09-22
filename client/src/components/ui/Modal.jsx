@@ -53,7 +53,7 @@ export default function Modal({ open, onClose, title, children, footer, classNam
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              'relative w-full bg-card border border-border rounded-2xl shadow-lg-token outline-none flex flex-col max-h-[90vh]',
+              'relative w-full bg-card border border-border rounded-md shadow-lg-token outline-none flex flex-col max-h-[90vh]',
               sizes[size],
               className
             )}

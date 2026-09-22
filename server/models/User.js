@@ -96,10 +96,48 @@ const userSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+    prn: {
+      type: String,
+      sparse: true,
+    },
     usn: {
       type: String,
       sparse: true,
     },
+    dob: {
+      type: String,
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other', 'Prefer not to say', ''],
+      default: '',
+    },
+    academicYear: {
+      type: String,
+      default: '2025–2026',
+    },
+    // Contact Information
+    phone: {
+      type: String,
+    },
+    personalEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    address: {
+      type: String,
+    },
+    parentName: {
+      type: String,
+    },
+    parentPhone: {
+      type: String,
+    },
+    mentorName: {
+      type: String,
+    },
+    // Academic Details
     cgpa: {
       type: Number,
       default: 0,
@@ -108,14 +146,21 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    phone: {
-      type: String,
+    prevSgpa: {
+      type: Number,
+      default: 0,
     },
-    parentPhone: {
-      type: String,
+    currentSubjects: {
+      type: [String],
+      default: [],
     },
-    mentorName: {
-      type: String,
+    academicStrengths: {
+      type: [String],
+      default: [],
+    },
+    weakSubjects: {
+      type: [String],
+      default: [],
     },
     attendance: {
       percentage: { type: Number, default: 85 },
@@ -158,6 +203,52 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Professional & Career Information (⭐ Crucial for Faculty & HOD Mentorship)
+    linkedinUrl: {
+      type: String,
+    },
+    githubUrl: {
+      type: String,
+    },
+    portfolioUrl: {
+      type: String,
+    },
+    resumeUrl: {
+      type: String,
+    },
+    careerInterest: {
+      type: String,
+      default: 'Job', // 'Job' | 'Higher Studies' | 'Entrepreneurship' | 'Competitive Exams'
+    },
+    preferredDomain: {
+      type: String,
+      default: 'Full-Stack Web', // 'Web Dev' | 'AI/ML' | 'Data Science' | 'Cloud/DevOps' | 'Cybersecurity' | etc.
+    },
+    certifications: [
+      {
+        name: String,
+        issuer: String,
+        year: String,
+        credentialUrl: String,
+      }
+    ],
+    projects: [
+      {
+        title: String,
+        description: String,
+        techStack: [String],
+        githubLink: String,
+        liveLink: String,
+      }
+    ],
+    internships: [
+      {
+        company: String,
+        role: String,
+        duration: String,
+        description: String,
+      }
+    ],
     mentorRemarks: [
       {
         date: { type: Date, default: Date.now },

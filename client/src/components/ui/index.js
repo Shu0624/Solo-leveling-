@@ -1,5 +1,7 @@
 export { default as Button } from './Button';
-export { default as Card, CardBody, CardHeader } from './Card';
+export { default as IconButton } from './IconButton';
+export { default as Input, fieldBase } from './Input';
+export { default as Card, CardBody, CardHeader, CardFooter } from './Card';
 export { default as StatTile } from './StatTile';
 export { default as Badge } from './Badge';
 export { default as PageHeader } from './PageHeader';

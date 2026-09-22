@@ -45,12 +45,12 @@ const PrincipalDashboard = () => {
             <Skeleton className="h-8 w-80" />
             <Skeleton className="h-4 w-64" />
           </div>
-          <Skeleton className="h-11 w-52 rounded-xl" rounded="rounded-xl" />
+          <Skeleton className="h-11 w-52 rounded-md" rounded="rounded-md" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[0, 1, 2, 3, 4, 5].map((i) => <SkeletonCard key={i} />)}
         </div>
-        <Skeleton className="h-72 rounded-2xl" rounded="rounded-2xl" />
+        <Skeleton className="h-72 rounded-md" rounded="rounded-md" />
       </div>
     );
   }
@@ -102,7 +102,7 @@ const PrincipalDashboard = () => {
                 value={academicYear}
                 onChange={(e) => setAcademicYear(e.target.value)}
                 aria-label="Academic year"
-                className="appearance-none bg-secondary border border-border rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+                className="appearance-none bg-secondary border border-border rounded-md px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
               >
                 <option value="2025-2026">AY 2025-2026</option>
                 <option value="2024-2025">AY 2024-2025</option>
@@ -114,7 +114,7 @@ const PrincipalDashboard = () => {
                 value={deptFilter}
                 onChange={(e) => setDeptFilter(e.target.value)}
                 aria-label="Department filter"
-                className="appearance-none bg-secondary border border-border rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+                className="appearance-none bg-secondary border border-border rounded-md px-4 py-2.5 pr-10 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
               >
                 <option value="All">All Departments</option>
                 <option value="CSE">CSE Only</option>
@@ -141,12 +141,12 @@ const PrincipalDashboard = () => {
         {/* Employability Score */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.05 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Employability Index</span>
-            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-black rounded-full">+4%</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Employability Index</span>
+            <span className="px-2 py-0.5 bg-emerald-500/10 text-success text-[9px] font-semibold rounded-full">+4%</span>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">76<span className="text-xs text-muted-foreground">/100</span></div>
-            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="text-3xl font-semibold text-foreground">76<span className="text-xs text-muted-foreground">/100</span></div>
+            <div className="w-full h-1 bg-secondary rounded-full overflow-hidden mt-2">
               <div className="h-full bg-emerald-500 rounded-full" style={{ width: '76%' }} />
             </div>
             <span className="text-[9px] text-muted-foreground block mt-1.5">Institution-wide average readiness</span>
@@ -156,12 +156,12 @@ const PrincipalDashboard = () => {
         {/* Placement Ready */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Placement Ready</span>
-            <span className="text-[10px] text-white/50 font-bold">{Math.round((totalReady/totalSt)*100)}%</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Placement Ready</span>
+            <span className="text-[10px] text-muted-foreground font-bold">{Math.round((totalReady/totalSt)*100)}%</span>
           </div>
           <div>
-            <div className="text-3xl font-black text-indigo-400">{totalReady}<span className="text-xs text-muted-foreground"> / {totalSt}</span></div>
-            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="text-3xl font-semibold text-[hsl(var(--primary-accent))]">{totalReady}<span className="text-xs text-muted-foreground"> / {totalSt}</span></div>
+            <div className="w-full h-1 bg-secondary rounded-full overflow-hidden mt-2">
               <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(totalReady/totalSt)*100}%` }} />
             </div>
             <span className="text-[9px] text-muted-foreground block mt-1.5">Students cleared readiness threshold</span>
@@ -171,11 +171,11 @@ const PrincipalDashboard = () => {
         {/* At-Risk Students */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">At-Risk Students</span>
-            <span className="px-2 py-0.5 bg-red-500/10 text-red-400 text-[9px] font-black rounded-full">Alert</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">At-Risk Students</span>
+            <span className="px-2 py-0.5 bg-red-500/10 text-destructive text-[9px] font-semibold rounded-full">Alert</span>
           </div>
           <div>
-            <div className="text-3xl font-black text-red-400">{totalAtRisk}</div>
+            <div className="text-3xl font-semibold text-destructive">{totalAtRisk}</div>
             <div className="flex items-center justify-between text-[9px] text-muted-foreground mt-2 border-t border-white/[0.04] pt-1">
               <span>Acad: 41</span>
               <span>Placement: 55</span>
@@ -186,11 +186,11 @@ const PrincipalDashboard = () => {
         {/* Department Leader */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Performance Leader</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Performance Leader</span>
             <Award size={14} className="text-pink-400" />
           </div>
           <div>
-            <div className="text-2xl font-black text-pink-400">CSE</div>
+            <div className="text-2xl font-semibold text-pink-400">CSE</div>
             <div className="text-[9px] text-muted-foreground mt-2.5">
               <span>+12% progress over past month</span>
             </div>
@@ -200,11 +200,11 @@ const PrincipalDashboard = () => {
         {/* Placement Forecast */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.25 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Placement Forecast</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Placement Forecast</span>
             <TrendingUp size={14} className="text-cyan-400" />
           </div>
           <div>
-            <div className="text-3xl font-black text-cyan-400">68%</div>
+            <div className="text-3xl font-semibold text-cyan-400">68%</div>
             <span className="text-[9px] text-muted-foreground block mt-3 font-semibold">Projected cohort hiring rate</span>
           </div>
         </motion.div>
@@ -212,11 +212,11 @@ const PrincipalDashboard = () => {
         {/* Faculty Engagement */}
         <motion.div initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="glass-morphism p-4 flex flex-col justify-between">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider">Faculty Activity</span>
-            <span className="text-[10px] text-emerald-400 font-bold">74%</span>
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Faculty Activity</span>
+            <span className="text-[10px] text-success font-bold">74%</span>
           </div>
           <div>
-            <div className="text-3xl font-black text-white">82<span className="text-xs text-muted-foreground">/100</span></div>
+            <div className="text-3xl font-semibold text-foreground">82<span className="text-xs text-muted-foreground">/100</span></div>
             <span className="text-[9px] text-muted-foreground block mt-3 font-semibold">Platform adoption rating</span>
           </div>
         </motion.div>
@@ -224,47 +224,47 @@ const PrincipalDashboard = () => {
       </div>
 
       {/* ─── Large Panel: Institutional Health Overview ─── */}
-      <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-r from-[#0C0C0C] to-[#120E22] p-6 mb-8">
+      <div className="rounded-md border border-white/[0.08] bg-elevated p-6 mb-8">
         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-4">Institution Health Dashboard Overview</h3>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-xs text-white/50 block mb-1">Overall Readiness Score</span>
-              <span className="text-2xl font-black text-white">76%</span>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-xs text-muted-foreground block mb-1">Overall Readiness Score</span>
+              <span className="text-2xl font-semibold text-foreground">76%</span>
+              <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
                 <div className="h-full bg-indigo-500 rounded-full" style={{ width: '76%' }} />
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-xs text-white/50 block mb-1">Academic Health Score</span>
-              <span className="text-2xl font-black text-white">82%</span>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-xs text-muted-foreground block mb-1">Academic Health Score</span>
+              <span className="text-2xl font-semibold text-foreground">82%</span>
+              <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }} />
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-xs text-white/50 block mb-1">Placement Health Score</span>
-              <span className="text-2xl font-black text-white">78%</span>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-xs text-muted-foreground block mb-1">Placement Health Score</span>
+              <span className="text-2xl font-semibold text-foreground">78%</span>
+              <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
                 <div className="h-full bg-pink-500 rounded-full" style={{ width: '78%' }} />
               </div>
             </div>
-            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-xs text-white/50 block mb-1">Student Engagement</span>
-              <span className="text-2xl font-black text-white">85%</span>
-              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-xs text-muted-foreground block mb-1">Student Engagement</span>
+              <span className="text-2xl font-semibold text-foreground">85%</span>
+              <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden mt-2">
                 <div className="h-full bg-cyan-500 rounded-full" style={{ width: '85%' }} />
               </div>
             </div>
           </div>
 
           {/* AI Executive summary */}
-          <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col justify-between">
+          <div className="p-4 rounded-md bg-indigo-500/5 border border-indigo-500/10 flex flex-col justify-between">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="text-indigo-400 animate-pulse" size={16} />
-              <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider">AI Executive Analysis</span>
+              <Sparkles className="text-[hsl(var(--primary-accent))] animate-pulse" size={16} />
+              <span className="text-[10px] font-semibold uppercase text-[hsl(var(--primary-accent))] tracking-wider">AI Executive Analysis</span>
             </div>
-            <p className="text-xs text-white/70 leading-relaxed font-semibold">
+            <p className="text-xs text-muted-foreground leading-relaxed font-semibold">
               CSE and AIML are improving in readiness, but ECE and Mechanical need intervention due to low resume completion and mock interview participation.
             </p>
             <div className="text-[9px] text-muted-foreground/60 font-bold uppercase mt-3">LevelUp Core Engine</div>
@@ -280,7 +280,7 @@ const PrincipalDashboard = () => {
           <div>
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-bold text-white">🏫 Department Benchmarking Matrix</h3>
+                <h3 className="text-lg font-bold text-foreground">Department Benchmarking Matrix</h3>
                 <p className="text-[10px] text-muted-foreground uppercase font-bold">Relative comparison across core branches</p>
               </div>
               <span className="text-[10px] text-muted-foreground">Active Year: {academicYear}</span>
@@ -289,7 +289,7 @@ const PrincipalDashboard = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 text-white font-bold uppercase tracking-wider">
+                  <tr className="border-b border-border text-foreground font-bold uppercase tracking-wider">
                     <th className="py-2.5 px-3">Department</th>
                     <th className="py-2.5 px-3">Students</th>
                     <th className="py-2.5 px-3">Ready</th>
@@ -300,17 +300,17 @@ const PrincipalDashboard = () => {
                     <th className="py-2.5 px-3">Trend</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04] text-white/70">
+                <tbody className="divide-y divide-white/[0.04] text-muted-foreground">
                   {filteredDepts.map((d, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3 px-3 font-bold text-white">{d.name}</td>
+                      <td className="py-3 px-3 font-bold text-foreground">{d.name}</td>
                       <td className="py-3 px-3">{d.students}</td>
-                      <td className="py-3 px-3 text-emerald-400 font-bold">{d.ready}</td>
-                      <td className="py-3 px-3 text-red-400 font-bold">{d.atRisk}</td>
+                      <td className="py-3 px-3 text-success font-bold">{d.ready}</td>
+                      <td className="py-3 px-3 text-destructive font-bold">{d.atRisk}</td>
                       <td className="py-3 px-3 font-semibold">{d.resume}/100</td>
                       <td className="py-3 px-3 font-semibold">{d.interview}/100</td>
                       <td className="py-3 px-3">{d.cgpa}</td>
-                      <td className={`py-3 px-3 font-bold ${d.trend.startsWith('+') ? 'text-emerald-400' : d.trend.startsWith('-') ? 'text-red-400' : 'text-white/40'}`}>
+                      <td className={`py-3 px-3 font-bold ${d.trend.startsWith('+') ? 'text-success' : d.trend.startsWith('-') ? 'text-destructive' : 'text-muted-foreground'}`}>
                         {d.trend}
                       </td>
                     </tr>
@@ -321,32 +321,32 @@ const PrincipalDashboard = () => {
           </div>
           
           <div className="text-[10px] text-muted-foreground mt-4 border-t border-white/[0.04] pt-3 flex justify-between">
-            <span>Overall CGPA Agg: <strong className="text-white">{avgCgpa}</strong></span>
-            <span>Avg Resume ATS Score: <strong className="text-white">{avgResume}/100</strong></span>
+            <span>Overall CGPA Agg: <strong className="text-foreground">{avgCgpa}</strong></span>
+            <span>Avg Resume ATS Score: <strong className="text-foreground">{avgResume}/100</strong></span>
           </div>
         </div>
 
         {/* Placement Readiness Funnel */}
         <div className="glass-morphism p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">🎯 Placement Readiness Funnel</h3>
+            <h3 className="text-lg font-bold text-foreground mb-1">Placement Readiness Funnel</h3>
             <p className="text-[10px] text-muted-foreground uppercase font-bold mb-6">Cohort progression through recruitment stages</p>
 
             <div className="space-y-3.5">
               {[
-                { label: "Total Cohort", count: totalSt, pct: 100, color: "bg-white/10" },
+                { label: "Total Cohort", count: totalSt, pct: 100, color: "bg-secondary" },
                 { label: "Profile Completed", count: Math.round(totalSt * 0.91), pct: 91, color: "bg-indigo-500/20" },
                 { label: "Resume ATS Audited", count: Math.round(totalSt * 0.75), pct: 75, color: "bg-purple-500/20" },
                 { label: "Roadmap Milestones Active", count: Math.round(totalSt * 0.70), pct: 70, color: "bg-pink-500/20" },
                 { label: "Mock Interviews Cleared", count: Math.round(totalSt * 0.58), pct: 58, color: "bg-rose-500/20" },
-                { label: "Placement Ready Candidates", count: totalReady, pct: Math.round((totalReady/totalSt)*100), color: "bg-emerald-500/30 text-emerald-400 font-bold" }
+                { label: "Placement Ready Candidates", count: totalReady, pct: Math.round((totalReady/totalSt)*100), color: "bg-emerald-500/30 text-success font-bold" }
               ].map((stage, idx) => (
                 <div key={idx} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-white/70">{stage.label}</span>
+                    <span className="text-muted-foreground">{stage.label}</span>
                     <span>{stage.count} <span className="text-[10px] text-muted-foreground">({stage.pct}%)</span></span>
                   </div>
-                  <div className="w-full h-2.5 bg-white/5 rounded-lg overflow-hidden">
+                  <div className="w-full h-2.5 bg-secondary rounded-lg overflow-hidden">
                     <div className={`h-full ${idx === 5 ? 'bg-emerald-500' : 'bg-primary'}`} style={{ width: `${stage.pct}%` }} />
                   </div>
                 </div>
@@ -363,49 +363,49 @@ const PrincipalDashboard = () => {
         {/* Risk Intelligence Panel */}
         <div className="glass-morphism p-6">
           <div className="flex items-center gap-2 mb-4">
-            <ShieldAlert className="text-red-400" size={20} />
+            <ShieldAlert className="text-destructive" size={20} />
             <div>
-              <h3 className="text-lg font-bold text-white">🚨 Risk Intelligence Command Center</h3>
+              <h3 className="text-lg font-bold text-foreground">Risk Intelligence Command Center</h3>
               <p className="text-[10px] text-muted-foreground uppercase font-bold">Priority issues requiring immediate focus</p>
             </div>
           </div>
 
           <div className="space-y-3">
             {[
-              { alert: "12 students in CSE-3B falling below 75% attendance criteria", severity: "High", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-              { alert: "18 final-year students in ECE-4A have no resume uploaded to ATS", severity: "Critical", color: "text-red-400 bg-red-500/10 border-red-500/20" },
-              { alert: "ECE department records average mock interview rating under 55%", severity: "Critical", color: "text-red-400 bg-red-500/10 border-red-500/20" },
-              { alert: "Mechanical department reports 8% decline in study hours log this week", severity: "Medium", color: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" }
+              { alert: "12 students in CSE-3B falling below 75% attendance criteria", severity: "High", color: "text-warning bg-amber-500/10 border-amber-500/20" },
+              { alert: "18 final-year students in ECE-4A have no resume uploaded to ATS", severity: "Critical", color: "text-destructive bg-red-500/10 border-red-500/20" },
+              { alert: "ECE department records average mock interview rating under 55%", severity: "Critical", color: "text-destructive bg-red-500/10 border-red-500/20" },
+              { alert: "Mechanical department reports 8% decline in study hours log this week", severity: "Medium", color: "text-warning bg-yellow-500/10 border-yellow-500/20" }
             ].map((r, i) => (
-              <div key={i} className={`flex items-start justify-between p-3.5 rounded-xl border ${r.color} text-xs leading-relaxed`}>
+              <div key={i} className={`flex items-start justify-between p-3.5 rounded-md border ${r.color} text-xs leading-relaxed`}>
                 <span className="font-semibold">{r.alert}</span>
-                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-current shrink-0 ml-4">{r.severity}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded border border-current shrink-0 ml-4">{r.severity}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* AI Strategic Intervention Recommendations */}
-        <div className="glass-morphism p-6 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#120C1F]">
+        <div className="glass-morphism p-6 flex flex-col justify-between bg-elevated">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="text-pink-400" size={20} />
               <div>
-                <h3 className="text-lg font-bold text-white">💡 AI Strategic Recommendations</h3>
+                <h3 className="text-lg font-bold text-foreground">AI Strategic Recommendations</h3>
                 <p className="text-[10px] text-muted-foreground uppercase font-bold">Action items optimized for institutional metrics</p>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-white/70">
-              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl flex items-start gap-2.5">
+            <div className="space-y-3 text-xs leading-relaxed text-muted-foreground">
+              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-md flex items-start gap-2.5">
                 <span className="text-primary font-bold">1.</span>
                 <p>Instruct the <strong>CSE Department HOD</strong> to run an interview drive targeting the 3rd-year cohort to boost mock participation metrics.</p>
               </div>
-              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl flex items-start gap-2.5">
+              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-md flex items-start gap-2.5">
                 <span className="text-primary font-bold">2.</span>
                 <p>Organize a dedicated <strong>Resume Correction Bootcamp</strong> for the ECE department to resolve the ATS format warnings.</p>
               </div>
-              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl flex items-start gap-2.5">
+              <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-md flex items-start gap-2.5">
                 <span className="text-primary font-bold">3.</span>
                 <p>Deploy a final-year <strong>Aptitude Prep Program</strong> specifically focusing on students with readiness index scores below 50.</p>
               </div>
@@ -422,7 +422,7 @@ const PrincipalDashboard = () => {
         <div className="glass-morphism p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white">🎓 Academic Intelligence Progression</h3>
+              <h3 className="text-lg font-bold text-foreground">Academic Intelligence Progression</h3>
               <p className="text-[10px] text-muted-foreground uppercase font-bold">SGPA progress averages across departments</p>
             </div>
             <span className="text-[10px] text-muted-foreground">Historical semesters</span>
@@ -457,39 +457,39 @@ const PrincipalDashboard = () => {
         <div className="glass-morphism p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white">💼 Campus Drive Placement Snapshot</h3>
+              <h3 className="text-lg font-bold text-foreground">Campus Drive Placement Snapshot</h3>
               <p className="text-[10px] text-muted-foreground uppercase font-bold">Live statistics on corporate recruitment drives</p>
             </div>
-            <span className="text-xs font-bold text-indigo-400">Active drives: 4</span>
+            <span className="text-xs font-bold text-[hsl(var(--primary-accent))]">Active drives: 4</span>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-[10px] text-white/50 block mb-0.5 font-bold uppercase">Companies Visited</span>
-              <span className="text-2xl font-black text-white">12</span>
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-[10px] text-muted-foreground block mb-0.5 font-bold uppercase">Companies Visited</span>
+              <span className="text-2xl font-semibold text-foreground">12</span>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-[10px] text-white/50 block mb-0.5 font-bold uppercase">Offer Conversion</span>
-              <span className="text-2xl font-black text-emerald-400">62.2%</span>
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-[10px] text-muted-foreground block mb-0.5 font-bold uppercase">Offer Conversion</span>
+              <span className="text-2xl font-semibold text-success">62.2%</span>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-[10px] text-white/50 block mb-0.5 font-bold uppercase">Average Package</span>
-              <span className="text-2xl font-black text-white">6.8 <span className="text-[10px] text-muted-foreground">LPA</span></span>
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-[10px] text-muted-foreground block mb-0.5 font-bold uppercase">Average Package</span>
+              <span className="text-2xl font-semibold text-foreground">6.8 <span className="text-[10px] text-muted-foreground">LPA</span></span>
             </div>
-            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-[10px] text-white/50 block mb-0.5 font-bold uppercase">Highest Package</span>
-              <span className="text-2xl font-black text-pink-400">18.5 <span className="text-[10px] text-muted-foreground">LPA</span></span>
+            <div className="p-4 rounded-md bg-white/[0.02] border border-white/[0.04]">
+              <span className="text-[10px] text-muted-foreground block mb-0.5 font-bold uppercase">Highest Package</span>
+              <span className="text-2xl font-semibold text-pink-400">18.5 <span className="text-[10px] text-muted-foreground">LPA</span></span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-white/70">
-            <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl flex justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted-foreground">
+            <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-md flex justify-between">
               <span>Internship Conversion Rate:</span>
-              <strong className="text-white">34%</strong>
+              <strong className="text-foreground">34%</strong>
             </div>
-            <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl flex justify-between">
+            <div className="p-3 bg-white/[0.02] border border-white/[0.04] rounded-md flex justify-between">
               <span>Hired Candidates:</span>
-              <strong className="text-white">112 Students</strong>
+              <strong className="text-foreground">112 Students</strong>
             </div>
           </div>
         </div>
@@ -503,7 +503,7 @@ const PrincipalDashboard = () => {
         <div className="glass-morphism p-6 lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-white">📈 Executive Activity Feed</h3>
+              <h3 className="text-lg font-bold text-foreground">Executive Activity Feed</h3>
               <p className="text-[10px] text-muted-foreground uppercase font-bold font-sans">Strategic updates and platform milestones</p>
             </div>
             <Activity size={16} className="text-primary animate-pulse" />
@@ -517,16 +517,16 @@ const PrincipalDashboard = () => {
               { text: "Dynamic resume drive improved average ATS scorecard metrics by 14 points", type: "success" },
               { text: "AIML department has achieved the highest career roadmap milestone completion (92%)", type: "info" }
             ].map((feed, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-white/[0.01] border border-white/[0.04] hover:bg-white/[0.02] rounded-xl transition-all gap-4">
+              <div key={i} className="flex items-center justify-between p-3 bg-white/[0.01] border border-white/[0.04] hover:bg-white/[0.02] rounded-md transition-all gap-4">
                 <div className="flex items-center gap-3">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${
                     feed.type === 'success' ? 'bg-emerald-500' :
                     feed.type === 'warning' ? 'bg-red-500 animate-pulse' :
                     'bg-indigo-500'
                   }`} />
-                  <span className="text-xs text-white/80 font-medium leading-relaxed">{feed.text}</span>
+                  <span className="text-xs text-muted-foreground font-medium leading-relaxed">{feed.text}</span>
                 </div>
-                <ChevronRight size={14} className="text-white/20 shrink-0" />
+                <ChevronRight size={14} className="text-muted-foreground shrink-0" />
               </div>
             ))}
           </div>
@@ -535,25 +535,25 @@ const PrincipalDashboard = () => {
         {/* Executive Quick Actions */}
         <div className="glass-morphism p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-lg font-bold text-white mb-1">🛠️ Executive Quick Actions</h3>
+            <h3 className="text-lg font-bold text-foreground mb-1">Executive Quick Actions</h3>
             <p className="text-[10px] text-muted-foreground uppercase font-bold mb-6">Manage institution operations</p>
 
             <div className="grid grid-cols-2 gap-3.5">
-              <button onClick={() => navigate('/analytics')} className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-primary/20 rounded-xl transition-all text-left flex flex-col justify-between min-h-[90px]">
+              <button onClick={() => navigate('/analytics')} className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-primary/20 rounded-md transition-all text-left flex flex-col justify-between min-h-[90px]">
                 <BarChart3 size={18} className="text-primary" />
-                <span className="text-xs font-bold text-white leading-tight">View Analytics</span>
+                <span className="text-xs font-bold text-foreground leading-tight">View Analytics</span>
               </button>
-              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-accent/20 rounded-xl transition-all text-left flex flex-col justify-between min-h-[90px]">
+              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-accent/20 rounded-md transition-all text-left flex flex-col justify-between min-h-[90px]">
                 <Users2 size={18} className="text-accent" />
-                <span className="text-xs font-bold text-white leading-tight">Manage Faculty</span>
+                <span className="text-xs font-bold text-foreground leading-tight">Manage Faculty</span>
               </button>
-              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-pink-400/20 rounded-xl transition-all text-left flex flex-col justify-between min-h-[90px]">
+              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-pink-400/20 rounded-md transition-all text-left flex flex-col justify-between min-h-[90px]">
                 <FileSpreadsheet size={18} className="text-pink-400" />
-                <span className="text-xs font-bold text-white leading-tight">Accreditation Report</span>
+                <span className="text-xs font-bold text-foreground leading-tight">Accreditation Report</span>
               </button>
-              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-cyan-400/20 rounded-xl transition-all text-left flex flex-col justify-between min-h-[90px]">
+              <button className="p-3 bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] hover:border-cyan-400/20 rounded-md transition-all text-left flex flex-col justify-between min-h-[90px]">
                 <Send size={18} className="text-cyan-400" />
-                <span className="text-xs font-bold text-white leading-tight">Send HOD Alerts</span>
+                <span className="text-xs font-bold text-foreground leading-tight">Send HOD Alerts</span>
               </button>
             </div>
           </div>

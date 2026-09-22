@@ -1,18 +1,16 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, FileText, Video, Rocket, Github, Linkedin, Twitter, Mail } from 'lucide-react';
+import { BookOpen, FileText, Video, Rocket, Mail } from 'lucide-react';
+import { GithubIcon as Github, LinkedinIcon as Linkedin, TwitterIcon as Twitter } from '../ui/SocialIcons';
 
 const Footer = () => {
   return (
-    <footer className="mt-20 border-t border-border/50 bg-background/80 backdrop-blur-md">
+    <footer className="mt-20 border-t border-border bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4 no-underline">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/20">
-                L
-              </div>
-              <span className="text-lg font-bold text-foreground">LevelUp</span>
+              <span className="font-display text-lg font-semibold tracking-tight text-foreground">LevelUp</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               The elite career preparation platform for engineering students.
@@ -21,7 +19,7 @@ const Footer = () => {
 
           {/* Product */}
           <div>
-            <h4 className="font-bold text-sm text-foreground mb-4 uppercase tracking-wider">Product</h4>
+            <h4 className="text-[11px] font-medium text-muted-foreground mb-3.5 uppercase tracking-[0.1em]">Product</h4>
             <ul className="space-y-2.5">
               {[
                 { to: '/modules', label: 'Learning Hub', icon: <BookOpen size={14} /> },
@@ -40,7 +38,7 @@ const Footer = () => {
 
           {/* Resources */}
           <div>
-            <h4 className="font-bold text-sm text-foreground mb-4 uppercase tracking-wider">Resources</h4>
+            <h4 className="text-[11px] font-medium text-muted-foreground mb-3.5 uppercase tracking-[0.1em]">Resources</h4>
             <ul className="space-y-2.5">
               {['Documentation', 'API Reference', 'Changelog', 'Support'].map(item => (
                 <li key={item}>
@@ -54,7 +52,7 @@ const Footer = () => {
 
           {/* Connect */}
           <div>
-            <h4 className="font-bold text-sm text-foreground mb-4 uppercase tracking-wider">Connect</h4>
+            <h4 className="text-[11px] font-medium text-muted-foreground mb-3.5 uppercase tracking-[0.1em]">Connect</h4>
             <div className="flex gap-3">
               {[
                 { icon: <Github size={18} />, href: '#' },

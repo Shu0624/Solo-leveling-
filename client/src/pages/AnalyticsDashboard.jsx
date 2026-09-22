@@ -301,7 +301,7 @@ const AnalyticsDashboard = () => {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-4 py-2 bg-secondary/50 hover:bg-secondary text-foreground rounded-2xl font-bold text-sm transition-all flex items-center gap-2 border border-border/50"
+            className="px-4 py-2 bg-secondary/50 hover:bg-secondary text-foreground rounded-md font-bold text-sm transition-all flex items-center gap-2 border border-border/50"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             Refresh Data
@@ -310,7 +310,7 @@ const AnalyticsDashboard = () => {
       </header>
 
       {/* Tab Navigation */}
-      <div className="mb-8 bg-secondary/30 rounded-2xl p-1 overflow-x-auto border border-border/50 scrollbar-none">
+      <div className="mb-8 bg-secondary/30 rounded-md p-1 overflow-x-auto border border-border/50 scrollbar-none">
         <div className="flex gap-1 min-w-max">
           {TABS.map(tab => {
             const Icon = tab.icon;
@@ -318,9 +318,9 @@ const AnalyticsDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`flex items-center gap-2 px-5 py-3 rounded-md text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
                   activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                    ? 'bg-primary text-primary-foreground  shadow-primary/20'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                 }`}
               >
@@ -363,23 +363,22 @@ const AnalyticsDashboard = () => {
               
               {user?.role === 'principal' && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <Sparkles className="text-primary" size={18} /> Institutional Strategic Executive Overview
                   </h3>
                   <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
                     Welcome, Principal. The campus placement readiness index is currently at <span className="text-primary font-bold">{overview.stats.avgQuizScore}%</span>. 
                     The overall study volume registered for the past 30 days is <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} hours</span>. 
-                    To ensure high-quality placement results, consider reviewing the <span className="text-white">Placement Pool tab</span> to evaluate students matching prime recruiters criteria.
+                    To ensure high-quality placement results, consider reviewing the <span className="text-foreground">Placement Pool tab</span> to evaluate students matching prime recruiters criteria.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-md transition-all">
                       Open Placement Pool Screening
                     </button>
-                    <button onClick={() => setActiveTab('classrooms')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                    <button onClick={() => setActiveTab('classrooms')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">
                       Inspect Departmental Classrooms
                     </button>
-                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
-                      📘 View Readiness Blueprint
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -387,20 +386,19 @@ const AnalyticsDashboard = () => {
 
               {user?.role === 'placement' && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                     <Trophy className="text-amber-500" size={18} /> Training & Placement Officer Control Room
                   </h3>
                   <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
-                    You have <span className="text-white">{overview.stats.totalStudents} candidates</span> in your scope. 
+                    You have <span className="text-foreground">{overview.stats.totalStudents} candidates</span> in your scope. 
                     Average student ATS resume score is <span className="text-pink-400 font-bold">{overview.stats.avgResumeScore}/100</span>.
-                    You can screen, filter, and invite cohorts matching corporate hiring policies under the <span className="text-white">Placement Pool tab</span>, and export customized drive registration sheets.
+                    You can screen, filter, and invite cohorts matching corporate hiring policies under the <span className="text-foreground">Placement Pool tab</span>, and export customized drive registration sheets.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('placement-hub')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-md transition-all">
                       Go to Placement Screening Pool
                     </button>
-                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
-                      📘 View Readiness Blueprint
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -408,23 +406,22 @@ const AnalyticsDashboard = () => {
 
               {user?.role === 'hod' && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
-                    <Brain className="text-purple-400" size={18} /> Head of Department Command Dashboard
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Brain className="text-[hsl(var(--primary-accent))]" size={18} /> Head of Department Command Dashboard
                   </h3>
                   <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
-                    Departmental statistics indicate <span className="text-white">{overview.stats.activeThisWeek} active students</span> this week. 
-                    Average consistency is <span className="text-emerald-400 font-bold">{overview.stats.avgStreak} days streak</span>. 
-                    Ensure class teachers have resolved students flagged in the <span className="text-white">At-Risk Alerts</span> tab.
+                    Departmental statistics indicate <span className="text-foreground">{overview.stats.activeThisWeek} active students</span> this week. 
+                    Average consistency is <span className="text-success font-bold">{overview.stats.avgStreak} days streak</span>. 
+                    Ensure class teachers have resolved students flagged in the <span className="text-foreground">At-Risk Alerts</span> tab.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-foreground text-xs font-extrabold rounded-md transition-all">
                       View Flagged Students
                     </button>
-                    <button onClick={() => setActiveTab('compare')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
+                    <button onClick={() => setActiveTab('compare')} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">
                       Compare Classroom Sections
                     </button>
-                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
-                      📘 View Readiness Blueprint
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -432,19 +429,18 @@ const AnalyticsDashboard = () => {
 
               {user?.role === 'faculty' && (
                 <div className="space-y-3">
-                  <h3 className="text-lg font-black text-foreground flex items-center gap-2">
-                    <Users className="text-blue-400" size={18} /> Classroom Mentor Action Center
+                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <Users className="text-[hsl(var(--primary-accent))]" size={18} /> Classroom Mentor Action Center
                   </h3>
                   <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
                     Your assigned classroom has accumulated <span className="text-amber-500 font-bold">{overview.stats.totalStudyHours} study hours</span>.
                     You can generate personalized AI-crafted mentorship plans for students falling behind in attendance, DSA progress, or assignment completion rates.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-xl transition-all">
+                    <button onClick={() => setActiveTab('at-risk')} className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold rounded-md transition-all">
                       Open At-Risk Alerts
                     </button>
-                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-xl transition-all font-semibold border border-border/40">
-                      📘 View Readiness Blueprint
+                    <button onClick={() => setBlueprintModalOpen(true)} className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-primary text-xs font-extrabold rounded-md transition-all font-semibold border border-border/40">View Readiness Blueprint
                     </button>
                   </div>
                 </div>
@@ -457,14 +453,14 @@ const AnalyticsDashboard = () => {
                 data={overview.dailyTrend}
                 dataKeys={['hours']}
                 xAxisKey="date"
-                title="📈 Study Hours Trend (14 days)"
+                title="Study Hours Trend (14 days)"
                 colors={['#6366f1']}
               />
               <CategoryPieChart
                 data={overview.categoryBreakdown}
                 dataKey="hours"
                 nameKey="name"
-                title="📊 Study Category Distribution"
+                title="Study Category Distribution"
               />
             </div>
           </motion.div>
@@ -508,7 +504,7 @@ const AnalyticsDashboard = () => {
                     }))}
                     dataKeys={['studyHours', 'quizAvg']}
                     xAxisKey="date"
-                    title="📈 Performance Over Time"
+                    title="Performance Over Time"
                     colors={['#6366f1', '#22c55e']}
                   />
                 )}
@@ -546,25 +542,25 @@ const AnalyticsDashboard = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
                         onClick={() => fetchClassroomDetail(cls.classroomCode)}
-                        className="p-5 rounded-2xl bg-secondary/30 hover:bg-secondary/60 border border-border/50 cursor-pointer transition-all hover:scale-[1.01] group animate-fade-in"
+                        className="p-5 rounded-md bg-secondary/30 hover:bg-secondary/60 border border-border/50 cursor-pointer transition-all hover:scale-[1.01] group animate-fade-in"
                       >
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-lg font-black text-foreground">{cls.classroomCode}</span>
+                          <span className="text-lg font-semibold text-foreground">{cls.classroomCode}</span>
                           <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
                         <p className="text-xs text-muted-foreground font-medium mb-3">{cls.department || ''}</p>
                         
                         <div className="grid grid-cols-3 gap-2 text-center">
                           <div>
-                            <p className="text-lg font-black text-primary">{cls.metrics?.totalStudents || 0}</p>
+                            <p className="text-lg font-semibold text-primary">{cls.metrics?.totalStudents || 0}</p>
                             <p className="text-[10px] text-muted-foreground font-bold uppercase">Students</p>
                           </div>
                           <div>
-                            <p className="text-lg font-black text-amber-500">{cls.metrics?.totalStudyHours || 0}h</p>
+                            <p className="text-lg font-semibold text-amber-500">{cls.metrics?.totalStudyHours || 0}h</p>
                             <p className="text-[10px] text-muted-foreground font-bold uppercase">Study</p>
                           </div>
                           <div>
-                            <p className="text-lg font-black text-green-500">{cls.metrics?.averageQuizScore || 0}%</p>
+                            <p className="text-lg font-semibold text-green-500">{cls.metrics?.averageQuizScore || 0}%</p>
                             <p className="text-[10px] text-muted-foreground font-bold uppercase">Quiz</p>
                           </div>
                         </div>
@@ -572,7 +568,7 @@ const AnalyticsDashboard = () => {
                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 pt-3 border-t border-border/30 text-xs">
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-semibold">Avg CGPA:</span>
-                            <span className="font-extrabold text-indigo-400">{cls.metrics?.averageCGPA || '7.5'}</span>
+                            <span className="font-extrabold text-[hsl(var(--primary-accent))]">{cls.metrics?.averageCGPA || '7.5'}</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-semibold">Readiness:</span>
@@ -580,11 +576,11 @@ const AnalyticsDashboard = () => {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-semibold">Attendance:</span>
-                            <span className="font-extrabold text-amber-400">{cls.metrics?.averageAttendance || '78'}%</span>
+                            <span className="font-extrabold text-warning">{cls.metrics?.averageAttendance || '78'}%</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground font-semibold">Placement Prob:</span>
-                            <span className="font-extrabold text-emerald-400">{cls.metrics?.placementProbability || '70'}%</span>
+                            <span className="font-extrabold text-success">{cls.metrics?.placementProbability || '70'}%</span>
                           </div>
                         </div>
                       </motion.div>
@@ -621,9 +617,9 @@ const AnalyticsDashboard = () => {
                   <button
                     key={cls.classroomCode}
                     onClick={() => toggleCompareCode(cls.classroomCode)}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
                       compareCodes.includes(cls.classroomCode)
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                        ? 'bg-primary text-primary-foreground  shadow-primary/20'
                         : 'bg-secondary/40 text-foreground hover:bg-secondary/60 border border-border/50'
                     }`}
                   >
@@ -635,7 +631,7 @@ const AnalyticsDashboard = () => {
               {compareCodes.length >= 2 && (
                 <button
                   onClick={fetchCompare}
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-bold text-sm shadow-primary/20 hover:shadow-primary/30 transition-all"
                 >
                   Compare {compareCodes.length} Classrooms
                 </button>
@@ -652,14 +648,14 @@ const AnalyticsDashboard = () => {
                     data={compareData}
                     dataKeys={['avgCGPA', 'avgAttendance']}
                     xAxisKey="classroomCode"
-                    title="🎓 Academic Comparison (Avg CGPA & Attendance %)"
+                    title="Academic Comparison (Avg CGPA & Attendance %)"
                     colors={['#818cf8', '#fbbf24']}
                   />
                   <ComparisonBarChart
                     data={compareData}
                     dataKeys={['avgPlacementReadiness', 'placementProbability']}
                     xAxisKey="classroomCode"
-                    title="💼 Placement Readiness & Success Probabilities (%)"
+                    title="Placement Readiness & Success Probabilities (%)"
                     colors={['#ec4899', '#10b981']}
                   />
                 </div>
@@ -687,7 +683,7 @@ const AnalyticsDashboard = () => {
                     <PerformanceRadarChart
                       data={radarData}
                       dataKeys={radarKeys}
-                      title="🕸️ Normalized Core Metrics Comparison"
+                      title="Normalized Core Metrics Comparison"
                       colors={['#6366f1', '#f43f5e', '#22c55e', '#f59e0b', '#8b5cf6']}
                     />
                   );
@@ -704,7 +700,7 @@ const AnalyticsDashboard = () => {
                     avgQuizScore: `${d.avgQuizScore}%`,
                     avgResumeScore: `${d.avgResumeScore}/100`,
                   }))}
-                  title="📋 Comprehensive Classroom Benchmarking"
+                  title="Comprehensive Classroom Benchmarking"
                 />
               </>
             )}
@@ -733,12 +729,12 @@ const AnalyticsDashboard = () => {
                   onChange={e => setQueryInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendQuery()}
                   placeholder="e.g., Who are the top performers in CSE-3A?"
-                  className="flex-1 px-5 py-3 bg-secondary/30 border border-border/50 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-sm"
+                  className="flex-1 px-5 py-3 bg-secondary/30 border border-border/50 rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-sm"
                 />
                 <button
                   onClick={() => sendQuery()}
                   disabled={queryLoading || !queryInput.trim()}
-                  className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-md font-bold text-sm shadow-primary/20 disabled:opacity-50 flex items-center gap-2"
                 >
                   {queryLoading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                   Ask
@@ -760,7 +756,7 @@ const AnalyticsDashboard = () => {
                   <button
                     key={suggestion}
                     onClick={() => { setQueryInput(suggestion); sendQuery(suggestion); }}
-                    className="px-3 py-1.5 bg-secondary/40 hover:bg-secondary/60 text-muted-foreground hover:text-foreground rounded-xl text-xs font-medium transition-all border border-border/30"
+                    className="px-3 py-1.5 bg-secondary/40 hover:bg-secondary/60 text-muted-foreground hover:text-foreground rounded-md text-xs font-medium transition-all border border-border/30"
                   >
                     {suggestion}
                   </button>
@@ -787,7 +783,7 @@ const AnalyticsDashboard = () => {
             </div>
 
             {queryResults.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground glass-morphism rounded-3xl">
+              <div className="text-center py-12 text-muted-foreground glass-morphism rounded-md">
                 <Brain size={48} className="mx-auto mb-4 opacity-20" />
                 <p className="font-medium">Ask me anything about your students.</p>
                 <p className="text-sm mt-1">Try clicking one of the suggestions above.</p>
@@ -816,7 +812,7 @@ const AnalyticsDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="glass-morphism p-6 flex items-center justify-between">
                     <div>
-                      <span className="text-3xl font-black text-foreground">{atRiskData.atRiskCount}</span>
+                      <span className="text-3xl font-semibold text-foreground">{atRiskData.atRiskCount}</span>
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Students Flagged</p>
                     </div>
                     <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center">
@@ -825,16 +821,16 @@ const AnalyticsDashboard = () => {
                   </div>
                   <div className="glass-morphism p-6 flex items-center justify-between">
                     <div>
-                      <span className="text-3xl font-black text-red-400">{atRiskData.highRiskCount}</span>
+                      <span className="text-3xl font-semibold text-destructive">{atRiskData.highRiskCount}</span>
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Critical Warnings</p>
                     </div>
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center animate-pulse">
+                    <div className="w-12 h-12 rounded-full bg-red-500/20 text-destructive flex items-center justify-center animate-pulse">
                       <ShieldAlert size={24} />
                     </div>
                   </div>
                   <div className="glass-morphism p-6 flex items-center justify-between">
                     <div>
-                      <span className="text-3xl font-black text-amber-400">{atRiskData.mediumRiskCount}</span>
+                      <span className="text-3xl font-semibold text-warning">{atRiskData.mediumRiskCount}</span>
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Interventions Needed</p>
                     </div>
                     <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center">
@@ -854,7 +850,7 @@ const AnalyticsDashboard = () => {
                       {atRiskData.students.map((student) => (
                         <div
                           key={student._id}
-                          className={`p-6 rounded-2xl border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
+                          className={`p-6 rounded-md border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
                             student.riskLevel === 'high'
                               ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/8'
                               : 'bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/8'
@@ -875,8 +871,8 @@ const AnalyticsDashboard = () => {
                               <span
                                 className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                                   student.riskLevel === 'high'
-                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    ? 'bg-red-500/20 text-destructive border border-red-500/30'
+                                    : 'bg-amber-500/20 text-warning border border-amber-500/30'
                                 }`}
                               >
                                 {student.riskLevel === 'high' ? 'Critical Warning' : 'Needs Intervention'}
@@ -896,24 +892,24 @@ const AnalyticsDashboard = () => {
 
                           {/* Student metrics grid */}
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center lg:text-left">
-                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
-                              <span className="text-lg font-black text-foreground">{student.readinessScore}%</span>
+                            <div className="px-4 py-2 bg-background/30 rounded-md border border-border/30">
+                              <span className="text-lg font-semibold text-foreground">{student.readinessScore}%</span>
                               <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Readiness</span>
                             </div>
-                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
-                              <span className={`text-lg font-black ${student.attendance < 75 ? 'text-red-400' : 'text-foreground'}`}>
+                            <div className="px-4 py-2 bg-background/30 rounded-md border border-border/30">
+                              <span className={`text-lg font-semibold ${student.attendance < 75 ? 'text-destructive' : 'text-foreground'}`}>
                                 {student.attendance}%
                               </span>
                               <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Attendance</span>
                             </div>
-                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
-                              <span className={`text-lg font-black ${student.assignmentCompletion < 60 ? 'text-red-400' : 'text-foreground'}`}>
+                            <div className="px-4 py-2 bg-background/30 rounded-md border border-border/30">
+                              <span className={`text-lg font-semibold ${student.assignmentCompletion < 60 ? 'text-destructive' : 'text-foreground'}`}>
                                 {student.assignmentCompletion}%
                               </span>
                               <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">Assignments</span>
                             </div>
-                            <div className="px-4 py-2 bg-background/30 rounded-xl border border-border/30">
-                              <span className="text-lg font-black text-foreground">{student.dsaSolved}</span>
+                            <div className="px-4 py-2 bg-background/30 rounded-md border border-border/30">
+                              <span className="text-lg font-semibold text-foreground">{student.dsaSolved}</span>
                               <span className="text-[10px] text-muted-foreground font-bold uppercase block mt-0.5">DSA Solved</span>
                             </div>
                           </div>
@@ -922,10 +918,10 @@ const AnalyticsDashboard = () => {
                           <div className="flex items-center justify-end">
                             <button
                               onClick={() => generateMentorshipPlan(student)}
-                              className={`px-5 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${
+                              className={`px-5 py-3 rounded-md font-bold text-sm transition-all flex items-center gap-2  ${
                                 student.riskLevel === 'high'
-                                  ? 'bg-red-500 text-white shadow-red-500/10 hover:bg-red-600'
-                                  : 'bg-amber-500 text-white shadow-amber-500/10 hover:bg-amber-600'
+                                  ? 'bg-red-500 text-foreground shadow-red-500/10 hover:bg-red-600'
+                                  : 'bg-amber-500 text-foreground shadow-amber-500/10 hover:bg-amber-600'
                               }`}
                             >
                               <Mail size={16} /> Mentorship Plan
@@ -936,15 +932,15 @@ const AnalyticsDashboard = () => {
                     </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
-                      <ShieldAlert size={48} className="mx-auto mb-4 text-emerald-400/30" />
-                      <p className="font-semibold text-emerald-400">All students are on track!</p>
+                      <ShieldAlert size={48} className="mx-auto mb-4 text-success/30" />
+                      <p className="font-semibold text-success">All students are on track!</p>
                       <p className="text-sm mt-1">No students currently fall below performance or attendance warning criteria.</p>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              <div className="text-center py-12 text-muted-foreground glass-morphism rounded-3xl">
+              <div className="text-center py-12 text-muted-foreground glass-morphism rounded-md">
                 <AlertTriangle size={48} className="mx-auto mb-4 opacity-20" />
                 <p className="font-medium">Failed to load at-risk dashboard analytics data.</p>
               </div>
@@ -957,7 +953,7 @@ const AnalyticsDashboard = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                  className="fixed inset-0 bg-secondary backdrop-blur-sm z-50 flex items-center justify-center p-4"
                 >
                   <motion.div
                     initial={{ scale: 0.95, y: 20 }}
@@ -978,9 +974,7 @@ const AnalyticsDashboard = () => {
                         <button
                           onClick={() => setSelectedStudent(null)}
                           className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          ✕
-                        </button>
+                        ></button>
                       </div>
 
                       {planLoading ? (
@@ -998,7 +992,7 @@ const AnalyticsDashboard = () => {
                               type="text"
                               value={emailSubject}
                               onChange={(e) => setEmailSubject(e.target.value)}
-                              className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
+                              className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
                             />
                           </div>
 
@@ -1009,7 +1003,7 @@ const AnalyticsDashboard = () => {
                               rows={10}
                               value={emailContent}
                               onChange={(e) => setEmailContent(e.target.value)}
-                              className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
+                              className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-md outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
                             />
                           </div>
 
@@ -1019,7 +1013,7 @@ const AnalyticsDashboard = () => {
                               <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Recommended Action Steps</span>
                               <div className="space-y-1.5">
                                 {mentorshipPlan.mentorshipActionSteps.map((step, idx) => (
-                                  <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-foreground bg-background/25 border border-border/30 rounded-xl p-3">
+                                  <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-foreground bg-background/25 border border-border/30 rounded-md p-3">
                                     <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 font-bold">
                                       {idx + 1}
                                     </span>
@@ -1039,13 +1033,13 @@ const AnalyticsDashboard = () => {
                       <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
                         <button
                           onClick={() => setSelectedStudent(null)}
-                          className="px-5 py-3 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
+                          className="px-5 py-3 rounded-md bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={handleCopy}
-                          className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
+                          className="px-5 py-3 rounded-md bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-primary/25"
                         >
                           {copied ? <Check size={16} /> : <Copy size={16} />}
                           {copied ? 'Copied Draft!' : 'Copy Draft & Steps'}
@@ -1087,7 +1081,7 @@ const AnalyticsDashboard = () => {
                           type="text"
                           value={placementFilters.companyName}
                           onChange={e => setPlacementFilters(prev => ({ ...prev, companyName: e.target.value }))}
-                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
+                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
                         />
                       </div>
                       <div>
@@ -1096,7 +1090,7 @@ const AnalyticsDashboard = () => {
                           type="text"
                           value={placementFilters.jobRole}
                           onChange={e => setPlacementFilters(prev => ({ ...prev, jobRole: e.target.value }))}
-                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
+                          className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold"
                         />
                       </div>
                       <div>
@@ -1104,7 +1098,7 @@ const AnalyticsDashboard = () => {
                         <select
                           value={placementFilters.classroom}
                           onChange={e => setPlacementFilters(prev => ({ ...prev, classroom: e.target.value }))}
-                          className="w-full bg-[#121217] border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold text-white"
+                          className="w-full bg-card border border-border/50 text-foreground px-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 text-xs font-semibold text-foreground"
                         >
                           <option value="all">All Classrooms</option>
                           {[...new Set(placementStudents.map(s => s.classroom).filter(Boolean))].map(c => (
@@ -1196,7 +1190,7 @@ const AnalyticsDashboard = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="glass-morphism p-6 flex items-center justify-between">
                         <div>
-                          <span className="text-3xl font-black text-foreground">{eligible} / {placementStudents.length}</span>
+                          <span className="text-3xl font-semibold text-foreground">{eligible} / {placementStudents.length}</span>
                           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Eligible Candidates</p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
@@ -1205,19 +1199,19 @@ const AnalyticsDashboard = () => {
                       </div>
                       <div className="glass-morphism p-6 flex items-center justify-between">
                         <div>
-                          <span className="text-3xl font-black text-emerald-400">{pct}%</span>
+                          <span className="text-3xl font-semibold text-success">{pct}%</span>
                           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Match Ratio</p>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-success flex items-center justify-center">
                           <TrendingUp size={24} />
                         </div>
                       </div>
                       <div className="glass-morphism p-6 flex items-center justify-between">
                         <div>
-                          <span className="text-3xl font-black text-indigo-400">{avgReadiness}%</span>
+                          <span className="text-3xl font-semibold text-[hsl(var(--primary-accent))]">{avgReadiness}%</span>
                           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Pool Avg Readiness</p>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-[hsl(var(--primary-accent))] flex items-center justify-center">
                           <Trophy size={24} />
                         </div>
                       </div>
@@ -1226,7 +1220,7 @@ const AnalyticsDashboard = () => {
                 })()}
 
                 {/* Main Filter Action Bar */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-secondary/20 p-4 rounded-2xl border border-border/50">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-secondary/20 p-4 rounded-md border border-border/50">
                   <div className="relative w-full sm:w-72">
                     <Search className="absolute left-3.5 top-3.5 text-muted-foreground" size={16} />
                     <input
@@ -1234,21 +1228,21 @@ const AnalyticsDashboard = () => {
                       placeholder="Search candidates by name..."
                       value={placementSearch}
                       onChange={e => setPlacementSearch(e.target.value)}
-                      className="w-full bg-[#121217]/50 border border-border/40 text-foreground pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 text-xs font-semibold"
+                      className="w-full bg-card border border-border/40 text-foreground pl-10 pr-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary/20 text-xs font-semibold"
                     />
                   </div>
                   <div className="flex gap-3 w-full sm:w-auto">
                     <button
                       onClick={() => exportPlacementCSV(filteredPlacementPool)}
                       disabled={filteredPlacementPool.length === 0}
-                      className="flex-1 sm:flex-none px-4 py-2.5 bg-secondary text-foreground hover:bg-secondary/80 border border-border/50 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2"
+                      className="flex-1 sm:flex-none px-4 py-2.5 bg-secondary text-foreground hover:bg-secondary/80 border border-border/50 rounded-md text-xs font-extrabold transition-all flex items-center justify-center gap-2"
                     >
                       <Download size={14} /> Export CSV for Recruiters
                     </button>
                     <button
                       onClick={generatePlacementInvite}
                       disabled={filteredPlacementPool.length === 0 || inviteLoading}
-                      className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg shadow-primary/10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2"
+                      className="flex-1 sm:flex-none px-5 py-2.5 bg-primary text-primary-foreground hover:bg-primary/95 shadow-primary/10 rounded-md text-xs font-extrabold transition-all flex items-center justify-center gap-2"
                     >
                       {inviteLoading ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} />}
                       AI Mass Invite
@@ -1260,7 +1254,7 @@ const AnalyticsDashboard = () => {
                 <div className="glass-morphism overflow-x-auto">
                   <table className="w-full text-xs text-left">
                     <thead>
-                      <tr className="border-b border-border/50 bg-secondary/10 text-white">
+                      <tr className="border-b border-border/50 bg-secondary/10 text-foreground">
                         <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Candidate Name</th>
                         <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Classroom</th>
                         <th className="py-4 px-4 font-bold text-muted-foreground uppercase tracking-wider">Readiness</th>
@@ -1292,17 +1286,17 @@ const AnalyticsDashboard = () => {
                                 {student.classroom}
                               </span>
                             </td>
-                            <td className="py-4 px-4 font-black">
+                            <td className="py-4 px-4 font-semibold">
                               <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold ${
-                                student.readinessScore >= 75 ? 'text-emerald-400 bg-emerald-500/10' :
-                                student.readinessScore >= 50 ? 'text-amber-400 bg-amber-500/10' : 'text-red-400 bg-red-500/10'
+                                student.readinessScore >= 75 ? 'text-success bg-emerald-500/10' :
+                                student.readinessScore >= 50 ? 'text-warning bg-amber-500/10' : 'text-destructive bg-red-500/10'
                               }`}>
                                 {student.readinessScore}%
                               </span>
                             </td>
                             <td className="py-4 px-4 font-extrabold text-pink-400">{student.resumeScore}/100</td>
-                            <td className="py-4 px-4 font-black text-amber-500">{student.dsaSolved} solved</td>
-                            <td className="py-4 px-4 font-extrabold text-white">{student.attendance}%</td>
+                            <td className="py-4 px-4 font-semibold text-amber-500">{student.dsaSolved} solved</td>
+                            <td className="py-4 px-4 font-extrabold text-foreground">{student.attendance}%</td>
                             <td className="py-4 px-4 text-right">
                               <button
                                 onClick={() => {
@@ -1310,7 +1304,7 @@ const AnalyticsDashboard = () => {
                                   navigator.clipboard.writeText(text);
                                   alert(`Quick invite copied to clipboard for ${student.name}!`);
                                 }}
-                                className="px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/50 rounded-lg text-[10px] font-extrabold text-white transition-all"
+                                className="px-3 py-1.5 bg-secondary/50 hover:bg-secondary border border-border/50 rounded-lg text-[10px] font-extrabold text-foreground transition-all"
                               >
                                 Copy Text
                               </button>
@@ -1337,7 +1331,7 @@ const AnalyticsDashboard = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                      className="fixed inset-0 bg-secondary backdrop-blur-sm z-50 flex items-center justify-center p-4"
                     >
                       <motion.div
                         initial={{ scale: 0.95, y: 20 }}
@@ -1358,9 +1352,7 @@ const AnalyticsDashboard = () => {
                             <button
                               onClick={() => setInviteModalOpen(false)}
                               className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                              ✕
-                            </button>
+                            ></button>
                           </div>
 
                           <div className="space-y-6">
@@ -1370,7 +1362,7 @@ const AnalyticsDashboard = () => {
                                 type="text"
                                 value={inviteSubject}
                                 onChange={(e) => setInviteSubject(e.target.value)}
-                                className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
+                                className="w-full bg-secondary/30 border border-border/50 text-foreground px-4 py-2.5 rounded-md outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-bold text-sm transition-all"
                               />
                             </div>
 
@@ -1380,7 +1372,7 @@ const AnalyticsDashboard = () => {
                                 rows={12}
                                 value={inviteContent}
                                 onChange={(e) => setInviteContent(e.target.value)}
-                                className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
+                                className="w-full bg-secondary/30 border border-border/50 text-foreground p-4 rounded-md outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all resize-none font-medium leading-relaxed"
                               />
                             </div>
                           </div>
@@ -1389,7 +1381,7 @@ const AnalyticsDashboard = () => {
                         <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
                           <button
                             onClick={() => setInviteModalOpen(false)}
-                            className="px-5 py-3 rounded-xl bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
+                            className="px-5 py-3 rounded-md bg-secondary/50 hover:bg-secondary text-foreground text-sm font-bold transition-all"
                           >
                             Close
                           </button>
@@ -1399,7 +1391,7 @@ const AnalyticsDashboard = () => {
                               setInviteCopied(true);
                               setTimeout(() => setInviteCopied(false), 2000);
                             }}
-                            className="px-5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/25"
+                            className="px-5 py-3 rounded-md bg-primary text-primary-foreground text-sm font-bold transition-all flex items-center gap-2 shadow-primary/25"
                           >
                             {inviteCopied ? <Check size={16} /> : <Copy size={16} />}
                             {inviteCopied ? 'Copied Invitation!' : 'Copy Subject & Body'}
@@ -1433,7 +1425,7 @@ const AnalyticsDashboard = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-secondary backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
@@ -1454,19 +1446,17 @@ const AnalyticsDashboard = () => {
                   <button
                     onClick={() => setBlueprintModalOpen(false)}
                     className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    ✕
-                  </button>
+                  ></button>
                 </div>
 
                 <div className="space-y-6">
                   {/* Persona Header Context */}
-                  <div className="bg-primary/5 border border-primary/25 p-4 rounded-xl">
+                  <div className="bg-primary/5 border border-primary/25 p-4 rounded-md">
                     <h4 className="text-xs font-bold text-primary uppercase tracking-wider mb-1">
-                      {user?.role === 'principal' && '🏛️ Institutional Strategic Impact Audit'}
-                      {user?.role === 'placement' && '💼 Recruiter Benchmarking & Sourcing Audit'}
-                      {user?.role === 'hod' && '🎓 Curricular Integration & Compliance Audit'}
-                      {user?.role === 'faculty' && '👥 Student Mentorship & Engagement Targets'}
+                      {user?.role === 'principal' && 'Institutional Strategic Impact Audit'}
+                      {user?.role === 'placement' && 'Recruiter Benchmarking & Sourcing Audit'}
+                      {user?.role === 'hod' && 'Curricular Integration & Compliance Audit'}
+                      {user?.role === 'faculty' && 'Student Mentorship & Engagement Targets'}
                     </h4>
                     <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
                       {user?.role === 'principal' && 'This blueprint details how student metrics translate into corporate placement criteria. The composite Readiness Score represents the students aggregate progress across academic, coding, and behavioral skill modules.'}
@@ -1478,60 +1468,60 @@ const AnalyticsDashboard = () => {
 
                   {/* Module List Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-sm text-foreground">📚 Tech Fundamentals Quiz</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-primary/20 text-primary">15% Weight</span>
+                        <span className="font-extrabold text-sm text-foreground">Tech Fundamentals Quiz</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-primary/20 text-primary">15% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         Measures student comprehension in technical subject quizzes. It is calculated by averaging all test percentages completed within chapters.
                       </p>
                     </div>
 
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-sm text-foreground">📄 AI Resume Grading</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-pink-500/20 text-pink-400">15% Weight</span>
+                        <span className="font-extrabold text-sm text-foreground">AI Resume Grading</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-pink-500/20 text-pink-400">15% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         Evaluates candidate resume layout, ATS keyword matches, formatting, and structural scores out of 100.
                       </p>
                     </div>
 
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-sm text-foreground">💻 Algorithmic DSA Problems</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">15% Weight</span>
+                        <span className="font-extrabold text-sm text-foreground">Algorithmic DSA Problems</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-warning">15% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         Tracks problem-solving count on the coding deck. Target is calibrated at 50 solved medium/hard level questions for full score.
                       </p>
                     </div>
 
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
                         <span className="font-extrabold text-sm text-foreground">⏱️ Workspace Consistency</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400">10% Weight</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-[hsl(var(--primary-accent))]">10% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         Focus tracker capturing student active coding duration. A target of 10 study hours per week translates to 100% of this metric.
                       </p>
                     </div>
 
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-sm text-foreground">🎓 Academic Integration</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">10% Weight</span>
+                        <span className="font-extrabold text-sm text-foreground">Academic Integration</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-success">10% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         An aggregate of attendance record and assignment completion rates. Class attendance below 75% triggers critical warning.
                       </p>
                     </div>
 
-                    <div className="bg-secondary/20 p-4 rounded-xl border border-border/30 space-y-2 text-white">
+                    <div className="bg-secondary/20 p-4 rounded-md border border-border/30 space-y-2 text-foreground">
                       <div className="flex justify-between items-center">
-                        <span className="font-extrabold text-sm text-foreground">🗣️ Language & Communication</span>
-                        <span className="text-xs font-black px-2 py-0.5 rounded bg-purple-500/20 text-purple-400">10% Weight</span>
+                        <span className="font-extrabold text-sm text-foreground">Language & Communication</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-purple-500/20 text-[hsl(var(--primary-accent))]">10% Weight</span>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
                         Language assessment points capturing listening, speaking, grammar, and pronunciation. Target is set at 500 cumulative XP.
@@ -1544,7 +1534,7 @@ const AnalyticsDashboard = () => {
               <div className="flex items-center justify-end gap-3 border-t border-border/50 pt-6 mt-6">
                 <button
                   onClick={() => setBlueprintModalOpen(false)}
-                  className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold transition-all shadow-lg shadow-primary/25"
+                  className="px-6 py-2.5 rounded-md bg-primary text-primary-foreground text-xs font-bold transition-all shadow-primary/25"
                 >
                   Understood
                 </button>

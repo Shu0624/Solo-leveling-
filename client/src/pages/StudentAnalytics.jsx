@@ -68,7 +68,7 @@ const StudentAnalytics = () => {
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent animate-pulse" />
+        <div className="w-10 h-10 rounded-md bg-elevated animate-pulse" />
         <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading analytics...</p>
       </div>
     </div>
@@ -181,13 +181,13 @@ const StudentAnalytics = () => {
   const ringColor = readinessScore >= 70 ? '#34d399' : readinessScore >= 40 ? '#fbbf24' : '#f87171';
 
   const TrendIcon = quiz.trend === 'up' ? TrendingUp : quiz.trend === 'down' ? TrendingDown : Minus;
-  const trendColor = quiz.trend === 'up' ? 'text-emerald-400' : quiz.trend === 'down' ? 'text-red-400' : 'text-white/40';
+  const trendColor = quiz.trend === 'up' ? 'text-success' : quiz.trend === 'down' ? 'text-destructive' : 'text-muted-foreground';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in relative">
       {/* Background */}
-      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] -z-10 pointer-events-none" />
-      <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] -z-10 pointer-events-none" />
+      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full hidden -z-10 pointer-events-none" />
+      <div className="absolute bottom-20 right-1/4 w-[400px] h-[400px] bg-accent/5 rounded-full hidden -z-10 pointer-events-none" />
 
       {/* Header */}
       <header className="mb-10">
@@ -214,7 +214,7 @@ const StudentAnalytics = () => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+            <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-md">
               <Flame size={18} className="text-orange-500" />
               <span className="font-bold text-orange-500">{streak.current || 0} day streak</span>
             </div>
@@ -227,13 +227,13 @@ const StudentAnalytics = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 p-5 rounded-3xl bg-gradient-to-r from-primary/10 via-accent/5 to-secondary/15 border border-primary/20 backdrop-blur-lg flex items-start gap-4 shadow-xl shadow-primary/5"
+          className="mb-8 p-5 rounded-md bg-elevated border border-primary/20 backdrop-blur-lg flex items-start gap-4 shadow-primary/5"
         >
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shrink-0 shadow-lg shadow-primary/25">
+          <div className="w-10 h-10 rounded-md bg-elevated flex items-center justify-center text-foreground shrink-0 shadow-primary/25">
             <Sparkles size={20} className="animate-pulse" />
           </div>
           <div>
-            <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
               <span>AI Performance Summary</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
             </h3>
@@ -250,7 +250,7 @@ const StudentAnalytics = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="lg:col-span-4 glass-morphism rounded-3xl p-8 flex flex-col items-center justify-center text-center"
+          className="lg:col-span-4 glass-morphism rounded-md p-8 flex flex-col items-center justify-center text-center"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-6">Interview Readiness</h3>
           <div className="relative w-48 h-48 mb-4">
@@ -263,7 +263,7 @@ const StudentAnalytics = () => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-5xl font-black" style={{ color: ringColor }}>{readinessScore}</span>
+              <span className="text-5xl font-semibold" style={{ color: ringColor }}>{readinessScore}</span>
               <span className="text-xs text-muted-foreground font-medium mt-1">/ 100</span>
             </div>
           </div>
@@ -275,21 +275,21 @@ const StudentAnalytics = () => {
         {/* Quick Stats Grid */}
         <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Quiz Avg', value: `${quiz.avgScore}%`, sub: `${quiz.total} attempts`, icon: <Brain size={20} />, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
+            { label: 'Quiz Avg', value: `${quiz.avgScore}%`, sub: `${quiz.total} attempts`, icon: <Brain size={20} />, color: 'text-[hsl(var(--primary-accent))]', bg: 'bg-indigo-500/10 border-indigo-500/20' },
             { label: 'Interview Score', value: interview.avgScore > 0 ? `${interview.avgScore}%` : '—', sub: `${interview.total} sessions`, icon: <Target size={20} />, color: 'text-pink-400', bg: 'bg-pink-500/10 border-pink-500/20' },
-            { label: 'Resume ATS', value: resume.uploaded ? `${resume.score}/100` : 'Not uploaded', sub: resume.uploaded ? (resume.score >= 70 ? 'Strong' : 'Needs work') : 'Upload now', icon: <FileText size={20} />, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-            { label: 'Focus Time', value: formatDuration(focus.overall?.totalSeconds || 0), sub: `${focus.overall?.sessions || 0} sessions`, icon: <Clock size={20} />, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-            { label: 'Best Quiz', value: `${quiz.bestScore}%`, sub: 'Highest score', icon: <Award size={20} />, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+            { label: 'Resume ATS', value: resume.uploaded ? `${resume.score}/100` : 'Not uploaded', sub: resume.uploaded ? (resume.score >= 70 ? 'Strong' : 'Needs work') : 'Upload now', icon: <FileText size={20} />, color: 'text-success', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+            { label: 'Focus Time', value: formatDuration(focus.overall?.totalSeconds || 0), sub: `${focus.overall?.sessions || 0} sessions`, icon: <Clock size={20} />, color: 'text-warning', bg: 'bg-amber-500/10 border-amber-500/20' },
+            { label: 'Best Quiz', value: `${quiz.bestScore}%`, sub: 'Highest score', icon: <Award size={20} />, color: 'text-warning', bg: 'bg-yellow-500/10 border-yellow-500/20' },
             { label: 'This Week', value: formatDuration(focus.weekly?.totalSeconds || 0), sub: `${focus.weekly?.sessions || 0} sessions`, icon: <BarChart3 size={20} />, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-            { label: 'Modules', value: `${modules.started}/${modules.total}`, sub: `${modules.overallProgress}% complete`, icon: <BookOpen size={20} />, color: 'text-violet-400', bg: 'bg-violet-500/10 border-violet-500/20' },
-            { label: 'Quiz Trend', value: quiz.trend === 'up' ? 'Improving' : quiz.trend === 'down' ? 'Declining' : 'Steady', sub: 'vs previous attempts', icon: <TrendIcon size={20} />, color: trendColor, bg: quiz.trend === 'up' ? 'bg-emerald-500/10 border-emerald-500/20' : quiz.trend === 'down' ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/10' },
+            { label: 'Modules', value: `${modules.started}/${modules.total}`, sub: `${modules.overallProgress}% complete`, icon: <BookOpen size={20} />, color: 'text-[hsl(var(--primary-accent))]', bg: 'bg-violet-500/10 border-violet-500/20' },
+            { label: 'Quiz Trend', value: quiz.trend === 'up' ? 'Improving' : quiz.trend === 'down' ? 'Declining' : 'Steady', sub: 'vs previous attempts', icon: <TrendIcon size={20} />, color: trendColor, bg: quiz.trend === 'up' ? 'bg-emerald-500/10 border-emerald-500/20' : quiz.trend === 'down' ? 'bg-red-500/10 border-red-500/20' : 'bg-secondary border-border' },
           ].map((stat, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className={`rounded-2xl p-4 border ${stat.bg} backdrop-blur-md`}
+              className={`rounded-md p-4 border ${stat.bg} `}
             >
               <div className={`${stat.color} mb-2`}>{stat.icon}</div>
               <div className="text-xl font-extrabold text-foreground">{stat.value}</div>
@@ -307,11 +307,11 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Focus Time History</h3>
-            <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 shadow-inner">
+            <div className="flex flex-wrap items-center gap-1 bg-secondary p-1 rounded-md border border-border">
               {[
                 { value: '7days', label: '7D' },
                 { value: 'thisMonth', label: 'This Month' },
@@ -324,7 +324,7 @@ const StudentAnalytics = () => {
                   onClick={() => setActiveRange(opt.value)}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all duration-300 ${
                     activeRange === opt.value
-                      ? 'bg-primary text-white shadow-[0_0_8px_rgba(59,130,246,0.3)]'
+                      ? 'bg-primary text-foreground '
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -348,7 +348,7 @@ const StudentAnalytics = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-xl">No focus data yet</div>
+              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-md">No focus data yet</div>
             )}
           </div>
         </motion.div>
@@ -358,7 +358,7 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Quiz Score Trend</h3>
           <div className="h-[220px]">
@@ -372,7 +372,7 @@ const StudentAnalytics = () => {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-xl">Take a quiz to see trends</div>
+              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-md">Take a quiz to see trends</div>
             )}
           </div>
         </motion.div>
@@ -385,14 +385,14 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Interview Performance by Topic</h3>
           {interviewTopicData.length > 0 ? (
             <div className="space-y-3">
               {interviewTopicData.map((t, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-background/30 border border-border/30">
-                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center flex-shrink-0">
+                <div key={i} className="flex items-center gap-4 p-3 rounded-md bg-background/30 border border-border/30">
+                  <div className="w-10 h-10 rounded-md bg-pink-500/10 text-pink-400 flex items-center justify-center flex-shrink-0">
                     <Target size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -400,7 +400,7 @@ const StudentAnalytics = () => {
                     <div className="text-[10px] text-muted-foreground">{t.sessions} session{t.sessions !== 1 ? 's' : ''}</div>
                   </div>
                   {t.score > 0 && (
-                    <div className={`text-lg font-black ${t.score >= 70 ? 'text-emerald-400' : t.score >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                    <div className={`text-lg font-semibold ${t.score >= 70 ? 'text-success' : t.score >= 40 ? 'text-warning' : 'text-destructive'}`}>
                       {t.score}%
                     </div>
                   )}
@@ -408,7 +408,7 @@ const StudentAnalytics = () => {
               ))}
             </div>
           ) : (
-            <div className="py-12 text-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-xl">
+            <div className="py-12 text-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-md">
               <Target size={32} className="mx-auto mb-3 opacity-30" />
               <p>Start mock interviews to see topic analysis</p>
               <Link to="/interview" className="inline-flex items-center gap-1 mt-3 text-primary text-xs font-medium hover:underline">
@@ -423,7 +423,7 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Study Time by Category</h3>
           <div className="h-[250px]">
@@ -440,7 +440,7 @@ const StudentAnalytics = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-xl">No category data yet</div>
+              <div className="h-full flex items-center justify-center text-muted-foreground/40 text-sm border border-dashed border-border/30 rounded-md">No category data yet</div>
             )}
           </div>
         </motion.div>
@@ -453,13 +453,13 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Resume Analysis</h3>
           {resume.uploaded ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
-                <div className="text-4xl font-black" style={{ color: resume.score >= 70 ? '#34d399' : resume.score >= 40 ? '#fbbf24' : '#f87171' }}>{resume.score}</div>
+              <div className="flex items-center gap-4 p-4 rounded-md bg-elevated border border-emerald-500/20">
+                <div className="text-4xl font-semibold" style={{ color: resume.score >= 70 ? '#34d399' : resume.score >= 40 ? '#fbbf24' : '#f87171' }}>{resume.score}</div>
                 <div>
                   <div className="font-bold text-foreground">ATS Score</div>
                   <div className="text-xs text-muted-foreground">{resume.score >= 70 ? 'Strong resume' : resume.score >= 40 ? 'Room for improvement' : 'Needs significant work'}</div>
@@ -467,10 +467,10 @@ const StudentAnalytics = () => {
               </div>
               {resume.strengths.length > 0 && (
                 <div>
-                  <div className="text-xs font-bold text-emerald-400 mb-2">Strengths</div>
+                  <div className="text-xs font-bold text-success mb-2">Strengths</div>
                   {resume.strengths.map((s, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm text-foreground/80 mb-1">
-                      <CheckCircle2 size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                      <CheckCircle2 size={14} className="text-success mt-0.5 shrink-0" />
                       <span>{s}</span>
                     </div>
                   ))}
@@ -478,10 +478,10 @@ const StudentAnalytics = () => {
               )}
               {resume.weaknesses.length > 0 && (
                 <div>
-                  <div className="text-xs font-bold text-amber-400 mb-2">Areas to Improve</div>
+                  <div className="text-xs font-bold text-warning mb-2">Areas to Improve</div>
                   {resume.weaknesses.map((w, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm text-foreground/80 mb-1">
-                      <AlertCircle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+                      <AlertCircle size={14} className="text-warning mt-0.5 shrink-0" />
                       <span>{w}</span>
                     </div>
                   ))}
@@ -492,7 +492,7 @@ const StudentAnalytics = () => {
               </Link>
             </div>
           ) : (
-            <div className="py-12 text-center border border-dashed border-border/30 rounded-xl">
+            <div className="py-12 text-center border border-dashed border-border/30 rounded-md">
               <FileText size={32} className="mx-auto mb-3 text-muted-foreground/30" />
               <p className="text-muted-foreground/50 text-sm mb-3">Upload your resume to get ATS scoring</p>
               <Link to="/resume" className="inline-flex items-center gap-1 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 transition-all">
@@ -507,20 +507,20 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Module Progress</h3>
           {modules.details.length > 0 ? (
             <div className="space-y-3">
               {modules.details.map((m, i) => (
-                <div key={i} className="p-3 rounded-xl bg-background/30 border border-border/30">
+                <div key={i} className="p-3 rounded-md bg-background/30 border border-border/30">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-foreground">{m.name}</span>
                     <span className="text-xs text-muted-foreground">{m.lessonsCompleted} lessons</span>
                   </div>
                   <div className="w-full h-2 bg-border/30 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500"
+                      className="h-full bg-elevated rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(m.lessonsCompleted * 20, 100)}%` }}
                     />
                   </div>
@@ -531,7 +531,7 @@ const StudentAnalytics = () => {
               </Link>
             </div>
           ) : (
-            <div className="py-12 text-center border border-dashed border-border/30 rounded-xl">
+            <div className="py-12 text-center border border-dashed border-border/30 rounded-md">
               <GraduationCap size={32} className="mx-auto mb-3 text-muted-foreground/30" />
               <p className="text-muted-foreground/50 text-sm mb-3">Start a module to track your learning</p>
                   <Link to="/modules" className="inline-flex items-center gap-1 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 transition-all">
@@ -547,14 +547,14 @@ const StudentAnalytics = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.75 }}
-        className="glass-morphism rounded-3xl p-6 md:p-8 mb-8 relative overflow-hidden"
+        className="glass-morphism rounded-md p-6 md:p-8 mb-8 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 p-8 text-white/5 pointer-events-none">
+        <div className="absolute top-0 right-0 p-8 text-muted-foreground pointer-events-none">
           <Users size={120} />
         </div>
         
         <div className="flex items-center gap-3 mb-6 relative z-10">
-          <div className="w-10 h-10 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-primary/10 text-primary border border-primary/20 rounded-md flex items-center justify-center">
             <Users size={20} />
           </div>
           <div>
@@ -565,7 +565,7 @@ const StudentAnalytics = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
           {/* Quiz benchmark */}
-          <div className="p-5 rounded-2xl bg-background/20 border border-border/30">
+          <div className="p-5 rounded-md bg-background/20 border border-border/30">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-bold text-foreground">Quiz Accuracy</span>
               <span className="text-xs font-bold text-muted-foreground">Target: 85%</span>
@@ -574,9 +574,9 @@ const StudentAnalytics = () => {
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-muted-foreground font-semibold">You</span>
-                  <span className="text-indigo-400 font-extrabold">{quiz.avgScore}%</span>
+                  <span className="text-[hsl(var(--primary-accent))] font-extrabold">{quiz.avgScore}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${quiz.avgScore}%` }} />
                 </div>
               </div>
@@ -585,15 +585,15 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground font-semibold">Class Peer Average</span>
                   <span className="text-muted-foreground font-extrabold">68%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/10 rounded-full" style={{ width: '68%' }} />
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-full bg-secondary rounded-full" style={{ width: '68%' }} />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Interview benchmark */}
-          <div className="p-5 rounded-2xl bg-background/20 border border-border/30">
+          <div className="p-5 rounded-md bg-background/20 border border-border/30">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-bold text-foreground">AI Mock Interview Accuracy</span>
               <span className="text-xs font-bold text-muted-foreground">Target: 80%</span>
@@ -604,7 +604,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground font-semibold">You</span>
                   <span className="text-pink-400 font-extrabold">{interview.avgScore > 0 ? `${interview.avgScore}%` : '0%'}</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-pink-500 rounded-full" style={{ width: `${interview.avgScore}%` }} />
                 </div>
               </div>
@@ -613,15 +613,15 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground font-semibold">Class Peer Average</span>
                   <span className="text-muted-foreground font-extrabold">72%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/10 rounded-full" style={{ width: '72%' }} />
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-full bg-secondary rounded-full" style={{ width: '72%' }} />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Resume benchmark */}
-          <div className="p-5 rounded-2xl bg-background/20 border border-border/30">
+          <div className="p-5 rounded-md bg-background/20 border border-border/30">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-bold text-foreground">Resume ATS Score</span>
               <span className="text-xs font-bold text-muted-foreground">Target: 80/100</span>
@@ -630,9 +630,9 @@ const StudentAnalytics = () => {
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-muted-foreground font-semibold">You</span>
-                  <span className="text-emerald-400 font-extrabold">{resume.uploaded ? `${resume.score}/100` : 'Not Uploaded'}</span>
+                  <span className="text-success font-extrabold">{resume.uploaded ? `${resume.score}/100` : 'Not Uploaded'}</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${resume.uploaded ? resume.score : 0}%` }} />
                 </div>
               </div>
@@ -641,15 +641,15 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground font-semibold">Class Peer Average</span>
                   <span className="text-muted-foreground font-extrabold">65/100</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/10 rounded-full" style={{ width: '65%' }} />
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-full bg-secondary rounded-full" style={{ width: '65%' }} />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Study hours benchmark */}
-          <div className="p-5 rounded-2xl bg-background/20 border border-border/30">
+          <div className="p-5 rounded-md bg-background/20 border border-border/30">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-bold text-foreground">Monthly Focus Duration</span>
               <span className="text-xs font-bold text-muted-foreground">Target: 15 Hours</span>
@@ -658,9 +658,9 @@ const StudentAnalytics = () => {
               <div>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-muted-foreground font-semibold">You</span>
-                  <span className="text-amber-400 font-extrabold">{focus.overall?.totalSeconds ? Math.round(focus.overall.totalSeconds / 3600) : 0} Hours</span>
+                  <span className="text-warning font-extrabold">{focus.overall?.totalSeconds ? Math.round(focus.overall.totalSeconds / 3600) : 0} Hours</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(((focus.overall?.totalSeconds || 0) / 3600) / 15 * 100, 100)}%` }} />
                 </div>
               </div>
@@ -669,8 +669,8 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground font-semibold">Class Peer Average</span>
                   <span className="text-muted-foreground font-extrabold">8.5 Hours</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/10 rounded-full" style={{ width: `${8.5 / 15 * 100}%` }} />
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-full bg-secondary rounded-full" style={{ width: `${8.5 / 15 * 100}%` }} />
                 </div>
               </div>
             </div>
@@ -685,32 +685,32 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.77 }}
-          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+          className="glass-morphism rounded-md p-6 flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-[hsl(var(--primary-accent))] flex items-center justify-center">
                   <Zap size={16} />
                 </div>
                 <h4 className="font-bold text-foreground">DSA Coding Practice</h4>
               </div>
-              <span className="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+              <span className="text-xs bg-indigo-500/10 text-[hsl(var(--primary-accent))] border border-indigo-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
                 {dsaStats.platform}
               </span>
             </div>
             
             <div className="grid grid-cols-3 gap-2 text-center mb-4">
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
-                <div className="text-lg font-bold text-emerald-400">{dsaStats.easySolved}</div>
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5">
+                <div className="text-lg font-bold text-success">{dsaStats.easySolved}</div>
                 <div className="text-[10px] text-muted-foreground font-semibold uppercase">Easy</div>
               </div>
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
-                <div className="text-lg font-bold text-amber-400">{dsaStats.mediumSolved}</div>
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5">
+                <div className="text-lg font-bold text-warning">{dsaStats.mediumSolved}</div>
                 <div className="text-[10px] text-muted-foreground font-semibold uppercase">Medium</div>
               </div>
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
-                <div className="text-lg font-bold text-red-400">{dsaStats.hardSolved}</div>
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5">
+                <div className="text-lg font-bold text-destructive">{dsaStats.hardSolved}</div>
                 <div className="text-[10px] text-muted-foreground font-semibold uppercase">Hard</div>
               </div>
             </div>
@@ -721,7 +721,7 @@ const StudentAnalytics = () => {
                 <span className="text-muted-foreground">Total Solved</span>
                 <span className="text-foreground">{dsaStats.totalSolved} / 50 Problems</span>
               </div>
-              <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden flex">
+              <div className="w-full h-2.5 bg-secondary rounded-full overflow-hidden flex">
                 <div className="bg-emerald-500 h-full" style={{ width: `${Math.min((dsaStats.easySolved / 50) * 100, 100)}%` }} />
                 <div className="bg-amber-500 h-full" style={{ width: `${Math.min((dsaStats.mediumSolved / 50) * 100, 100)}%` }} />
                 <div className="bg-red-500 h-full" style={{ width: `${Math.min((dsaStats.hardSolved / 50) * 100, 100)}%` }} />
@@ -756,7 +756,7 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.79 }}
-          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+          className="glass-morphism rounded-md p-6 flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -772,12 +772,12 @@ const StudentAnalytics = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="p-4 rounded-2xl bg-background/20 border border-border/30 text-center">
-                <div className="text-2xl font-black text-pink-400">{languageStats.eloRating}</div>
+              <div className="p-4 rounded-md bg-background/20 border border-border/30 text-center">
+                <div className="text-2xl font-semibold text-pink-400">{languageStats.eloRating}</div>
                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1">ELO Rating</div>
               </div>
-              <div className="p-4 rounded-2xl bg-background/20 border border-border/30 text-center">
-                <div className="text-2xl font-black text-indigo-400">{languageStats.totalXP}</div>
+              <div className="p-4 rounded-md bg-background/20 border border-border/30 text-center">
+                <div className="text-2xl font-semibold text-[hsl(var(--primary-accent))]">{languageStats.totalXP}</div>
                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1">Total XP</div>
               </div>
             </div>
@@ -800,17 +800,17 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.81 }}
-          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+          className="glass-morphism rounded-md p-6 flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-success flex items-center justify-center">
                   <Target size={16} />
                 </div>
                 <h4 className="font-bold text-foreground">Target Role Roadmap</h4>
               </div>
-              <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
+              <span className="text-xs bg-emerald-500/10 text-success border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
                 {roadmapStats.experienceLevel}
               </span>
             </div>
@@ -833,7 +833,7 @@ const StudentAnalytics = () => {
                     {roadmapStats.completedTasks} / {roadmapStats.totalTasks} Tasks
                   </span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full"
                     style={{
@@ -852,7 +852,7 @@ const StudentAnalytics = () => {
           <div className="flex items-center justify-between border-t border-border/30 pt-4 mt-auto">
             <div className="text-xs">
               <span className="text-muted-foreground font-medium">Estimated Readiness:</span>{' '}
-              <strong className="text-emerald-400">{roadmapStats.estimatedReadiness}</strong>
+              <strong className="text-success">{roadmapStats.estimatedReadiness}</strong>
             </div>
             <Link to="/roadmap" className="text-primary text-xs font-semibold hover:underline flex items-center gap-0.5">
               Review Gap Analysis <ChevronRight size={14} />
@@ -865,12 +865,12 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.83 }}
-          className="glass-morphism rounded-3xl p-6 flex flex-col justify-between"
+          className="glass-morphism rounded-md p-6 flex flex-col justify-between"
         >
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-warning flex items-center justify-center">
                   <GraduationCap size={16} />
                 </div>
                 <h4 className="font-bold text-foreground">Classroom Academics</h4>
@@ -882,11 +882,11 @@ const StudentAnalytics = () => {
               <div>
                 <div className="flex justify-between items-center text-xs font-semibold mb-1">
                   <span className="text-muted-foreground">Class Attendance</span>
-                  <span className={`font-bold ${academicsStats.attendance >= 75 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <span className={`font-bold ${academicsStats.attendance >= 75 ? 'text-success' : 'text-destructive'}`}>
                     {academicsStats.attendance}%
                   </span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${academicsStats.attendance >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`}
                     style={{ width: `${academicsStats.attendance}%` }}
@@ -901,9 +901,9 @@ const StudentAnalytics = () => {
               <div>
                 <div className="flex justify-between items-center text-xs font-semibold mb-1">
                   <span className="text-muted-foreground">Assignment Submission Rate</span>
-                  <span className="text-indigo-400 font-bold">{academicsStats.assignmentCompletion}%</span>
+                  <span className="text-[hsl(var(--primary-accent))] font-bold">{academicsStats.assignmentCompletion}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${academicsStats.assignmentCompletion}%` }} />
                 </div>
                 <div className="text-[10px] text-muted-foreground/60 mt-0.5">
@@ -932,14 +932,14 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-md flex items-center justify-center">
               <Trophy size={20} />
             </div>
             <div>
-              <h3 className="font-black text-foreground">💼 Placement Success Analytics</h3>
+              <h3 className="font-semibold text-foreground">Placement Success Analytics</h3>
               <p className="text-xs text-muted-foreground">Comprehensive career readiness and eligibility report</p>
             </div>
           </div>
@@ -947,14 +947,14 @@ const StudentAnalytics = () => {
           <div className="space-y-5">
             {/* Package Prediction & Probabilities */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-pink-500/5 border border-pink-500/10">
+              <div className="p-4 rounded-md bg-pink-500/5 border border-pink-500/10">
                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider animate-pulse">Package Prediction Range</div>
-                <div className="text-xl font-black text-pink-400 mt-1">{placementEnriched.packagePredictionRange}</div>
+                <div className="text-xl font-semibold text-pink-400 mt-1">{placementEnriched.packagePredictionRange}</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">Based on resume, skills, and coding ELO</div>
               </div>
-              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <div className="p-4 rounded-md bg-emerald-500/5 border border-emerald-500/10">
                 <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Placement Probability</div>
-                <div className="text-xl font-black text-emerald-400 mt-1">{placementEnriched.placementProbability}%</div>
+                <div className="text-xl font-semibold text-success mt-1">{placementEnriched.placementProbability}%</div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">Estimated hiring success chance</div>
               </div>
             </div>
@@ -966,7 +966,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground">Overall Readiness Score</span>
                   <span className="text-foreground font-bold">{placementEnriched.readinessScore}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-pink-500 rounded-full" style={{ width: `${placementEnriched.readinessScore}%` }} />
                 </div>
               </div>
@@ -976,7 +976,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground">Coding Performance Rating</span>
                   <span className="text-foreground font-bold">{placementEnriched.codingScore} / 100</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${placementEnriched.codingScore}%` }} />
                 </div>
               </div>
@@ -986,7 +986,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground">Aptitude & Logical Progress</span>
                   <span className="text-foreground font-bold">{placementEnriched.aptitudeScore} / 100</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full" style={{ width: `${placementEnriched.aptitudeScore}%` }} />
                 </div>
               </div>
@@ -994,19 +994,19 @@ const StudentAnalytics = () => {
 
             {/* Comm rating, ResumeATS, Internship */}
             <div className="grid grid-cols-3 gap-2 py-2 text-center">
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
-                <div className="text-sm font-black text-foreground flex items-center justify-center gap-1">
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5">
+                <div className="text-sm font-semibold text-foreground flex items-center justify-center gap-1">
                   <span>{placementEnriched.communicationRating}</span>
-                  <span className="text-yellow-400">★</span>
+                  <span className="text-warning">★</span>
                 </div>
                 <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Communication</div>
               </div>
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5">
-                <div className="text-sm font-black text-emerald-400">{placementEnriched.resumeScore}/100</div>
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5">
+                <div className="text-sm font-semibold text-success">{placementEnriched.resumeScore}/100</div>
                 <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Resume Score</div>
               </div>
-              <div className="bg-background/20 border border-border/30 rounded-xl p-2.5 flex flex-col justify-center items-center">
-                <div className="text-xs font-extrabold text-indigo-400 truncate w-full" title={placementEnriched.internship}>{placementEnriched.internship !== 'None' ? 'Yes' : 'None'}</div>
+              <div className="bg-background/20 border border-border/30 rounded-md p-2.5 flex flex-col justify-center items-center">
+                <div className="text-xs font-extrabold text-[hsl(var(--primary-accent))] truncate w-full" title={placementEnriched.internship}>{placementEnriched.internship !== 'None' ? 'Yes' : 'None'}</div>
                 <div className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">Internship</div>
               </div>
             </div>
@@ -1016,7 +1016,7 @@ const StudentAnalytics = () => {
               <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Company Eligibility Tracker</div>
               <div className="flex flex-wrap gap-1.5">
                 {placementEnriched.eligibleCompanies && placementEnriched.eligibleCompanies.map((company, idx) => (
-                  <span key={idx} className="px-2.5 py-1 bg-secondary/40 text-foreground border border-border/50 text-[10px] font-black rounded-lg">
+                  <span key={idx} className="px-2.5 py-1 bg-secondary/40 text-foreground border border-border/50 text-[10px] font-semibold rounded-lg">
                     {company}
                   </span>
                 ))}
@@ -1025,7 +1025,7 @@ const StudentAnalytics = () => {
 
             {/* Certifications & Intern details */}
             {placementEnriched.internship !== 'None' && (
-              <div className="p-3 bg-secondary/10 border border-border/20 rounded-xl text-xs">
+              <div className="p-3 bg-secondary/10 border border-border/20 rounded-md text-xs">
                 <span className="font-bold text-muted-foreground block mb-0.5">Active Experience:</span>
                 <span className="font-medium text-foreground">{placementEnriched.internship}</span>
               </div>
@@ -1038,14 +1038,14 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.75 }}
-          className="glass-morphism rounded-3xl p-6"
+          className="glass-morphism rounded-md p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-indigo-500/10 text-[hsl(var(--primary-accent))] border border-indigo-500/20 rounded-md flex items-center justify-center">
               <GraduationCap size={20} />
             </div>
             <div>
-              <h3 className="font-black text-foreground">🎓 Academic Performance Analytics</h3>
+              <h3 className="font-semibold text-foreground">Academic Performance Analytics</h3>
               <p className="text-xs text-muted-foreground">Detailed university GPA and classroom standing</p>
             </div>
           </div>
@@ -1053,20 +1053,20 @@ const StudentAnalytics = () => {
           <div className="space-y-5">
             {/* CGPA, Ranking, Backlog Risk */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl text-center">
-                <div className="text-2xl font-black text-indigo-400">{academicEnriched.cgpa}</div>
+              <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-md text-center">
+                <div className="text-2xl font-semibold text-[hsl(var(--primary-accent))]">{academicEnriched.cgpa}</div>
                 <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Current CGPA</div>
               </div>
-              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-2xl text-center flex flex-col justify-center">
-                <div className="text-xs font-black text-amber-400">{academicEnriched.academicRanking}</div>
+              <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-md text-center flex flex-col justify-center">
+                <div className="text-xs font-semibold text-warning">{academicEnriched.academicRanking}</div>
                 <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Class Standing</div>
               </div>
-              <div className={`p-3 rounded-2xl text-center border flex flex-col justify-center ${
-                academicEnriched.backlogRisk === 'HIGH' ? 'bg-red-500/15 border-red-500/20 text-red-400' :
-                academicEnriched.backlogRisk === 'MEDIUM' ? 'bg-amber-500/15 border-amber-500/20 text-amber-400' :
-                'bg-emerald-500/15 border-emerald-500/20 text-emerald-400'
+              <div className={`p-3 rounded-md text-center border flex flex-col justify-center ${
+                academicEnriched.backlogRisk === 'HIGH' ? 'bg-red-500/15 border-red-500/20 text-destructive' :
+                academicEnriched.backlogRisk === 'MEDIUM' ? 'bg-amber-500/15 border-amber-500/20 text-warning' :
+                'bg-emerald-500/15 border-emerald-500/20 text-success'
               }`}>
-                <div className="text-xs font-black">{academicEnriched.backlogRisk} RISK</div>
+                <div className="text-xs font-semibold">{academicEnriched.backlogRisk} RISK</div>
                 <div className="text-[9px] text-muted-foreground font-bold uppercase mt-1">Backlog Pred</div>
               </div>
             </div>
@@ -1078,7 +1078,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground">Class Attendance Rate</span>
                   <span className="text-foreground font-bold">{academicEnriched.attendance}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className={`h-full ${academicEnriched.attendance >= 75 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${academicEnriched.attendance}%` }} />
                 </div>
               </div>
@@ -1087,7 +1087,7 @@ const StudentAnalytics = () => {
                   <span className="text-muted-foreground">Degree Credit Completion</span>
                   <span className="text-foreground font-bold">{academicEnriched.creditsCompleted} Credits</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
                   <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(academicEnriched.creditsCompleted / 130) * 100}%` }} />
                 </div>
               </div>
@@ -1098,9 +1098,9 @@ const StudentAnalytics = () => {
               <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Subject Benchmarking & Performance</div>
               <div className="space-y-2">
                 {academicEnriched.subjectPerformance && academicEnriched.subjectPerformance.map((subj, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-xs bg-background/20 border border-border/30 rounded-xl p-2">
+                  <div key={idx} className="flex items-center justify-between text-xs bg-background/20 border border-border/30 rounded-md p-2">
                     <span className="font-semibold text-foreground">{subj.subject}</span>
-                    <span className={`font-black ${subj.score >= 80 ? 'text-emerald-400' : subj.score >= 60 ? 'text-amber-400' : 'text-red-400'}`}>{subj.score}%</span>
+                    <span className={`font-semibold ${subj.score >= 80 ? 'text-success' : subj.score >= 60 ? 'text-warning' : 'text-destructive'}`}>{subj.score}%</span>
                   </div>
                 ))}
               </div>
@@ -1130,10 +1130,10 @@ const StudentAnalytics = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="glass-morphism rounded-3xl p-6 mb-8"
+          className="glass-morphism rounded-md p-6 mb-8"
         >
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-amber-500/10 text-warning border border-amber-500/20 rounded-md flex items-center justify-center">
               <Lightbulb size={20} />
             </div>
             <div>
@@ -1143,8 +1143,8 @@ const StudentAnalytics = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {recommendations.map((r, i) => (
-              <div key={i} className="flex items-start gap-3 p-4 rounded-xl bg-background/30 border border-border/30 hover:border-amber-500/20 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+              <div key={i} className="flex items-start gap-3 p-4 rounded-md bg-background/30 border border-border/30 hover:border-amber-500/20 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-warning flex items-center justify-center shrink-0 mt-0.5">
                   {RECC_ICONS[r.type] || <Lightbulb size={16} />}
                 </div>
                 <p className="text-sm text-foreground/80 leading-relaxed">{r.text}</p>

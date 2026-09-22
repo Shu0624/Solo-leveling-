@@ -36,20 +36,19 @@ const Profile = lazy(() => import('./pages/Profile'));
 const LanguageHub = lazy(() => import('./pages/LanguageHub'));
 const ExhibitionDetails = lazy(() => import('./pages/ExhibitionDetails'));
 const HODDashboard = lazy(() => import('./pages/HODDashboard'));
+const Syllabus = lazy(() => import('./pages/Syllabus'));
 
 // Minimal loading fallback
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent animate-pulse" />
-      <p className="text-sm text-muted-foreground font-medium animate-pulse">Loading...</p>
-    </div>
+  <div className="flex items-center justify-center min-h-[60vh]" role="status" aria-live="polite">
+    <p className="text-sm text-muted-foreground">Loading…</p>
   </div>
 );
 
 function App() {
+  // Paper & Ink is a light-first system; dark is the evening reading mode.
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="levelup-ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="levelup-ui-theme">
       <AuthProvider>
         <ActivityProvider>
           <BrowserRouter>
@@ -104,6 +103,7 @@ function App() {
                     <HODDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/syllabus" element={<ProtectedRoute><Syllabus /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </main>

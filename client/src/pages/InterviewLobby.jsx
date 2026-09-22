@@ -161,8 +161,19 @@ const InterviewLobby = () => {
     }
   }, [ttsEnabled, chatStarted]);
 
+  // A peer room is protected by nothing but the unguessability of its id, so
+  // it has to actually be unguessable. `Date.now().toString(36)` was not:
+  // anyone could enumerate the ids minted in a given minute and walk into a
+  // stranger's interview.
+  const generateRoomId = () => {
+    if (window.crypto?.randomUUID) return `room-${window.crypto.randomUUID()}`;
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    return `room-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
+  };
+
   const startPeerRoom = () => {
-    const id = roomId.trim() || `room-${Date.now().toString(36)}`;
+    const id = roomId.trim() || generateRoomId();
     navigate(`/interview/${id}`);
   };
 

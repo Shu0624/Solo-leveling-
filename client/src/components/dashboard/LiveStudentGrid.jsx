@@ -114,15 +114,15 @@ const LiveStudentGrid = ({ classroomCode = 'all' }) => {
   // Status config
   const getStatusConfig = (status, focusPercent) => {
     if (status === 'idle') {
-      return { label: 'Idle', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Pause };
+      return { label: 'Idle', color: 'text-warning', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Pause };
     }
     if (focusPercent < 50) {
-      return { label: 'Distracted', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: Target };
+      return { label: 'Distracted', color: 'text-destructive', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: Target };
     }
     if (status === 'active') {
-      return { label: 'Focused', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Brain };
+      return { label: 'Focused', color: 'text-success', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Brain };
     }
-    return { label: 'Active', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Zap };
+    return { label: 'Active', color: 'text-[hsl(var(--primary-accent))]', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Zap };
   };
 
   return (
@@ -146,10 +146,10 @@ const LiveStudentGrid = ({ classroomCode = 'all' }) => {
               placeholder="Search students..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-secondary/50 border border-border rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+              className="w-full bg-secondary/50 border border-border rounded-md pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-primary/50 transition-colors"
             />
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-secondary/50 border border-border rounded-xl whitespace-nowrap">
+          <div className="flex items-center gap-2 px-4 py-2 bg-secondary/50 border border-border rounded-md whitespace-nowrap">
             <Users size={16} className="text-primary" />
             <span className="font-bold">{activeStudents.size}</span>
             <span className="text-xs text-muted-foreground uppercase tracking-wider">Active</span>
@@ -178,7 +178,7 @@ const LiveStudentGrid = ({ classroomCode = 'all' }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className={`p-4 rounded-2xl border bg-secondary/20 relative overflow-hidden group hover:border-border/80 transition-colors ${status.bg} ${status.border}`}
+                  className={`p-4 rounded-md border bg-secondary/20 relative overflow-hidden group hover:border-border/80 transition-colors ${status.bg} ${status.border}`}
                 >
                   <div className="flex justify-between items-start mb-4 relative z-10">
                     <div className="flex items-center gap-3">
@@ -200,19 +200,19 @@ const LiveStudentGrid = ({ classroomCode = 'all' }) => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 relative z-10">
-                    <div className="bg-background/40 rounded-xl p-2 border border-border/30">
+                    <div className="bg-background/40 rounded-md p-2 border border-border/30">
                       <div className="text-[10px] font-bold text-muted-foreground mb-0.5 flex items-center gap-1">
                         <Clock size={10} /> Duration
                       </div>
-                      <div className="text-sm font-black text-foreground tabular-nums">
+                      <div className="text-sm font-semibold text-foreground tabular-nums">
                         {formatDuration(student.duration)}
                       </div>
                     </div>
-                    <div className="bg-background/40 rounded-xl p-2 border border-border/30">
+                    <div className="bg-background/40 rounded-md p-2 border border-border/30">
                       <div className="text-[10px] font-bold text-muted-foreground mb-0.5 flex items-center gap-1">
                         <Target size={10} /> Focus
                       </div>
-                      <div className={`text-sm font-black tabular-nums ${student.focusPercent >= 80 ? 'text-emerald-400' : student.focusPercent >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
+                      <div className={`text-sm font-semibold tabular-nums ${student.focusPercent >= 80 ? 'text-success' : student.focusPercent >= 50 ? 'text-warning' : 'text-destructive'}`}>
                         {student.focusPercent ?? 100}%
                       </div>
                     </div>
@@ -223,7 +223,7 @@ const LiveStudentGrid = ({ classroomCode = 'all' }) => {
           </AnimatePresence>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-2xl">
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground py-12 border-2 border-dashed border-border rounded-md">
           <Users size={32} className="mb-4 opacity-50" />
           <p className="font-medium">No active sessions</p>
           <p className="text-sm opacity-70 mt-1">Students will appear here when they start tracking.</p>

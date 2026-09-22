@@ -4,175 +4,234 @@
 
 @layer base {
   /* ═══════════════════════════════════════════════════════════════ */
-  /* DESIGN TOKENS — "Obsidian + Aurora"                              */
-  /* :root is the dark obsidian base (dark-first identity).           */
-  /* .light is a real, AA-tuned light theme. .dark restates the dark  */
-  /* values so an explicit `.dark` class always resolves correctly.   */
+  /* DESIGN TOKENS — "Paper & Ink"                                    */
+  /*                                                                  */
+  /* An academic-editorial system, light-first: warm paper, sumi ink, */
+  /* and a single deep red used sparingly the way a journal uses it.  */
+  /* Surfaces are separated by hairline rules and paper tone, never   */
+  /* by coloured glow. `:root` is the light/paper base; `.dark` is    */
+  /* the evening reading mode.                                        */
+  /*                                                                  */
+  /* `--primary` is a SOLID FILL colour (buttons, tags) and always    */
+  /* pairs with `--primary-foreground`. For coloured text or icons    */
+  /* sitting directly on the page, use `--primary-accent`, which is   */
+  /* tuned per theme to stay legible on the background.               */
   /* ═══════════════════════════════════════════════════════════════ */
   :root,
-  .dark {
-    /* Surfaces — warm sumi-ink charcoal (not cold blue-black) for a calm,
-       Japanese/Korean night tone. Three depth layers: bg -> card -> elevated */
-    --background: 30 8% 5%;        /* warm sumi charcoal */
-    --foreground: 40 12% 96%;      /* warm off-white */
-    --card: 30 7% 8%;
-    --card-foreground: 40 12% 96%;
-    --elevated: 30 7% 12%;         /* raised card / hover surface */
-    --popover: 30 7% 9%;
-    --popover-foreground: 40 12% 96%;
+  .light {
+    /* Paper — three tones, all warm. bg -> card -> elevated */
+    --background: 40 33% 97%;      /* warm paper */
+    --foreground: 30 12% 10%;      /* sumi ink, never pure black */
+    --card: 42 44% 99%;            /* a shade brighter than the page */
+    --card-foreground: 30 12% 10%;
+    --elevated: 40 26% 95%;        /* pressed / hover surface */
+    --popover: 42 44% 99%;
+    --popover-foreground: 30 12% 10%;
 
-    /* Brand — calmer, less-neon cyan; softer violet for AI accents */
-    --primary: 195 72% 52%;
-    --primary-foreground: 0 0% 100%;
-    --accent: 255 52% 68%;
-    --accent-foreground: 0 0% 100%;
+    /* Ink accents — deep academic red, muted archival blue */
+    --primary: 2 46% 33%;          /* deep red, AA on paper with white text */
+    --primary-foreground: 40 40% 98%;
+    --primary-accent: 2 52% 38%;   /* red as TEXT on the page */
+    --accent: 208 34% 32%;         /* archival blue, secondary emphasis */
+    --accent-foreground: 40 40% 98%;
 
-    /* Neutrals (warm) */
-    --secondary: 30 5% 15%;
-    --secondary-foreground: 40 10% 90%;
-    --muted: 30 6% 13%;
-    --muted-foreground: 35 8% 64%;
+    /* Neutrals */
+    --secondary: 38 20% 93%;
+    --secondary-foreground: 30 12% 22%;
+    --muted: 38 20% 94%;
+    --muted-foreground: 33 8% 38%; /* 7.1:1 on paper */
 
-    /* Semantic — natural, muted (sage / terracotta / amber) */
-    --destructive: 6 62% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 150 42% 48%;
-    --success-foreground: 0 0% 100%;
-    --warning: 35 78% 56%;
-    --warning-foreground: 0 0% 100%;
-    --info: 200 68% 58%;
-    --info-foreground: 0 0% 100%;
+    /* Semantic — muted, printerly */
+    --destructive: 4 58% 40%;
+    --destructive-foreground: 40 40% 98%;
+    --success: 146 38% 27%;
+    --success-foreground: 40 40% 98%;
+    --warning: 30 62% 34%;
+    --warning-foreground: 40 40% 98%;
+    --info: 208 40% 34%;
+    --info-foreground: 40 40% 98%;
 
-    /* Lines & focus */
-    --border: 34 7% 17%;
-    --input: 34 7% 17%;
-    --ring: 195 72% 52%;
+    /* Rules & focus */
+    --border: 34 15% 77%;          /* warm hairline, 1.60:1 on paper */
+    /* Input borders are an essential UI boundary, so they sit noticeably
+       darker than a decorative rule. */
+    --input: 32 12% 62%;           /* 2.56:1 on card */
+    --ring: 2 46% 33%;
 
-    /* Shape */
-    --radius: 1rem;
+    /* Shape — print-derived, near-square */
+    --radius: 0.375rem;
 
-    /* Elevation — soft, diffuse (restraint over drama) */
-    --shadow-sm: 0 1px 2px 0 hsl(30 10% 2% / 0.4);
-    --shadow-md: 0 6px 20px -6px hsl(30 10% 2% / 0.5);
-    --shadow-lg: 0 24px 50px -14px hsl(30 10% 2% / 0.6);
-    --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 6px 24px -8px hsl(var(--primary) / 0.28);
+    /* Elevation — ink on paper casts almost nothing */
+    --shadow-sm: 0 1px 2px 0 hsl(30 20% 20% / 0.05);
+    --shadow-md: 0 2px 8px -2px hsl(30 20% 20% / 0.07);
+    --shadow-lg: 0 8px 28px -8px hsl(30 20% 20% / 0.11);
+    /* Retained token name, now a hairline ring — no coloured light. */
+    --shadow-glow: 0 0 0 1px hsl(var(--border));
 
-    /* Motion */
+    /* Motion — short and unshowy */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-    --dur-fast: 150ms;
-    --dur: 220ms;
+    --dur-fast: 120ms;
+    --dur: 180ms;
   }
 
-  .light {
-    /* Editorial warm-paper light theme — washi/bone tone, sumi-ink text.
-       Pure-white cards float on the warm paper for calm, layered depth. */
-    --background: 40 30% 97%;      /* warm paper */
-    --foreground: 28 16% 13%;      /* warm sumi ink, not pure black */
-    --card: 0 0% 100%;
-    --card-foreground: 28 16% 13%;
-    --elevated: 40 26% 99%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 28 16% 13%;
+  .dark {
+    /* Evening reading mode: warm near-black, not blue-black. */
+    --background: 30 10% 7%;
+    --foreground: 38 18% 91%;
+    --card: 30 9% 10%;
+    --card-foreground: 38 18% 91%;
+    --elevated: 30 8% 14%;
+    --popover: 30 9% 10%;
+    --popover-foreground: 38 18% 91%;
 
-    --primary: 196 72% 38%;        /* calm deep cyan, AA on paper */
-    --primary-foreground: 0 0% 100%;
-    --accent: 255 50% 54%;
-    --accent-foreground: 0 0% 100%;
+    /* The red lightens so white text still clears AA on the fill, and
+       --primary-accent lightens further to stay legible as text. */
+    --primary: 4 48% 44%;
+    --primary-foreground: 40 40% 98%;
+    --primary-accent: 8 62% 68%;
+    --accent: 206 38% 52%;
+    --accent-foreground: 30 12% 8%;
 
-    --secondary: 38 22% 93%;
-    --secondary-foreground: 28 18% 22%;
-    --muted: 38 22% 94%;
-    --muted-foreground: 30 8% 40%;
+    --secondary: 30 7% 15%;
+    --secondary-foreground: 38 14% 88%;
+    --muted: 30 7% 15%;
+    --muted-foreground: 36 10% 63%;
 
-    --destructive: 6 60% 46%;      /* terracotta */
-    --destructive-foreground: 0 0% 100%;
-    --success: 150 45% 30%;        /* forest sage */
-    --success-foreground: 0 0% 100%;
-    --warning: 30 80% 38%;
-    --warning-foreground: 0 0% 100%;
-    --info: 200 70% 36%;
-    --info-foreground: 0 0% 100%;
+    --destructive: 6 70% 66%;      /* 5.99:1 on card */
+    --destructive-foreground: 30 12% 8%;
+    --success: 146 36% 50%;        /* 6.34:1 on card */
+    --success-foreground: 30 12% 8%;
+    --warning: 34 62% 52%;
+    --warning-foreground: 30 12% 8%;
+    --info: 206 42% 56%;
+    --info-foreground: 30 12% 8%;
 
-    --border: 36 18% 87%;          /* warm hairline */
-    --input: 36 18% 87%;
-    --ring: 199 90% 38%;
+    --border: 32 8% 25%;           /* 1.83:1 on page */
+    --input: 32 9% 42%;            /* 3.37:1 on card */
+    --ring: 8 62% 68%;
 
-    /* Soft, diffuse shadows — restraint over drama */
-    --shadow-sm: 0 1px 2px 0 hsl(30 20% 30% / 0.05);
-    --shadow-md: 0 6px 20px -6px hsl(30 20% 30% / 0.10);
-    --shadow-lg: 0 24px 50px -14px hsl(30 24% 24% / 0.14);
-    --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.15), 0 10px 34px -10px hsl(var(--primary) / 0.22);
+    --radius: 0.375rem;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.36);
+    --shadow-md: 0 2px 10px -2px hsl(0 0% 0% / 0.44);
+    --shadow-lg: 0 10px 32px -10px hsl(0 0% 0% / 0.52);
+    --shadow-glow: 0 0 0 1px hsl(var(--border));
+
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-fast: 120ms;
+    --dur: 180ms;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
+    @apply bg-background text-foreground font-sans antialiased;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    font-feature-settings: "cv02", "cv03", "cv11";
     text-rendering: optimizeLegibility;
+    line-height: 1.6;
   }
-  /* Editorial display headings — geometric Outfit, tight tracking */
+  /* ── Editorial typography ──────────────────────────────────────
+     Headings are set in Source Serif 4. A serif at display size needs
+     far less negative tracking than a geometric sans, and an optical
+     size axis so large settings tighten and small ones stay open. */
   .font-display {
     font-family: theme('fontFamily.display');
-    letter-spacing: -0.02em;
+    letter-spacing: -0.011em;
+    font-variation-settings: 'opsz' 32;
   }
-  /* Global heading treatment: geometric display face, tight tracking.
-     Escape with `font-sans` on any heading that needs the body face. */
-  h1, h2, h3 {
+
+  h1, h2, h3, h4 {
     font-family: theme('fontFamily.display');
-    letter-spacing: -0.02em;
-    font-feature-settings: "ss01";
+    font-weight: 600;
+    letter-spacing: -0.011em;
+    color: hsl(var(--foreground));
+    text-wrap: balance;      /* keeps headlines off a one-word last line */
+  }
+  h1 { font-variation-settings: 'opsz' 48; line-height: 1.12; }
+  h2 { font-variation-settings: 'opsz' 32; line-height: 1.18; }
+  h3, h4 { font-variation-settings: 'opsz' 20; line-height: 1.28; }
+
+  /* Body copy stays in Inter — a serif UI is unreadable at 13-14px. */
+  p { text-wrap: pretty; }
+
+  /* Tabular figures wherever numbers are compared down a column. */
+  .tnum, table, [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* An editorial page needs a measure. Anything longer than ~75
+     characters is hard to track back to the next line. */
+  .prose-measure { max-width: 34rem; }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+    color: hsl(var(--foreground));
+  }
+
+  /* Visible, un-fussy focus — a ring in the ink colour, not a glow. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
 
 /* Beautiful Friendly Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
-  border-radius: 10px;
+  background: hsl(var(--muted-foreground) / 0.28);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.4);
 }
 
-/* Pattern */
+/* Faint laid-paper texture. Rules, not dots. */
 .bg-grid-pattern {
-  background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
-  background-size: 30px 30px;
-  opacity: 0.5;
+  background-image: linear-gradient(hsl(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 100% 2rem;
+  opacity: 0.35;
 }
 
-/* Soft, approachable card style */
+/* ── The shared surface ────────────────────────────────────────────
+   Named `.glass-morphism` for history only: there is no glass and no
+   blur here any more. It is a sheet of paper with a hairline rule.
+   Around 180 call sites across the app reference this class, so this
+   one definition is what carries the editorial treatment everywhere,
+   including pages that were never individually rewritten. */
 .glass-morphism {
-  @apply bg-card border border-border shadow-sm rounded-3xl overflow-hidden transition-all;
+  @apply bg-card border border-border rounded-md;
+  box-shadow: var(--shadow-sm);
 }
 
-/* Duolingo style button pop (only applies to things with pop-button class) */
+/* Was a Duolingo-style chunky "pop". Kept as a hook for existing call
+   sites, now just a restrained press state. */
 .pop-button {
-  transform: translateY(0);
-  box-shadow: 0 4px 0 hsl(var(--primary)/0.5);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 .pop-button:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 transparent;
+  background-color: hsl(var(--elevated));
 }
 
 /* Global Input Fields & Select Dropdowns */
 .input-field {
-  @apply bg-secondary border border-border/50 text-foreground px-4 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm transition-all;
+  @apply bg-card border border-input text-foreground px-3 rounded-md outline-none transition-colors;
 }
+.input-field::placeholder { color: hsl(var(--muted-foreground)); }
+.input-field:hover { border-color: hsl(var(--muted-foreground) / 0.5); }
 
 /* Force native <select> and <option> to match theme */
 select,
@@ -225,121 +284,59 @@ select option:disabled {
 /* ═══════════════════════════════════════════════════════════════ */
 
 /* Noise texture overlay — prevents gradient banding, adds cinematic quality */
+/* ── Decorative effects, retired ───────────────────────────────────
+   Everything between here and the skeleton shimmer used to be the
+   visual signature of the old design: a purple gradient mesh, section
+   glows, mouse-tracking bento spotlights, a floating hero, a pulsing
+   CTA. They are kept as no-op (or near-no-op) rules rather than
+   deleted, because call sites across the app still name them and a
+   missing class should degrade to "plain", not to a build error. */
+
+/* Paper grain — barely there, and only on large surfaces. */
 .noise-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   pointer-events: none;
-  z-index: 1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Animated gradient mesh background */
-@keyframes meshFloat {
-  0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
-  33% { transform: translate(-48%, -52%) scale(1.05) rotate(2deg); }
-  66% { transform: translate(-52%, -48%) scale(0.95) rotate(-2deg); }
-}
-
+/* Formerly a violet/cyan gradient mesh. Now a flat sheet of paper. */
 .gradient-mesh {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background-image: url('/bg.jpeg');
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 1;
-  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
+  background: hsl(var(--background));
 }
 
-/* Gradient section backgrounds — brand-derived (cyan primary / violet accent) */
-.section-glow-blue {
-  background: radial-gradient(ellipse 100% 100% at 0% 50%, hsl(var(--primary) / 0.10) 0%, transparent 50%);
-}
-.section-glow-violet {
-  background: radial-gradient(ellipse 100% 100% at 100% 50%, hsl(var(--accent) / 0.10) 0%, transparent 50%);
-}
-.mockup-glow {
-  box-shadow: 0 40px 100px -20px hsl(var(--primary) / 0.30), 0 0 150px 0 hsl(var(--accent) / 0.15);
-}
-
-/* Audio visualizer bars */
-@keyframes barPulse1 { 0%, 100% { height: 8px; } 50% { height: 24px; } }
-@keyframes barPulse2 { 0%, 100% { height: 16px; } 50% { height: 10px; } }
-@keyframes barPulse3 { 0%, 100% { height: 12px; } 50% { height: 28px; } }
-@keyframes barPulse4 { 0%, 100% { height: 20px; } 50% { height: 6px; } }
-@keyframes barPulse5 { 0%, 100% { height: 14px; } 50% { height: 22px; } }
-
-.audio-bar {
-  width: 3px;
-  border-radius: 2px;
-  background: hsl(var(--primary));
-  display: inline-block;
-}
-.audio-bar:nth-child(1) { animation: barPulse1 1.2s ease-in-out infinite; }
-.audio-bar:nth-child(2) { animation: barPulse2 0.9s ease-in-out infinite 0.1s; }
-.audio-bar:nth-child(3) { animation: barPulse3 1.1s ease-in-out infinite 0.2s; }
-.audio-bar:nth-child(4) { animation: barPulse4 1.0s ease-in-out infinite 0.15s; }
-.audio-bar:nth-child(5) { animation: barPulse5 1.3s ease-in-out infinite 0.25s; }
-
-/* Bento card spotlight hover effect */
-.bento-card {
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.3s ease;
-}
-.bento-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), hsl(var(--primary) / 0.08), transparent 40%);
-  pointer-events: none;
-  z-index: 0;
-}
-.bento-card:hover::before {
-  opacity: 1;
-}
-
-/* Floating animation for hero icon */
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-8px) rotate(1deg); }
-  75% { transform: translateY(4px) rotate(-1deg); }
-}
-.hero-float {
-  animation: heroFloat 6s ease-in-out infinite;
-}
-
-/* Marquee scrolling text */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.marquee-scroll {
-  animation: marquee 12s linear infinite;
-}
-
-/* Glow pulse for CTA — on-brand cyan */
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 60px hsl(var(--primary) / 0.1); }
-  50% { box-shadow: 0 0 30px hsl(var(--primary) / 0.5), 0 0 80px hsl(var(--primary) / 0.2); }
-}
+.section-glow-blue,
+.section-glow-violet,
+.mockup-glow,
 .glow-pulse {
-  animation: glowPulse 3s ease-in-out infinite;
+  /* no glow in an ink-on-paper system */
+  box-shadow: none;
+  animation: none;
 }
 
-/* Skeleton shimmer */
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
+/* Formerly a spotlight card that tracked the cursor. */
+.bento-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  transition: border-color var(--dur) var(--ease-out);
 }
+.bento-card:hover {
+  border-color: hsl(var(--muted-foreground) / 0.4);
+}
+
+.hero-float,
+.audio-bar {
+  animation: none;
+  transform: none;
+}
+
+.marquee-scroll {
+  animation: none;
+}
+
 .skeleton-shimmer {
   position: relative;
   overflow: hidden;
@@ -371,13 +368,20 @@ select option:disabled {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  /* Without this, a staggered child whose fade-in is suppressed stays at
+     opacity 0 — the content would never appear at all. */
+  .stagger-children > * {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* Stagger children animation */
+/* A single quiet entrance fade. 12px of travel read as bounce; 4px reads
+   as the page settling. */
 .stagger-children > * {
   opacity: 0;
-  transform: translateY(12px);
-  animation: fadeIn 0.5s ease-out forwards;
+  transform: translateY(4px);
+  animation: fadeIn 0.34s var(--ease-out) forwards;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0s; }
 .stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
@@ -389,13 +393,14 @@ select option:disabled {
 /* High-Density Mobile Optimizations */
 @media (max-width: 640px) {
   /* Reduce excessive padding inside cards on mobile to fit more detailed info */
-  .glass-morphism, 
+  .glass-morphism,
   [class*="rounded-[2.5rem]"],
   [class*="rounded-[2rem]"],
   .rounded-3xl,
   .rounded-\[2\.5rem\] {
     padding: 1rem !important;
-    border-radius: 1rem !important;
+    /* Match the system radius rather than reinstating the old 1rem pill. */
+    border-radius: var(--radius) !important;
     margin-bottom: 1rem !important;
   }
   

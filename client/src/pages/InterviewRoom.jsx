@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Copy, CheckCircle2, UserPlus } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Copy, CheckCircle2, UserPlus, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ICE_SERVERS = {
@@ -23,6 +23,7 @@ const InterviewRoom = () => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [copied, setCopied] = useState(false);
   const [peerConnected, setPeerConnected] = useState(false);
+  const [roomFull, setRoomFull] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -117,6 +118,19 @@ const InterviewRoom = () => {
           setPeerConnected(false);
           if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
         });
+
+        // The server caps a peer room at two participants. Stop publishing
+        // local media rather than sitting on an open camera in a room we were
+        // never admitted to.
+        socketRef.current.on('room-full', ({ message }) => {
+          setRoomFull(message || 'This room is already full.');
+          if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach((track) => track.stop());
+            localStreamRef.current = null;
+          }
+          setLocalStream(null);
+          if (localVideoRef.current) localVideoRef.current.srcObject = null;
+        });
       })
       .catch(err => {
         console.error('Error accessing media devices.', err);
@@ -173,6 +187,24 @@ const InterviewRoom = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (roomFull) {
+    return (
+      <div className="min-h-[calc(100vh-100px)] flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-warning/10 border border-warning/30 flex items-center justify-center">
+          <Users className="text-warning" size={26} />
+        </div>
+        <h2 className="text-xl font-semibold">Room is full</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">{roomFull}</p>
+        <button
+          onClick={() => navigate('/interview')}
+          className="mt-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          Back to lobby
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-100px)] flex flex-col bg-background/50 relative">

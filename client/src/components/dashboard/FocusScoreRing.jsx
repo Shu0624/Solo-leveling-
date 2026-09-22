@@ -39,7 +39,7 @@ const FocusScoreRing = ({ score = null, size = 'md', showLabel = true, className
           <circle
             cx={s.width / 2} cy={s.width / 2} r={s.radius}
             fill="none" stroke="currentColor" strokeWidth={s.stroke}
-            className="text-white/8"
+            className="text-muted-foreground"
           />
           {/* Progress arc */}
           {hasData && (
@@ -56,14 +56,14 @@ const FocusScoreRing = ({ score = null, size = 'md', showLabel = true, className
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`${s.textSize} font-black`} style={{ color: hasData ? color : '#52525b' }}>
+          <span className={`${s.textSize} font-semibold`} style={{ color: hasData ? color : '#52525b' }}>
             {hasData ? displayScore : '—'}
           </span>
         </div>
       </div>
       {showLabel && (
         <div className="text-center mt-2">
-          <div className={`${s.labelSize} font-bold text-white/40 uppercase tracking-widest`}>
+          <div className={`${s.labelSize} font-bold text-muted-foreground uppercase tracking-widest`}>
             Focus Score
           </div>
         </div>

@@ -18,7 +18,9 @@
     "start": "cd server && npm start",
     "verify:workbook": "node server/scripts/verifyWorkbook.js",
     "verify:department": "node server/scripts/verifyDepartmentApi.js",
-    "verify": "npm run verify:workbook && npm run verify:department"
+    "verify": "npm run verify:security && npm run verify:contrast && npm run verify:workbook && npm run verify:department",
+    "verify:security": "node server/scripts/verifySecurity.js",
+    "verify:contrast": "node client/scripts/verifyContrast.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

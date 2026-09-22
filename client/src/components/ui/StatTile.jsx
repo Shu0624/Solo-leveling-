@@ -2,8 +2,19 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCountUp } from './useCountUp';
 
+// ─────────────────────────────────────────────────────────────────
+// StatTile — a figure with its label, set like a table cell.
+//
+// The number is the loudest thing in the tile and everything else
+// recedes: the label is small caps, the delta is plain text with a
+// direction glyph rather than a coloured pill, and the tile itself is
+// a hairline rule with no glow.
+//
+// Figures are tabular so a row of tiles aligns on the decimal.
+// ─────────────────────────────────────────────────────────────────
+
 const toneStyles = {
-  primary: 'text-primary',
+  primary: 'text-[hsl(var(--primary-accent))]',
   success: 'text-success',
   warning: 'text-warning',
   danger: 'text-destructive',
@@ -11,10 +22,6 @@ const toneStyles = {
   default: 'text-foreground',
 };
 
-/**
- * Fintech-style stat tile: label, big tabular value with count-up, optional
- * delta chip and trailing slot (e.g. sparkline). `hero` gives it the cyan glow.
- */
 export default function StatTile({
   label,
   value,
@@ -31,43 +38,51 @@ export default function StatTile({
 }) {
   const numeric = typeof value === 'number';
   const animated = useCountUp(numeric ? value : 0, { decimals });
-  const shown = numeric && countUp ? animated.toLocaleString(undefined, {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }) : value;
+  const shown = numeric && countUp
+    ? animated.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })
+    : value;
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
   const trendColor =
-    trend === 'up' ? 'text-success bg-success/10'
-    : trend === 'down' ? 'text-destructive bg-destructive/10'
-    : 'text-muted-foreground bg-secondary';
+    trend === 'up' ? 'text-success'
+    : trend === 'down' ? 'text-destructive'
+    : 'text-muted-foreground';
 
   return (
     <div
       className={cn(
-        'relative rounded-2xl border p-6 bg-card overflow-hidden transition-all duration-200 ease-out-expo',
-        hero ? 'border-primary/30 shadow-glow' : 'border-border shadow-sm-token hover:border-border/80 hover:-translate-y-0.5',
+        'relative rounded-md border bg-card p-4 transition-colors duration-[var(--dur)]',
+        hero ? 'border-[hsl(var(--primary-accent))]/40' : 'border-border hover:border-muted-foreground/35',
         className
       )}
     >
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground truncate">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground truncate">
           {label}
         </span>
         {icon && (
-          <span className={cn('shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-secondary', toneStyles[tone])}>
+          <span className={cn('shrink-0 text-muted-foreground', toneStyles[tone])} aria-hidden="true">
             {icon}
           </span>
         )}
       </div>
 
-      <div className="flex items-end justify-between gap-2">
-        <div className={cn('font-display tnum text-3xl sm:text-4xl font-bold leading-none tracking-display', toneStyles[tone])}>
+      <div className="mt-2.5 flex items-baseline gap-2">
+        <span
+          className={cn(
+            'font-display tnum text-[28px] font-semibold leading-none',
+            toneStyles[tone]
+          )}
+        >
           {prefix}{shown}{suffix}
-        </div>
-        {(delta != null) && (
-          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold', trendColor)}>
-            <TrendIcon size={12} />
+        </span>
+
+        {delta != null && (
+          <span className={cn('inline-flex items-center gap-1 text-[13px] font-medium tnum', trendColor)}>
+            <TrendIcon size={13} aria-hidden="true" />
             {delta}
           </span>
         )}

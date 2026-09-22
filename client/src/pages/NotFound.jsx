@@ -30,13 +30,13 @@ const NotFound = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link 
             to="/dashboard" 
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium shadow-lg shadow-primary/20 hover:opacity-90 transition-all"
+            className="flex items-center gap-2 px-5 h-11 rounded-md bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
           >
             <Home size={18} /> Go to Dashboard
           </Link>
           <button 
             onClick={() => window.history.back()}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+            className="flex items-center gap-2 px-5 h-11 rounded-md border border-input bg-card text-foreground font-medium hover:bg-elevated transition-colors"
           >
             <ArrowLeft size={18} /> Go Back
           </button>

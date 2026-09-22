@@ -10,7 +10,7 @@ export default function Skeleton({ className, rounded = 'rounded-lg' }) {
 /** A card-shaped skeleton block for dashboard grids. */
 export function SkeletonCard({ className }) {
   return (
-    <div className={cn('rounded-2xl border border-border bg-card p-5', className)}>
+    <div className={cn('rounded-md border border-border bg-card p-5', className)}>
       <Skeleton className="h-4 w-24 mb-4" />
       <Skeleton className="h-9 w-32 mb-3" />
       <Skeleton className="h-3 w-full" />

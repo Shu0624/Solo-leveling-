@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
 import rateLimit from 'express-rate-limit';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
@@ -84,54 +85,63 @@ router.post('/upload', protect, resumeLimiter, upload.single('resume'), async (r
       // We can still proceed if cloudinary fails, it just won't have a URL.
     }
 
-    // ---- SAVE to database for version tracking ----
-    let resumeDoc = await Resume.findOne({ user: req.user._id });
+    // ---- SAVE to database for version tracking (if not demo) ----
+    let resumeDoc = null;
+    const isValidId = req.user?._id && mongoose.Types.ObjectId.isValid(req.user._id);
 
-    if (resumeDoc) {
-      // Push old version to history
-      resumeDoc.versions.push({
-        fileUrl: resumeDoc.fileUrl || resumeDoc.filename, // Store old URL or filename fallback
-        uploadedAt: resumeDoc.updatedAt,
-        score: resumeDoc.analysis?.score || 0
-      });
-      // Update current
-      resumeDoc.filename = req.file.originalname;
-      if (cloudinaryUrl) resumeDoc.fileUrl = cloudinaryUrl;
-      resumeDoc.parsedData = {
-        skills: analysis.skillNames || [],
-      };
-      resumeDoc.analysis = {
-        score: analysis.score,
-        strengths: analysis.strengths,
-        weaknesses: analysis.weaknesses,
-        missingKeywords: analysis.missingKeywords,
-        suggestions: analysis.suggestions
-      };
-      await resumeDoc.save();
-    } else {
-      resumeDoc = await Resume.create({
-        user: req.user._id,
-        filename: req.file.originalname,
-        fileUrl: cloudinaryUrl,
-        parsedData: {
-          skills: analysis.skillNames || [],
-        },
-        analysis: {
-          score: analysis.score,
-          strengths: analysis.strengths,
-          weaknesses: analysis.weaknesses,
-          missingKeywords: analysis.missingKeywords,
-          suggestions: analysis.suggestions
+    if (!req.user?.isDemo && isValidId) {
+      try {
+        resumeDoc = await Resume.findOne({ user: req.user._id });
+
+        if (resumeDoc) {
+          // Push old version to history
+          resumeDoc.versions.push({
+            fileUrl: resumeDoc.fileUrl || resumeDoc.filename, // Store old URL or filename fallback
+            uploadedAt: resumeDoc.updatedAt,
+            score: resumeDoc.analysis?.score || 0
+          });
+          // Update current
+          resumeDoc.filename = req.file.originalname;
+          if (cloudinaryUrl) resumeDoc.fileUrl = cloudinaryUrl;
+          resumeDoc.parsedData = {
+            skills: analysis.skillNames || [],
+          };
+          resumeDoc.analysis = {
+            score: analysis.score,
+            strengths: analysis.strengths,
+            weaknesses: analysis.weaknesses,
+            missingKeywords: analysis.missingKeywords,
+            suggestions: analysis.suggestions
+          };
+          await resumeDoc.save();
+        } else {
+          resumeDoc = await Resume.create({
+            user: req.user._id,
+            filename: req.file.originalname,
+            fileUrl: cloudinaryUrl,
+            parsedData: {
+              skills: analysis.skillNames || [],
+            },
+            analysis: {
+              score: analysis.score,
+              strengths: analysis.strengths,
+              weaknesses: analysis.weaknesses,
+              missingKeywords: analysis.missingKeywords,
+              suggestions: analysis.suggestions
+            }
+          });
         }
-      });
+      } catch (dbErr) {
+        console.warn('Could not save resume to database:', dbErr.message);
+      }
     }
 
     res.status(200).json({
       message: 'Resume analyzed successfully',
       analysis,
-      resumeId: resumeDoc._id,
-      fileUrl: resumeDoc.fileUrl,
-      versionsCount: resumeDoc.versions?.length || 0
+      resumeId: resumeDoc?._id || ('demo_resume_' + Date.now()),
+      fileUrl: resumeDoc?.fileUrl || cloudinaryUrl || '',
+      versionsCount: resumeDoc?.versions?.length || 1
     });
   } catch (err) {
     console.error('Resume analysis error:', err);
@@ -144,9 +154,12 @@ router.post('/upload', protect, resumeLimiter, upload.single('resume'), async (r
 // @access  Private
 router.get('/history', protect, async (req, res) => {
   try {
+    if (req.user?.isDemo || !req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.status(200).json({ current: null, versions: [] });
+    }
     const resume = await Resume.findOne({ user: req.user._id });
     if (!resume) {
-      return res.status(404).json({ message: 'No resume found. Upload one first.' });
+      return res.status(200).json({ current: null, versions: [] });
     }
     res.status(200).json({
       current: {
@@ -159,7 +172,7 @@ router.get('/history', protect, async (req, res) => {
       versions: resume.versions || []
     });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch resume history' });
+    res.status(200).json({ current: null, versions: [] });
   }
 });
 
@@ -199,6 +212,9 @@ router.get('/top', protect, async (req, res) => {
 // @access  Private
 router.get('/my-top', protect, async (req, res) => {
   try {
+    if (req.user?.isDemo || !req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.status(200).json([]);
+    }
     const resume = await Resume.findOne({ user: req.user._id }).lean();
     if (!resume) {
       return res.status(200).json([]);
@@ -235,7 +251,7 @@ router.get('/my-top', protect, async (req, res) => {
     res.status(200).json(top5);
   } catch (err) {
     console.error('Failed to fetch personal top resumes:', err);
-    res.status(500).json({ message: 'Failed to fetch personal top resumes' });
+    res.status(200).json([]);
   }
 });
 
@@ -249,6 +265,9 @@ router.get('/my-top', protect, async (req, res) => {
 router.post('/save-draft', protect, async (req, res) => {
   try {
     const draftData = req.body;
+    if (req.user?.isDemo || !req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.status(200).json({ message: 'Draft saved (preview mode)', draft: { ...draftData, user: req.user?._id } });
+    }
     let draft = await ResumeDraft.findOne({ user: req.user._id });
     if (draft) {
       Object.assign(draft, draftData);
@@ -268,11 +287,14 @@ router.post('/save-draft', protect, async (req, res) => {
 // @access  Private
 router.get('/draft', protect, async (req, res) => {
   try {
+    if (req.user?.isDemo || !req.user?._id || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.status(200).json(null);
+    }
     const draft = await ResumeDraft.findOne({ user: req.user._id }).lean();
     res.status(200).json(draft || null);
   } catch (err) {
     console.error('Get draft error:', err);
-    res.status(500).json({ message: 'Failed to fetch draft' });
+    res.status(200).json(null);
   }
 });
 
@@ -346,13 +368,19 @@ IMPORTANT: Return ONLY the JSON object. No markdown, no explanation.`;
       resumeData = JSON.parse(cleanJson);
     }
 
-    // Save as draft automatically
-    let draft = await ResumeDraft.findOne({ user: req.user._id });
-    if (draft) {
-      Object.assign(draft, resumeData);
-      await draft.save();
-    } else {
-      draft = await ResumeDraft.create({ ...resumeData, user: req.user._id });
+    // Save as draft automatically if not in demo mode
+    if (!req.user?.isDemo && req.user?._id && mongoose.Types.ObjectId.isValid(req.user._id)) {
+      try {
+        let draft = await ResumeDraft.findOne({ user: req.user._id });
+        if (draft) {
+          Object.assign(draft, resumeData);
+          await draft.save();
+        } else {
+          draft = await ResumeDraft.create({ ...resumeData, user: req.user._id });
+        }
+      } catch (saveErr) {
+        console.warn('Auto-save draft skipped:', saveErr.message);
+      }
     }
 
     res.status(200).json({ message: 'Resume generated successfully', resume: resumeData });

@@ -772,7 +772,7 @@ router.get('/admin', protect, authorize('faculty', 'hod', 'principal', 'admin', 
     }
 
     // Step 1: Get eligible students (required before parallel queries)
-    const students = await User.find(studentMatch).select('_id name department year').lean();
+    const students = await User.find(studentMatch).select('_id name department year preferredDomain careerInterest skills').lean();
     const studentIds = students.map(s => s._id);
     const totalStudents = students.length;
 
@@ -923,11 +923,23 @@ router.get('/admin', protect, authorize('faculty', 'hod', 'principal', 'admin', 
     combinedActivities.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
     const recentActivityFeed = combinedActivities.slice(0, 10);
 
+    // Calculate domain & career interest distribution
+    const domainCounts = {};
+    const careerCounts = {};
+    students.forEach((s) => {
+      const d = s.preferredDomain || 'Full-Stack Web';
+      domainCounts[d] = (domainCounts[d] || 0) + 1;
+      const c = s.careerInterest || 'Campus Placement';
+      careerCounts[c] = (careerCounts[c] || 0) + 1;
+    });
+
     res.status(200).json({
       scope: { role, department: department || 'All', college: college || 'All', year: role === 'faculty' && year ? year : 'All Years' },
       stats: { totalStudents, activeThisWeek, avgQuizScore, avgResumeScore, totalAttempts, totalStudyHours },
       leaderboard: topStudents,
-      recentActivity: recentActivityFeed
+      recentActivity: recentActivityFeed,
+      domainDistribution: domainCounts,
+      careerDistribution: careerCounts,
     });
   } catch (err) {
     console.error('Admin dashboard error:', err);

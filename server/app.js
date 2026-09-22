@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import mongoSanitize from './middleware/sanitize.js';
+import { isJwtConfigured } from './config/jwt.js';
+import { corsOrigin } from './config/cors.js';
 
 // Route imports
 import authRoutes from './routes/auth.js';
@@ -28,9 +30,11 @@ dotenv.config();
 if (!process.env.MONGO_URI) {
   console.warn('⚠️  [SERVER] MONGO_URI is missing. Please set it in your environment variables.');
 }
-if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  [SERVER] JWT_SECRET is missing. Using a fallback secret for local dev/preview.');
-  process.env.JWT_SECRET = process.env.JWT_SECRET || 'levelup_dev_fallback_secret_at_least_32_characters_long';
+// JWT secret handling lives in config/jwt.js. It falls back only in
+// development; in production a missing JWT_SECRET makes token signing throw
+// rather than silently accepting tokens forged with a published secret.
+if (!isJwtConfigured()) {
+  console.error('❌ [SERVER] JWT_SECRET is missing or too short. Authentication is DISABLED until it is set.');
 }
 
 const app = express();
@@ -52,29 +56,8 @@ app.use(helmet({
   },
 }));
 
-// CORS Configuration — supports local dev, configured CLIENT_URL, and any Vercel preview domain
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (
-      !origin ||
-      allowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.vercel.app/') ||
-      origin.includes('localhost') ||
-      origin.includes('127.0.0.1')
-    ) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Permissive in preview/demo to prevent CORS blocking
-    }
-  },
-  credentials: true,
-}));
+// CORS — shared with the Socket.io server, see config/cors.js
+app.use(cors({ origin: corsOrigin, credentials: true }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -98,12 +81,25 @@ app.use(async (req, res, next) => {
 app.get('/api/health', (req, res) => {
   const mongoose = global.mongoose;
   const isDbConnected = Boolean(mongoose?.conn?.readyState === 1 || mongoose?.readyState === 1);
+  // `realtime` is false on a serverless deploy: Socket.io, the in-memory
+  // session manager and the cron aggregations all live in server.js, which
+  // Vercel never runs. The client reads this so faculty screens can say
+  // "live tracking unavailable on this deployment" instead of showing a
+  // truthful-looking "0 students active".
+  const realtimeEnabled = Boolean(global.__levelupRealtime);
+
   res.json({
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     database: isDbConnected ? 'connected' : (process.env.MONGO_URI ? 'connecting/offline' : 'unconfigured'),
+    capabilities: {
+      auth: isJwtConfigured(),
+      realtime: realtimeEnabled,
+      liveSessions: realtimeEnabled,
+      scheduledAggregation: realtimeEnabled,
+    },
   });
 });
 
@@ -134,6 +130,12 @@ app.use('/api/discover', discoverRoutes);
 
 // Centralized Error Handling Middleware
 app.use((err, req, res, next) => {
+  // Origin rejected by the CORS allowlist — a client misconfiguration, not a
+  // server fault, so answer 403 rather than falling through to a 500.
+  if (err && err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ code: 'CORS_REJECTED', message: 'Origin not allowed.' });
+  }
+
   const statusCode = err.statusCode || err.status || 500;
   const errorCode = err.code || 'INTERNAL_ERROR';
 

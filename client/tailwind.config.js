@@ -18,12 +18,22 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        // Inter runs the interface; Source Serif 4 carries the editorial voice.
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'Cambria', 'serif'],
+        display: ['"Source Serif 4"', 'Georgia', 'Cambria', 'serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', '"SF Mono"', 'Menlo', 'monospace'],
       },
       letterSpacing: {
-        'display': '-0.02em',
-        'tightest': '-0.03em',
+        // A serif display face wants far less negative tracking than a
+        // geometric sans — over-tightening it is what makes serifs look cheap.
+        'display': '-0.011em',
+        'tightest': '-0.02em',
+      },
+      maxWidth: {
+        // ~68 characters at body size: the editorial measure.
+        'measure': '34rem',
+        'measure-wide': '46rem',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -77,6 +87,9 @@ export default {
         'sm-token': 'var(--shadow-sm)',
         'md-token': 'var(--shadow-md)',
         'lg-token': 'var(--shadow-lg)',
+        // `glow` is retained as a token name because ~6 call sites still
+        // reference it, but it now resolves to a plain hairline ring. Editorial
+        // surfaces are separated by rules and paper, never by coloured light.
         glow: 'var(--shadow-glow)',
       },
       transitionTimingFunction: {
@@ -108,9 +121,11 @@ export default {
         }
       },
       borderRadius: {
+        // Print-derived: near-square. The old 1rem default made every surface
+        // read as a mobile app card rather than a page.
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 1px)",
+        sm: "calc(var(--radius) - 2px)",
       },
     },
   },

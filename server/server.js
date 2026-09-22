@@ -12,6 +12,10 @@ import {
   initSessionManager
 } from './services/sessionManager.js';
 import User from './models/User.js';
+import Module from './models/Module.js';
+import { canAccessClassroom } from './middleware/auth.js';
+import { getJwtSecret } from './config/jwt.js';
+import { corsOrigin } from './config/cors.js';
 
 // Connect to database and perform startup checks in standalone server mode
 connectDB().then(async () => {
@@ -41,9 +45,8 @@ const server = http.createServer(app);
 // Socket.io setup for WebRTC signaling, Live Activities, and Course Chat
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      callback(null, true);
-    },
+    // Same policy as the REST API — this was previously allow-everything.
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -56,13 +59,44 @@ io.use((socket, next) => {
     return next(new Error('Authentication required'));
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'levelup_dev_fallback_secret_at_least_32_characters_long');
+    const decoded = jwt.verify(token, getJwtSecret());
     socket.userId = decoded.id;
     next();
   } catch (err) {
     return next(new Error('Invalid token'));
   }
 });
+
+// ---------------------------------------------------------------------------
+// Peer-to-peer room occupancy
+// ---------------------------------------------------------------------------
+// A WebRTC room is created ad hoc by whoever navigates to /interview/:id —
+// there is no server-side record to authorize against. What must not happen is
+// a third party quietly joining an in-progress 1:1 interview and receiving the
+// signalling needed to pull both streams.
+//
+// So the first two sockets to arrive own the room, and everyone after them is
+// refused. Occupancy is per-process, which is correct here because the
+// signalling relay is per-process too: two peers who cannot reach the same
+// Socket.io instance cannot connect to each other anyway.
+const P2P_ROOM_CAPACITY = 2;
+const p2pRooms = new Map(); // roomId -> Set<socket.id>
+
+const joinP2PRoom = (roomId, socketId) => {
+  const occupants = p2pRooms.get(roomId) || new Set();
+  if (occupants.has(socketId)) return true;
+  if (occupants.size >= P2P_ROOM_CAPACITY) return false;
+  occupants.add(socketId);
+  p2pRooms.set(roomId, occupants);
+  return true;
+};
+
+const leaveP2PRoom = (roomId, socketId) => {
+  const occupants = p2pRooms.get(roomId);
+  if (!occupants) return;
+  occupants.delete(socketId);
+  if (occupants.size === 0) p2pRooms.delete(roomId);
+};
 
 // Socket.io logic for WebRTC + Chat + Session Tracking
 io.on('connection', (socket) => {
@@ -71,23 +105,40 @@ io.on('connection', (socket) => {
   let currentRoomId = null;
 
   socket.on('join-room', (roomId, userId) => {
+    if (!roomId || typeof roomId !== 'string' || roomId.length > 100) return;
+
+    if (!joinP2PRoom(roomId, socket.id)) {
+      socket.emit('room-full', {
+        roomId,
+        message: 'This interview room already has two participants.',
+      });
+      return;
+    }
+
     currentRoomId = roomId;
     socket.join(roomId);
     socket.to(roomId).emit('user-connected', userId);
   });
 
-  // Relay WebRTC signaling messages
-  socket.on('offer', (payload) => {
-    io.to(payload.target).emit('offer', payload);
-  });
+  // Relay WebRTC signalling to the other occupant of the sender's room.
+  //
+  // This previously read `io.to(payload.target)`, but the client never sends a
+  // `target` — it sends `{ roomId, offer | answer | candidate }`. So every
+  // relay resolved to `io.to(undefined)` and reached nobody, which is why a
+  // peer room sat on "Waiting for peer..." forever and no P2P call ever
+  // connected.
+  //
+  // Relaying by room also settles the authorization question: `socket.to()`
+  // only reaches sockets that joined, the sender's own room is used rather
+  // than whatever room the payload claims, and joins are capped at two.
+  const relayToPeer = (event) => (payload) => {
+    if (!currentRoomId) return;
+    socket.to(currentRoomId).emit(event, payload);
+  };
 
-  socket.on('answer', (payload) => {
-    io.to(payload.target).emit('answer', payload);
-  });
-
-  socket.on('ice-candidate', (incoming) => {
-    io.to(incoming.target).emit('ice-candidate', incoming);
-  });
+  socket.on('offer', relayToPeer('offer'));
+  socket.on('answer', relayToPeer('answer'));
+  socket.on('ice-candidate', relayToPeer('ice-candidate'));
 
   // Real-time session tracking
   socket.on('session:start', async (data) => {
@@ -139,9 +190,23 @@ io.on('connection', (socket) => {
 
   // Faculty live monitoring
   socket.on('faculty:join', async (classroomCode) => {
-    if (!classroomCode || typeof classroomCode !== 'string') return;
-    const user = await User.findById(socket.userId).select('role assignedClassrooms').lean();
+    if (!classroomCode || typeof classroomCode !== 'string' || classroomCode.length > 40) return;
+    const user = await User.findById(socket.userId)
+      .select('role assignedClassrooms college department classroomCode')
+      .lean();
     if (!user || !['faculty', 'hod', 'principal', 'placement'].includes(user.role)) return;
+
+    // Holding a staff role is not the same as having a claim on *this*
+    // classroom. This previously stopped at the role check — so any faculty
+    // account could stream live telemetry for any class in any college.
+    if (!(await canAccessClassroom(user, classroomCode))) {
+      socket.emit('faculty:join-denied', {
+        classroomCode,
+        message: 'You are not assigned to this classroom.',
+      });
+      return;
+    }
+
     socket.join(`faculty:${classroomCode}`);
     console.log(`[WS] Faculty ${socket.userId} joined room faculty:${classroomCode}`);
   });
@@ -151,8 +216,24 @@ io.on('connection', (socket) => {
   });
 
   // Course group chat
+  // A course chat room is a module slug. Validating it against the module
+  // catalogue stops arbitrary room names being conjured up and used as
+  // unlisted channels, and stops history reads for rooms that never existed.
+  const isRealModuleSlug = async (slug) => {
+    try {
+      return Boolean(await Module.exists({ slug }));
+    } catch (e) {
+      console.error('[WS] Module slug check failed:', e.message);
+      return false;
+    }
+  };
+
   socket.on('join-course-chat', async (room) => {
     if (!room || typeof room !== 'string' || room.length > 30) return;
+    if (!(await isRealModuleSlug(room))) {
+      socket.emit('course-chat-denied', { room, message: 'Unknown course room.' });
+      return;
+    }
     socket.join(`chat:${room}`);
     try {
       const history = await ChatMessage.find({ room })
@@ -172,6 +253,9 @@ io.on('connection', (socket) => {
   socket.on('course-message', async (data) => {
     const { room, userName, message } = data;
     if (!room || !message || typeof message !== 'string') return;
+    // Posting requires having joined — otherwise the join-time slug check
+    // could be skipped by emitting straight to an arbitrary room.
+    if (!socket.rooms.has(`chat:${room}`)) return;
     const safeMessage = message.trim().substring(0, 2000);
     if (safeMessage.length === 0) return;
     try {
@@ -190,6 +274,8 @@ io.on('connection', (socket) => {
   socket.on('disconnect', async () => {
     if (currentRoomId) {
       socket.to(currentRoomId).emit('user-disconnected', socket.userId);
+      // Free the slot, or the room stays "full" forever after two people leave.
+      leaveP2PRoom(currentRoomId, socket.id);
     }
     try {
       await endSession(null, socket.userId, io);
@@ -202,6 +288,10 @@ io.on('connection', (socket) => {
 
 app.set('io', io);
 initSessionManager(io);
+
+// Read by /api/health so the client can tell "no one is studying right now"
+// apart from "this deployment has no live tracking at all".
+global.__levelupRealtime = true;
 
 // CRON JOBS — Only run when NOT in serverless Vercel
 if (process.env.VERCEL !== '1') {

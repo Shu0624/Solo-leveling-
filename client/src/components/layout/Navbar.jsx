@@ -1,45 +1,65 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { 
-  LogOut, Home, BookOpen, FileText, Video, Rocket, Sun, Moon, 
-  ShieldCheck, Globe, Gift, ClipboardList, User, Menu, X, Building 
+import {
+  LogOut, Home, BookOpen, FileText, Video, Rocket, Sun, Moon,
+  ShieldCheck, Globe, Gift, ClipboardList, User, Menu, X, Building,
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { IconButton } from '../ui';
+import { useState, useEffect, useRef } from 'react';
+
+// ═══════════════════════════════════════════════════════════════
+// Navbar — the running head of the document.
+//
+// It sits flush against the top rule rather than floating as a
+// rounded pill, and the active section is marked by an underline the
+// way a masthead marks the current section. Icon-only controls go
+// through IconButton, which requires an accessible label.
+// ═══════════════════════════════════════════════════════════════
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const drawerRef = useRef(null);
+  const openerRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  // Close mobile drawer on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  // Build initials from name
+  // A drawer that traps nothing and cannot be dismissed by keyboard is a
+  // keyboard trap in practice. Escape closes it and focus returns to the
+  // control that opened it.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        openerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    drawerRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileOpen]);
+
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
     : '?';
 
   const displayId = user?.enrollmentId || user?.employeeId || '';
-  const roleBadge = user?.role === 'student' ? 'Student' 
+  const roleBadge = user?.role === 'student' ? 'Student'
     : user?.role === 'faculty' ? 'Faculty'
     : user?.role === 'hod' ? 'HOD'
     : user?.role === 'principal' ? 'Principal'
@@ -47,261 +67,259 @@ const Navbar = () => {
     : 'User';
 
   const navItems = [
-    { path: '/dashboard', icon: <Home size={18} />, label: 'Dashboard' },
-    { path: '/modules', icon: <BookOpen size={18} />, label: 'Learn' },
-    { path: '/resume', icon: <FileText size={18} />, label: 'Resume' },
-    { path: '/interview', icon: <Video size={18} />, label: 'Interview' },
-    { path: '/assessment', icon: <ClipboardList size={18} />, label: 'Assessment' },
-    { path: '/roadmap', icon: <Rocket size={18} />, label: 'Roadmap' },
-    { path: '/activities', icon: <Globe size={18} />, label: 'Programs' },
-    { path: '/benefits', icon: <Gift size={18} />, label: 'Benefits' },
-    // Staff / HOD links
-    ...(['faculty','hod','principal','placement','admin'].includes(user?.role)
+    { path: '/dashboard', icon: <Home size={16} />, label: 'Dashboard' },
+    { path: '/modules', icon: <BookOpen size={16} />, label: 'Learn' },
+    { path: '/resume', icon: <FileText size={16} />, label: 'Resume' },
+    { path: '/interview', icon: <Video size={16} />, label: 'Interview' },
+    { path: '/assessment', icon: <ClipboardList size={16} />, label: 'Assessment' },
+    { path: '/syllabus', icon: <GraduationCap size={16} />, label: 'Syllabus' },
+    { path: '/roadmap', icon: <Rocket size={16} />, label: 'Roadmap' },
+    { path: '/activities', icon: <Globe size={16} />, label: 'Programs' },
+    { path: '/benefits', icon: <Gift size={16} />, label: 'Benefits' },
+    ...(['faculty', 'hod', 'principal', 'placement', 'admin'].includes(user?.role)
       ? [
-          { path: '/hod', icon: <Building size={18} />, label: 'Department' },
-          { path: '/admin', icon: <ShieldCheck size={18} />, label: 'Admin' }
+          { path: '/hod', icon: <Building size={16} />, label: 'Department' },
+          { path: '/admin', icon: <ShieldCheck size={16} />, label: 'Admin' }
         ]
       : []
     )
   ];
 
-  // Bottom tab bar items — the 5 most important for quick mobile access
   const bottomTabs = [
-    { path: '/dashboard', icon: <Home size={20} />, label: 'Home' },
-    { path: '/modules', icon: <BookOpen size={20} />, label: 'Learn' },
-    { path: '/assessment', icon: <ClipboardList size={20} />, label: 'Assess' },
-    { path: '/resume', icon: <FileText size={20} />, label: 'Resume' },
-    { path: '/profile', icon: <User size={20} />, label: 'Profile' },
+    { path: '/dashboard', icon: <Home size={19} />, label: 'Home' },
+    { path: '/modules', icon: <BookOpen size={19} />, label: 'Learn' },
+    { path: '/assessment', icon: <ClipboardList size={19} />, label: 'Assess' },
+    { path: '/resume', icon: <FileText size={19} />, label: 'Resume' },
+    { path: '/profile', icon: <User size={19} />, label: 'Profile' },
   ];
 
-  // Hide global navbar on landing and auth pages (using custom minimal navbar instead)
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+
+  // Landing and auth pages carry their own masthead.
   if (['/', '/login', '/register'].includes(location.pathname)) return null;
 
   return (
     <>
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* TOP NAVBAR                                                     */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <nav className="sticky top-4 mx-3 sm:mx-4 md:mx-8 z-50 rounded-2xl glass-morphism px-4 sm:px-6 py-3 transition-all duration-300">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 no-underline group shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
-              L
-            </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 font-sans tracking-tight">
-              LevelUp
-            </span>
-          </Link>
+      {/* ─── Running head ─── */}
+      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <div className="h-14 flex items-center justify-between gap-4">
 
-          {/* ─── Desktop Navigation (≥1024px) ─── */}
-          {user && (
-            <div className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:text-foreground",
-                    isActive(item.path) ? "text-primary" : "text-muted-foreground"
-                  )}
-                >
-                  {isActive(item.path) && (
-                    <motion.div
-                      layoutId="nav-bg"
-                      className="absolute inset-0 bg-primary/10 rounded-lg -z-10"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  {item.icon}
-                  <span className="hidden xl:block">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* ─── Right Side Controls ─── */}
-          {user ? (
-            <div className="flex items-center gap-2">
-              {/* Theme toggle */}
-              <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-
-              {/* Profile chip — visible on tablet+ */}
-              <div className="hidden md:flex items-center gap-2 border-l border-border/50 pl-3 ml-1">
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-secondary/50 transition-colors border border-transparent hover:border-border/50 group"
-                  title="Account Settings"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xs font-bold shadow-sm group-hover:shadow-md transition-shadow">
-                    {initials}
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-bold text-foreground leading-tight">{user.name?.split(' ')[0]}</span>
-                    <span className="text-[10px] font-semibold text-muted-foreground leading-tight">
-                      {displayId || roleBadge}
-                    </span>
-                  </div>
-                </Link>
-                
-                <button
-                  onClick={logout}
-                  className="p-2 ml-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                  title="Sign Out"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-
-              {/* Hamburger — visible below lg */}
-              <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="lg:hidden p-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Toggle menu"
-              >
-                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-              <Link to="/login" className="px-4 sm:px-5 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-secondary transition-colors">
-                Sign In
-              </Link>
-              <Link to="/register" className="px-4 sm:px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium shadow-lg shadow-primary/25 hover:opacity-90 transition-opacity">
-                Get Started
-              </Link>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* MOBILE SLIDE-OUT DRAWER (< 1024px)                            */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {mobileOpen && user && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-
-            {/* Drawer */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-[280px] sm:w-[320px] bg-card border-l border-border z-50 lg:hidden flex flex-col shadow-2xl"
+            {/* Wordmark */}
+            <Link
+              to={user ? '/dashboard' : '/'}
+              className="flex items-baseline gap-2 no-underline shrink-0"
             >
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between p-5 border-b border-border/50">
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-3 group"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-bold shadow-md">
-                    {initials}
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-foreground">{user.name}</div>
-                    <div className="text-xs text-muted-foreground">{displayId || roleBadge}</div>
-                  </div>
-                </Link>
-                <button
-                  onClick={() => setMobileOpen(false)}
-                  className="p-2 rounded-xl hover:bg-secondary text-muted-foreground"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <span className="font-display text-lg font-semibold tracking-tight text-foreground">
+                LevelUp
+              </span>
+            </Link>
 
-              {/* Drawer Nav Links */}
-              <div className="flex-1 overflow-y-auto py-3 px-3">
+            {/* Sections — underline marks the current one */}
+            {user && (
+              <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    onClick={() => setMobileOpen(false)}
+                    aria-current={isActive(item.path) ? 'page' : undefined}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all mb-1",
-                      isActive(item.path) 
-                        ? "bg-primary/10 text-primary font-semibold" 
-                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                      'relative flex items-center gap-1.5 px-2.5 h-14 text-[13px] font-medium transition-colors',
+                      'after:absolute after:left-2.5 after:right-2.5 after:bottom-0 after:h-[2px] after:transition-colors',
+                      isActive(item.path)
+                        ? 'text-foreground after:bg-[hsl(var(--primary-accent))]'
+                        : 'text-muted-foreground hover:text-foreground after:bg-transparent'
                     )}
                   >
-                    {item.icon}
-                    {item.label}
+                    <span aria-hidden="true">{item.icon}</span>
+                    <span className="hidden xl:block">{item.label}</span>
                   </Link>
                 ))}
               </div>
+            )}
 
-              {/* Drawer Footer */}
-              <div className="border-t border-border/50 p-4 space-y-2">
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
+            {/* Controls */}
+            {user ? (
+              <div className="flex items-center gap-1 shrink-0">
+                <IconButton
+                  label={`Switch to ${nextTheme} theme`}
+                  size="sm"
+                  onClick={() => setTheme(nextTheme)}
                 >
-                  <User size={18} />
-                  Profile Settings
-                </Link>
-                <button
-                  onClick={() => { logout(); setMobileOpen(false); }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
+                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                </IconButton>
+
+                <div className="hidden md:flex items-center gap-1 border-l border-border pl-2 ml-1">
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2.5 pl-1 pr-2.5 py-1 rounded-md hover:bg-secondary transition-colors"
+                  >
+                    <span
+                      className="w-7 h-7 rounded-md bg-secondary border border-border flex items-center justify-center text-[11px] font-semibold text-foreground"
+                      aria-hidden="true"
+                    >
+                      {initials}
+                    </span>
+                    <span className="flex flex-col items-start leading-tight">
+                      <span className="text-[13px] font-medium text-foreground">
+                        {user.name?.split(' ')[0]}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                        {displayId || roleBadge}
+                      </span>
+                    </span>
+                  </Link>
+
+                  <IconButton
+                    label="Sign out"
+                    size="sm"
+                    onClick={logout}
+                    className="hover:text-destructive"
+                  >
+                    <LogOut size={16} />
+                  </IconButton>
+                </div>
+
+                <IconButton
+                  ref={openerRef}
+                  label={mobileOpen ? 'Close menu' : 'Open menu'}
+                  size="sm"
+                  className="lg:hidden"
+                  aria-expanded={mobileOpen}
+                  aria-controls="mobile-nav-drawer"
+                  onClick={() => setMobileOpen(!mobileOpen)}
                 >
-                  <LogOut size={18} />
-                  Sign Out
-                </button>
+                  {mobileOpen ? <X size={19} /> : <Menu size={19} />}
+                </IconButton>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            ) : (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <IconButton
+                  label={`Switch to ${nextTheme} theme`}
+                  size="sm"
+                  onClick={() => setTheme(nextTheme)}
+                >
+                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                </IconButton>
+                <Link
+                  to="/login"
+                  className="px-3 h-8 inline-flex items-center rounded-md text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3.5 h-8 inline-flex items-center rounded-md text-[13px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Create account
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </nav>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* MOBILE BOTTOM TAB BAR (< 768px, logged in only)               */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ─── Mobile drawer ─── */}
+      {mobileOpen && user && (
+        <>
+          <div
+            className="fixed inset-0 bg-foreground/25 z-40 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            id="mobile-nav-drawer"
+            ref={drawerRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="fixed top-0 right-0 bottom-0 w-[290px] bg-card border-l border-border z-50 lg:hidden flex flex-col outline-none"
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-border">
+              <Link
+                to="/profile"
+                className="flex items-center gap-2.5 min-w-0"
+                onClick={() => setMobileOpen(false)}
+              >
+                <span
+                  className="w-9 h-9 rounded-md bg-secondary border border-border flex items-center justify-center text-xs font-semibold text-foreground shrink-0"
+                  aria-hidden="true"
+                >
+                  {initials}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-foreground truncate">{user.name}</span>
+                  <span className="block text-[11px] uppercase tracking-[0.08em] text-muted-foreground truncate">
+                    {displayId || roleBadge}
+                  </span>
+                </span>
+              </Link>
+              <IconButton label="Close menu" size="sm" onClick={() => setMobileOpen(false)}>
+                <X size={18} />
+              </IconButton>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  aria-current={isActive(item.path) ? 'page' : undefined}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-2',
+                    isActive(item.path)
+                      ? 'border-[hsl(var(--primary-accent))] text-foreground font-medium bg-secondary/60'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary/40'
+                  )}
+                >
+                  <span aria-hidden="true">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="border-t border-border p-2">
+              <Link
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-md text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <User size={16} aria-hidden="true" />
+                Profile settings
+              </Link>
+              <button
+                type="button"
+                onClick={() => { logout(); setMobileOpen(false); }}
+                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <LogOut size={16} aria-hidden="true" />
+                Sign out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ─── Mobile tab bar ─── */}
       {user && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card/95 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
-          <div className="flex items-center justify-around px-2 py-1.5">
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-card border-t border-border safe-area-bottom">
+          <div className="flex items-stretch justify-around">
             {bottomTabs.map((tab) => (
               <Link
                 key={tab.path}
                 to={tab.path}
+                aria-current={isActive(tab.path) ? 'page' : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-[56px]",
-                  isActive(tab.path) 
-                    ? "text-primary" 
-                    : "text-muted-foreground"
+                  'flex flex-col items-center gap-1 px-3 pt-2 pb-1.5 min-w-[56px] border-t-2 transition-colors',
+                  isActive(tab.path)
+                    ? 'border-[hsl(var(--primary-accent))] text-foreground'
+                    : 'border-transparent text-muted-foreground'
                 )}
               >
-                {tab.icon}
-                <span className="text-[10px] font-semibold leading-tight">{tab.label}</span>
-                {isActive(tab.path) && (
-                  <motion.div
-                    layoutId="tab-indicator"
-                    className="w-1 h-1 rounded-full bg-primary mt-0.5"
-                    transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
-                  />
-                )}
+                <span aria-hidden="true">{tab.icon}</span>
+                <span className="text-[10px] font-medium leading-tight">{tab.label}</span>
               </Link>
             ))}
           </div>

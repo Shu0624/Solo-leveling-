@@ -23,13 +23,11 @@ const getSocketUrl = () => {
   return null;
 };
 
-// Kept in step with DEMO_IDENTITIES in server/middleware/auth.js. The server
-// copy decides what data a demo session may read; this copy is what the
-// interface displays. They have to agree on ids, roles, department and
-// assigned classes, or the console shows one identity while serving another.
-const DEMO_ACCOUNTS = {
+// Kept in step with DEMO_IDENTITIES in server/middleware/auth.js.
+// Using valid 24-hex ObjectIds prevents Mongoose CastError across all features.
+export const DEMO_ACCOUNTS = {
   student: {
-    _id: 'demo_student_01',
+    _id: '65f1a1a1a1a1a1a1a1a10001',
     name: 'Alex Chen',
     email: 'alex.chen@student.levelup.edu',
     role: 'student',
@@ -40,9 +38,13 @@ const DEMO_ACCOUNTS = {
     college: 'Apex Institute of Technology',
     enrollmentId: '21BCE1042',
     cgpa: 8.85,
+    streak: 12,
+    skills: ['React', 'Node.js', 'Python', 'Machine Learning', 'Data Structures'],
+    resumeScore: 88,
+    isDemo: true
   },
   faculty: {
-    _id: 'demo_faculty_01',
+    _id: '65f1a1a1a1a1a1a1a1a10002',
     name: 'Dr. Sarah Jenkins',
     email: 'sarah.jenkins@faculty.levelup.edu',
     role: 'faculty',
@@ -50,15 +52,27 @@ const DEMO_ACCOUNTS = {
     assignedClassrooms: ['CSE-3A', 'CSE-4B'],
     college: 'Apex Institute of Technology',
     employeeId: 'FAC-2024-089',
+    isDemo: true
   },
   hod: {
-    _id: 'demo_hod_01',
+    _id: '65f1a1a1a1a1a1a1a1a10003',
     name: 'Dr. Ramesh Kulkarni',
     email: 'hod.cse@apex.edu.in',
     role: 'hod',
     department: 'Computer Science & Engineering',
     college: 'Apex Institute of Technology',
     employeeId: 'HOD-CSE-001',
+    isDemo: true
+  },
+  principal: {
+    _id: '65f1a1a1a1a1a1a1a1a10004',
+    name: 'Dr. A. R. Sundaram',
+    email: 'principal@apex.edu.in',
+    role: 'principal',
+    department: 'Administration',
+    college: 'Apex Institute of Technology',
+    employeeId: 'PRIN-2024-001',
+    isDemo: true
   }
 };
 
@@ -66,7 +80,25 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('levelup_user');
-      return savedUser ? JSON.parse(savedUser) : null;
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        // Self-heal legacy demo ids stored in user's browser localStorage
+        if (parsed?._id === 'demo_student_01') {
+          parsed._id = '65f1a1a1a1a1a1a1a1a10001';
+          localStorage.setItem('levelup_user', JSON.stringify(parsed));
+        } else if (parsed?._id === 'demo_faculty_01') {
+          parsed._id = '65f1a1a1a1a1a1a1a1a10002';
+          localStorage.setItem('levelup_user', JSON.stringify(parsed));
+        } else if (parsed?._id === 'demo_hod_01') {
+          parsed._id = '65f1a1a1a1a1a1a1a1a10003';
+          localStorage.setItem('levelup_user', JSON.stringify(parsed));
+        } else if (parsed?._id === 'demo_principal_01') {
+          parsed._id = '65f1a1a1a1a1a1a1a1a10004';
+          localStorage.setItem('levelup_user', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -98,9 +130,7 @@ export const AuthProvider = ({ children }) => {
     instance.interceptors.response.use(
       (response) => response,
       (error) => {
-        const isDemo = localStorage.getItem('token')?.startsWith('demo_token_');
         if (
-          !isDemo &&
           error.response?.status === 401 &&
           !error.config?.url?.includes('/auth/login') &&
           !error.config?.url?.includes('/auth/register')
@@ -130,16 +160,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       if (token) {
-        // If logged in via demo token, maintain session from storage
-        if (token.startsWith('demo_token_')) {
-          const stored = localStorage.getItem('levelup_user');
-          if (stored) {
-            try { setUser(JSON.parse(stored)); } catch {}
-          }
-          setLoading(false);
-          return;
-        }
-
         try {
           const res = await api.get('/auth/me');
           setUser(res.data);
@@ -178,17 +198,6 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  // 1-Click Demo Login for quick testing without database dependencies
-  const demoLogin = (role = 'student') => {
-    const demoUser = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.student;
-    const demoToken = `demo_token_${role}_${Date.now()}`;
-    setUser(demoUser);
-    setToken(demoToken);
-    localStorage.setItem('token', demoToken);
-    localStorage.setItem('levelup_user', JSON.stringify(demoUser));
-    return demoUser;
-  };
-
   // Socket.IO Connection Management — guarded against mixed content
   useEffect(() => {
     const resolvedSocketUrl = getSocketUrl();
@@ -219,6 +228,17 @@ export const AuthProvider = ({ children }) => {
 
     return () => {};
   }, [user, token]);
+
+  // 1-Click Demo Login for quick testing without database dependencies
+  const demoLogin = (role = 'student') => {
+    const demoUser = DEMO_ACCOUNTS[role] || DEMO_ACCOUNTS.student;
+    const demoToken = `demo_token_${role}_${Date.now()}`;
+    setUser(demoUser);
+    setToken(demoToken);
+    localStorage.setItem('token', demoToken);
+    localStorage.setItem('levelup_user', JSON.stringify(demoUser));
+    return demoUser;
+  };
 
   const logout = () => {
     if (socketRef.current) {

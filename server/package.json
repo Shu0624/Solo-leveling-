@@ -10,7 +10,8 @@
     "seed": "node scripts/seed.js",
     "verify:workbook": "node scripts/verifyWorkbook.js",
     "verify:department": "node scripts/verifyDepartmentApi.js",
-    "verify": "npm run verify:workbook && npm run verify:department"
+    "verify": "npm run verify:security && npm run verify:workbook && npm run verify:department",
+    "verify:security": "node scripts/verifySecurity.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

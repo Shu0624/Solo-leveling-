@@ -83,7 +83,7 @@ function Notice({ notice, onDismiss }) {
   }[notice.tone] || 'border-border bg-secondary/50 text-foreground';
 
   return (
-    <div className={cn('flex items-start gap-2.5 rounded-xl border px-4 py-2.5', tone)}>
+    <div className={cn('flex items-start gap-2.5 rounded-md border px-4 py-2.5', tone)}>
       <Icon size={15} className="mt-0.5 shrink-0" />
       <p className="text-sm flex-1">{notice.text}</p>
       <button onClick={onDismiss} aria-label="Dismiss" className="shrink-0 opacity-60 hover:opacity-100 transition-opacity">
@@ -146,8 +146,6 @@ export default function HODDashboard() {
                 <div className="text-sm text-foreground">{user?.name || 'Head of Department'}</div>
                 <div className="text-xs text-muted-foreground">
                   {user?.role === 'hod' ? 'Head of the Department' : user?.role === 'faculty' ? 'Teaching faculty' : 'Administration'}
-                  {meta?.origin === 'demo' && ' · demo session'}
-                  {meta?.origin === 'reference' && ' · sample roster'}
                 </div>
               </div>
             </div>
@@ -177,7 +175,7 @@ export default function HODDashboard() {
         <Notice notice={notice} onDismiss={() => setNotice(null)} />
 
         {error && (
-          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
             <AlertCircle size={16} className="text-destructive mt-0.5 shrink-0" />
             <div className="flex-1">
               <p className="text-sm text-destructive">{error}</p>
@@ -307,7 +305,7 @@ export default function HODDashboard() {
             </div>
 
             {/* ── Register ─────────────────────────────────────────────── */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="rounded-md border border-border bg-card overflow-hidden">
               <div className="flex items-baseline justify-between gap-4 px-4 py-3 border-b border-border">
                 <p className="text-sm text-foreground">
                   <span className="tnum font-medium">{students.length}</span>

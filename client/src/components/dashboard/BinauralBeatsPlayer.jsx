@@ -93,7 +93,7 @@ const BinauralBeatsPlayer = () => {
   const preset = PRESETS[activePreset];
 
   return (
-    <section className="glass-morphism rounded-2xl p-6 relative overflow-hidden">
+    <section className="glass-morphism rounded-md p-6 relative overflow-hidden">
       <div className="absolute -right-8 -bottom-8 opacity-5">
         <Headphones size={120} />
       </div>
@@ -108,7 +108,7 @@ const BinauralBeatsPlayer = () => {
           <button
             key={i}
             onClick={() => changePreset(i)}
-            className={`p-3 rounded-xl text-left transition-all duration-200 border ${
+            className={`p-3 rounded-md text-left transition-all duration-200 border ${
               activePreset === i
                 ? 'border-primary/50 bg-primary/10 shadow-sm'
                 : 'border-border/50 bg-background/50 hover:border-primary/30'
@@ -172,8 +172,7 @@ const BinauralBeatsPlayer = () => {
       </div>
 
       {playing && (
-        <p className="text-[10px] text-muted-foreground mt-3 text-center italic relative z-10">
-          🎧 Use headphones for best binaural effect
+        <p className="text-[10px] text-muted-foreground mt-3 text-center italic relative z-10">Use headphones for best binaural effect
         </p>
       )}
     </section>
