@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
@@ -79,8 +80,7 @@ app.use(async (req, res, next) => {
 
 // Health check endpoint for monitoring & Vercel inspection
 app.get('/api/health', (req, res) => {
-  const mongoose = global.mongoose;
-  const isDbConnected = Boolean(mongoose?.conn?.readyState === 1 || mongoose?.readyState === 1);
+  const isDbConnected = Boolean(mongoose.connection?.readyState === 1 || global.mongoose?.conn?.readyState === 1);
   // `realtime` is false on a serverless deploy: Socket.io, the in-memory
   // session manager and the cron aggregations all live in server.js, which
   // Vercel never runs. The client reads this so faculty screens can say

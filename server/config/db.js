@@ -4,7 +4,7 @@ import dns from 'dns';
 // Safe DNS configuration (bypasses local DNS resolution issues on Windows, but doesn't crash serverless runtimes)
 try {
   dns.setDefaultResultOrder('ipv4first');
-  if (typeof dns.setServers === 'function') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL && typeof dns.setServers === 'function') {
     dns.setServers(['8.8.8.8', '8.8.4.4']);
   }
 } catch (dnsErr) {

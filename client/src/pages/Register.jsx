@@ -92,7 +92,22 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, demoLogin } = useAuth();
+
+  const handleDemoStudentContinue = () => {
+    const studentUser = demoLogin('student');
+    const enriched = {
+      ...studentUser,
+      name: formData.name?.trim() || studentUser.name,
+      college: formData.college?.trim() || studentUser.college,
+      department: formData.department?.trim() || studentUser.department,
+      skills: formData.skillsList?.length > 0 ? formData.skillsList : studentUser.skills,
+      careerInterest: formData.careerInterest || studentUser.careerInterest,
+      preferredDomain: formData.preferredDomain || studentUser.preferredDomain,
+    };
+    localStorage.setItem('levelup_user', JSON.stringify(enriched));
+    navigate('/dashboard');
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -330,9 +345,18 @@ const Register = () => {
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mb-6 p-4 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm"
+                className="mb-6 p-4 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
               >
-                {error}
+                <div>{error}</div>
+                {formData.role === 'student' && (
+                  <button
+                    type="button"
+                    onClick={handleDemoStudentContinue}
+                    className="px-3 py-1.5 rounded text-xs font-semibold bg-destructive/20 hover:bg-destructive/30 text-destructive transition-colors inline-flex items-center gap-1.5 w-fit shrink-0 cursor-pointer self-start sm:self-auto"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Continue as Demo Student
+                  </button>
+                )}
               </motion.div>
             )}
 

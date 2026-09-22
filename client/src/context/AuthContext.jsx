@@ -160,6 +160,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchUser = async () => {
       if (token) {
+        if (token.startsWith('demo_token_')) {
+          const savedUser = localStorage.getItem('levelup_user');
+          if (savedUser) {
+            try {
+              const parsed = JSON.parse(savedUser);
+              if (parsed?._id) {
+                setUser(parsed);
+                setLoading(false);
+                return;
+              }
+            } catch {}
+          }
+        }
         try {
           const res = await api.get('/auth/me');
           setUser(res.data);

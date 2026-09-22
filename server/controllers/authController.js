@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { z } from 'zod';
-import { getJwtSecret } from '../config/jwt.js';
+import { getJwtSecret, isJwtConfigured } from '../config/jwt.js';
 import { demoAllowed } from '../middleware/auth.js';
 
 // Validation schemas
@@ -262,13 +262,6 @@ export const registerUser = async (req, res) => {
       return res.status(403).json({ code: 'STAFF_SIGNUP_REFUSED', message: staffCheck.message });
     }
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
     // Generate classroom code for students if applicable
     let classroomCode = '';
     if (department && year && section) {
@@ -282,6 +275,74 @@ export const registerUser = async (req, res) => {
     if (isStaffRole && classroomCode) {
       // For faculty, auto-assign the classroom code so they can manage it immediately
       assignedClassrooms = [classroomCode];
+    }
+
+    // Check database availability and JWT configuration before DB operations
+    const dbReady = mongoose.connection.readyState === 1;
+    const jwtReady = isJwtConfigured();
+
+    if (!dbReady || !jwtReady) {
+      // If demo mode is permitted and registering as a student, grant immediate seamless access
+      if (demoAllowed() && role === 'student') {
+        const deptPrefix = (department || 'GEN').toUpperCase().slice(0, 4);
+        const gradYear = year ? (2024 + (4 - year)) : 2028;
+        const generatedId = `${deptPrefix}-${gradYear}-${Math.floor(100 + Math.random() * 900)}`;
+
+        const syntheticUser = {
+          _id: '65f1a1a1a1a1a1a1a1a10001',
+          name,
+          email,
+          role: 'student',
+          college,
+          department,
+          year,
+          section,
+          classroomCode,
+          assignedClassrooms: [],
+          enrollmentId: generatedId,
+          rollNo: validatedData.rollNo,
+          prn: validatedData.prn,
+          dob: validatedData.dob,
+          gender: validatedData.gender,
+          academicYear: validatedData.academicYear || '2025–2026',
+          phone: validatedData.phone,
+          personalEmail: validatedData.personalEmail,
+          address: validatedData.address,
+          parentName: validatedData.parentName,
+          parentPhone: validatedData.parentPhone,
+          cgpa: validatedData.cgpa || 8.5,
+          sgpa: validatedData.sgpa || 8.2,
+          prevSgpa: validatedData.prevSgpa || 8.0,
+          currentSubjects: validatedData.currentSubjects || [],
+          academicStrengths: validatedData.academicStrengths || [],
+          weakSubjects: validatedData.weakSubjects || [],
+          linkedinUrl: validatedData.linkedinUrl,
+          githubUrl: validatedData.githubUrl,
+          portfolioUrl: validatedData.portfolioUrl,
+          resumeUrl: validatedData.resumeUrl,
+          careerInterest: validatedData.careerInterest || 'Campus Placement / Tech Job',
+          preferredDomain: validatedData.preferredDomain || 'Full-Stack Web',
+          skills: (validatedData.skills && validatedData.skills.length > 0) ? validatedData.skills : ['JavaScript', 'React', 'Node.js', 'Python'],
+          certifications: validatedData.certifications || [],
+          projects: validatedData.projects || [],
+          internships: validatedData.internships || [],
+          isDemo: true,
+        };
+
+        const demoToken = `demo_token_student_${Date.now()}`;
+        return res.status(201).json(buildUserResponse(syntheticUser, demoToken));
+      }
+
+      return res.status(503).json({
+        code: 'DB_UNAVAILABLE',
+        message: 'Registration is temporarily unavailable because the database is offline. Please use 1-Click Demo Login on the Sign-in page.',
+      });
+    }
+
+    // Check if user exists
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: 'An account with this email address already exists.' });
     }
 
     const mintId = (attempt) => (
@@ -349,10 +410,42 @@ export const registerUser = async (req, res) => {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ message: error.errors[0].message });
+      return res.status(400).json({ message: error.errors[0]?.message || 'Validation error' });
+    }
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || 'field';
+      return res.status(400).json({ message: `An account with this ${field} already exists.` });
+    }
+    if (error?.name === 'ValidationError') {
+      const firstErr = Object.values(error.errors || {})[0]?.message || error.message;
+      return res.status(400).json({ message: firstErr });
+    }
+    if (error?.name === 'MongooseError' || error?.message?.includes('buffering') || error?.message?.includes('connection')) {
+      if (demoAllowed() && req.body?.role !== 'faculty' && req.body?.role !== 'hod' && req.body?.role !== 'principal') {
+        const syntheticUser = {
+          _id: '65f1a1a1a1a1a1a1a1a10001',
+          name: req.body?.name || 'Student',
+          email: req.body?.email || 'student@levelup.edu',
+          role: 'student',
+          college: req.body?.college || 'Apex Institute of Technology',
+          department: req.body?.department || 'Computer Science & Engineering',
+          year: req.body?.year || 3,
+          section: req.body?.section || 'A',
+          classroomCode: 'CSE-3A',
+          assignedClassrooms: [],
+          enrollmentId: 'CSE-2028-101',
+          isDemo: true,
+        };
+        const demoToken = `demo_token_student_${Date.now()}`;
+        return res.status(201).json(buildUserResponse(syntheticUser, demoToken));
+      }
+      return res.status(503).json({
+        code: 'DB_UNAVAILABLE',
+        message: 'Database connection is temporarily offline. Please use 1-Click Demo Login.',
+      });
     }
     console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: error?.message || 'Server error during registration' });
   }
 };
 
