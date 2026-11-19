@@ -210,4 +210,10 @@ console.log('\nLevelUp security checks\n');
 console.log(results.join('\n'));
 const total = results.length;
 console.log(`\n${passed}/${total} passed\n`);
-process.exit(passed === total ? 0 : 1);
+// Let the process wind down on its own instead of calling process.exit() at
+// once: on Windows, exiting while the app's in-flight work is still settling
+// can abort with a libuv assertion (UV_HANDLE_CLOSING) after every check has
+// passed. The unref'd timer still forces an exit if something (for example a
+// live database connection) would otherwise keep the process alive.
+process.exitCode = passed === total ? 0 : 1;
+setTimeout(() => process.exit(process.exitCode), 2000).unref();
