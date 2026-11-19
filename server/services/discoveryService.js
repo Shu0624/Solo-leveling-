@@ -596,7 +596,9 @@ export const sanitizeListingsForDisplay = (items, type) => {
 
 const WEB_SEARCH_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
 const DISCOVERY_COOLDOWN_MS = 30 * 60 * 1000;
-const LINK_CHECK_TIMEOUT_MS = 5000;
+const LINK_CHECK_TIMEOUT_MS = 4000;
+// News sites and listicle aggregators: students should land on the official page.
+const NOT_OFFICIAL_HOST = /(^|\.)(indiatoday\.in|timesofindia\.indiatimes\.com|hindustantimes\.com|ndtv\.com|news18\.com|livemint\.com|economictimes\.indiatimes\.com|thehindu\.com|jagranjosh\.com|careers360\.com|shiksha\.com|collegedunia\.com|coursejoiner\.com|medium\.com|quora\.com|reddit\.com)$/i;
 const PROGRAM_CATEGORIES = ['ambassador', 'fellowship', 'open-source', 'internship', 'placement', 'ai-course', 'hackathon', 'other'];
 
 const MONTH_RE = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
@@ -648,6 +650,7 @@ export const verifyLink = async (url) => {
   }
   if (!/^https?:$/.test(parsed.protocol)) return false;
   if (/(^|\.)google\.[a-z.]+$/.test(parsed.hostname) && parsed.pathname.startsWith('/search')) return false;
+  if (NOT_OFFICIAL_HOST.test(parsed.hostname)) return false;
   try {
     const res = await fetch(parsed, {
       redirect: 'follow',
@@ -672,7 +675,9 @@ const searchWeb = async (prompt) => {
     ],
     false,
     0.2,
-    { tools: [{ type: 'browser_search' }], models: WEB_SEARCH_MODELS, timeoutMs: 25000, totalTimeoutMs: 45000, maxRetries: 0 },
+    // Searches take 10-30s. The budget leaves room for link checks inside the
+    // API's 60s maxDuration (vercel.json).
+    { tools: [{ type: 'browser_search' }], models: WEB_SEARCH_MODELS, timeoutMs: 45000, totalTimeoutMs: 48000, maxRetries: 0 },
   );
   return extractJson(raw);
 };
