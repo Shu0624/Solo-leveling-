@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { io as socketIO } from 'socket.io-client';
+// socket.io-client is imported on demand (see the socket effect below): the
+// Vercel deploy has no socket server, so most visitors never need it.
 
 const AuthContext = createContext();
 
@@ -104,7 +105,18 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(true);
+  // Only block rendering when there is a token but no cached profile to show.
+  // With a cached profile the app renders at once and /auth/me revalidates in
+  // the background; a 401 from it still logs the user out. Previously every
+  // returning visitor saw a blank page until the API (and, on a cold serverless
+  // start, the database connection) answered.
+  const [loading, setLoading] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem('token')) && !localStorage.getItem('levelup_user');
+    } catch {
+      return true;
+    }
+  });
   const [socket, setSocket] = useState(null);
   const socketRef = useRef(null);
 
@@ -214,8 +226,13 @@ export const AuthProvider = ({ children }) => {
   // Socket.IO Connection Management — guarded against mixed content
   useEffect(() => {
     const resolvedSocketUrl = getSocketUrl();
-    if (user && token && !socketRef.current && resolvedSocketUrl) {
-      try {
+    if (!user || !token || socketRef.current || !resolvedSocketUrl) return undefined;
+
+    // Ignore a load that resolves after the user/token it was started for changed.
+    let cancelled = false;
+    import('socket.io-client')
+      .then(({ io: socketIO }) => {
+        if (cancelled || socketRef.current) return;
         const newSocket = socketIO(resolvedSocketUrl, {
           auth: { token },
           reconnection: true,
@@ -234,12 +251,12 @@ export const AuthProvider = ({ children }) => {
 
         socketRef.current = newSocket;
         setSocket(newSocket);
-      } catch (err) {
+      })
+      .catch((err) => {
         console.warn('[Socket] Init skipped:', err.message);
-      }
-    }
+      });
 
-    return () => {};
+    return () => { cancelled = true; };
   }, [user, token]);
 
   // 1-Click Demo Login for quick testing without database dependencies

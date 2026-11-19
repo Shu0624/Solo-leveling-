@@ -1,7 +1,9 @@
 import { useActivity, ACTIVITY_CATEGORIES } from '../../context/ActivityContext';
 import { Play, Pause, Square } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
+
+// Rendered on every page, so it deliberately avoids framer-motion: importing it
+// here put the whole animation library on the landing page's critical path.
 
 const GlobalTimerWidget = () => {
   const { 
@@ -19,12 +21,8 @@ const GlobalTimerWidget = () => {
   const currentCat = ACTIVITY_CATEGORIES.find(c => c.value === timerCategory);
 
   return (
-    <AnimatePresence>
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="fixed top-20 right-4 md:right-8 z-50 glass-morphism px-4 py-2 flex items-center gap-4 border-primary/20 shadow-lg shadow-primary/10 rounded-full bg-background/80 backdrop-blur-xl"
+      <div
+        className="animate-fade-in motion-reduce:animate-none fixed top-20 right-4 md:right-8 z-50 glass-morphism px-4 py-2 flex items-center gap-4 border-primary/20 shadow-lg shadow-primary/10 rounded-full bg-background/80 backdrop-blur-xl"
       >
         <div className="flex items-center gap-2">
           <div className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: currentCat?.color || 'var(--primary)' }} />
@@ -49,8 +47,7 @@ const GlobalTimerWidget = () => {
             <Square size={14} fill="currentColor" />
           </button>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
   );
 };
 
