@@ -3,6 +3,9 @@
   "buildCommand": "cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
   "regions": ["bom1"],
+  "functions": {
+    "api/index.js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/assets/(.*)",

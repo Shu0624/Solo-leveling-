@@ -22,18 +22,27 @@ const isModelMissing = (error) =>
 const isBadKey = (error) =>
   error?.status === 401 || /invalid_api_key|expired_api_key|Invalid API Key/i.test(error?.message || "");
 
-const buildOptions = (model, messages, jsonMode, temperature) => {
+// Failures specific to one model (it's gone, it fumbled a tool call, or Groq
+// errored on it) are worth retrying on the next model with the same key.
+const isModelLevelFailure = (error) =>
+  isModelMissing(error) ||
+  error?.status >= 500 ||
+  /tool_use_failed|tool call validation failed/i.test(error?.message || "");
+
+const buildOptions = (model, messages, jsonMode, temperature, tools) => {
   const options = { messages, model, temperature, max_tokens: 4096 };
   // gpt-oss models reason before answering; "low" keeps latency around 1-2s.
   if (model.startsWith("openai/gpt-oss")) options.reasoning_effort = "low";
-  if (jsonMode) options.response_format = { type: "json_object" };
+  // Groq doesn't combine built-in tools with JSON mode; callers parse instead.
+  if (tools) options.tools = tools;
+  else if (jsonMode) options.response_format = { type: "json_object" };
   return options;
 };
 
-const withTimeout = async (promise) => {
+const withTimeout = async (promise, ms = TIMEOUT_MS) => {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('Groq timeout')), TIMEOUT_MS);
+    timeoutId = setTimeout(() => reject(new Error('Groq timeout')), ms);
   });
   try {
     return await Promise.race([promise, timeoutPromise]);
@@ -47,25 +56,37 @@ const withTimeout = async (promise) => {
  * @param {Array} messages - Array of message objects {role: "system"|"user"|"assistant", content: string}
  * @param {boolean} jsonMode - Ensure response is valid JSON
  * @param {number} temperature - Model temperature
+ * @param {object} [opts]
+ * @param {Array} [opts.tools] - Groq built-in tools, e.g. [{ type: "browser_search" }]
+ * @param {string[]} [opts.models] - Models to try instead of the defaults
+ * @param {number} [opts.timeoutMs] - Per-attempt timeout
+ * @param {number} [opts.totalTimeoutMs] - Budget across every key/model attempt
+ * @param {number} [opts.maxRetries] - SDK-level retries per attempt
  * @returns {string} - Response text
  */
-export const getGroqChatCompletion = async (messages, jsonMode = false, temperature = 0.5) => {
+export const getGroqChatCompletion = async (messages, jsonMode = false, temperature = 0.5, opts = {}) => {
   if (clients.length === 0) throw new Error("No Groq API keys configured");
+
+  const models = opts.models?.length ? opts.models : MODELS;
+  const deadline = opts.totalTimeoutMs ? Date.now() + opts.totalTimeoutMs : Infinity;
+  const requestOptions = opts.maxRetries === undefined ? undefined : { maxRetries: opts.maxRetries };
 
   let lastError;
   for (let i = 0; i < clients.length; i++) {
     const groq = clients[currentClientIndex];
-    for (const model of MODELS) {
+    for (const model of models) {
+      const remaining = deadline - Date.now();
+      if (remaining < 1000) throw lastError || new Error('Groq timeout');
       try {
         const chatCompletion = await withTimeout(
-          groq.chat.completions.create(buildOptions(model, messages, jsonMode, temperature))
+          groq.chat.completions.create(buildOptions(model, messages, jsonMode, temperature, opts.tools), requestOptions),
+          Math.min(opts.timeoutMs || TIMEOUT_MS, remaining)
         );
         return chatCompletion.choices[0]?.message?.content || "";
       } catch (error) {
         lastError = error;
         console.warn(`Groq API Error (key ${currentClientIndex}, model ${model}):`, error.message);
-        // Only a missing model is worth retrying on the same key with the next model.
-        if (!isModelMissing(error)) break;
+        if (!isModelLevelFailure(error)) break;
       }
     }
     // Rotate to the next key (bad key, rate limit, timeout, or all models missing).

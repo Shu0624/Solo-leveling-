@@ -1,6 +1,7 @@
 import { getGroqChatCompletion } from './groqService.js';
 import ProgramListing from '../models/ProgramListing.js';
 import BenefitListing from '../models/BenefitListing.js';
+import DiscoveryState from '../models/DiscoveryState.js';
 
 // =====================================================================
 // VERIFIED SEED DATA — Static fallback + initial DB seed
@@ -542,7 +543,8 @@ const trustedLink = (item, type) => {
   const company = type === 'program' ? item.company : item.provider;
   const link = String(item.link || '').trim();
 
-  if (link && item.source === 'verified') return link;
+  // 'web-verified' links came from a live web search and answered an HTTP check.
+  if (link && (item.source === 'verified' || item.source === 'web-verified')) return link;
 
   const cN = String(company || '').toLowerCase();
   const tN = String(name || '').toLowerCase();
@@ -583,98 +585,195 @@ export const sanitizeListingsForDisplay = (items, type) => {
   return [...byKey.values()].map((it) => ({ ...it, link: trustedLink(it, type) }));
 };
 
+// =====================================================================
+// GROUNDED DISCOVERY — web search, live link checks, real deadlines
+// =====================================================================
+// The old discovery asked the model to *remember* "current" programs, which it
+// can't: it invented listings and URLs, so its links were swapped for Google
+// searches and its text-only deadlines never expired anything. Discovery now
+// runs Groq's browser_search tool, keeps only links that actually resolve, and
+// reads deadlines into expiresAt.
+
+const WEB_SEARCH_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+const DISCOVERY_COOLDOWN_MS = 30 * 60 * 1000;
+const LINK_CHECK_TIMEOUT_MS = 5000;
+const PROGRAM_CATEGORIES = ['ambassador', 'fellowship', 'open-source', 'internship', 'placement', 'ai-course', 'hackathon', 'other'];
+
+const MONTH_RE = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const monthIndex = (m) => MONTHS.indexOf(String(m).slice(0, 3).toLowerCase());
+const endOfDay = (y, m, d) => new Date(Date.UTC(y, m, d, 23, 59, 59));
+
 /**
- * Discover new programs using AI
+ * The latest full date written in a free-text deadline, e.g. "Apply by July 15,
+ * 2026", "15 Aug 2026", "2026-09-30" or "May 2026" (end of month). Null when
+ * there is no dated year in it ("Rolling", "Self-paced", "15 July").
+ */
+export const parseDeadline = (text) => {
+  let rest = String(text || '');
+  const dates = [];
+  const take = (re, toDate) => {
+    rest = rest.replace(re, (...m) => {
+      dates.push(toDate(m));
+      return ' ';
+    });
+  };
+  take(/\b(20\d\d)-(\d{1,2})-(\d{1,2})\b/g, (m) => endOfDay(+m[1], +m[2] - 1, +m[3]));
+  take(new RegExp(`\\b${MONTH_RE}\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(20\\d\\d)\\b`, 'gi'), (m) => endOfDay(+m[3], monthIndex(m[1]), +m[2]));
+  take(new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+${MONTH_RE}\\.?,?\\s+(20\\d\\d)\\b`, 'gi'), (m) => endOfDay(+m[3], monthIndex(m[2]), +m[1]));
+  take(new RegExp(`\\b${MONTH_RE}\\.?,?\\s+(20\\d\\d)\\b`, 'gi'), (m) => endOfDay(+m[2], monthIndex(m[1]) + 1, 0));
+  const valid = dates.filter((d) => !Number.isNaN(d.getTime()));
+  return valid.length ? new Date(Math.max(...valid)) : null;
+};
+
+// The JSON object in a model reply, which may come wrapped in prose or fences.
+const extractJson = (text) => {
+  const s = String(text || '');
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start === -1 || end <= start) throw new Error('No JSON object in model reply');
+  return JSON.parse(s.slice(start, end + 1));
+};
+
+/**
+ * True when a URL really answers. Sites that turn away bots (401/403/429) still
+ * exist, so they pass; 404s, dead hosts, timeouts and search-result URLs don't.
+ */
+export const verifyLink = async (url) => {
+  let parsed;
+  try {
+    parsed = new URL(String(url || '').trim());
+  } catch {
+    return false;
+  }
+  if (!/^https?:$/.test(parsed.protocol)) return false;
+  if (/(^|\.)google\.[a-z.]+$/.test(parsed.hostname) && parsed.pathname.startsWith('/search')) return false;
+  try {
+    const res = await fetch(parsed, {
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LevelUpLinkCheck/1.0)', Accept: 'text/html,*/*' },
+      signal: AbortSignal.timeout(LINK_CHECK_TIMEOUT_MS),
+    });
+    res.body?.cancel().catch(() => {});
+    return res.status < 400 || [401, 403, 429].includes(res.status);
+  } catch {
+    return false;
+  }
+};
+
+const searchWeb = async (prompt) => {
+  const raw = await getGroqChatCompletion(
+    [
+      {
+        role: 'system',
+        content: 'You research opportunities for Indian engineering students. Use the browser_search tool and report only opportunities and URLs you actually found in search results. When you are done, write your answer as a single JSON object in the message text.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    false,
+    0.2,
+    { tools: [{ type: 'browser_search' }], models: WEB_SEARCH_MODELS, timeoutMs: 25000, totalTimeoutMs: 45000, maxRetries: 0 },
+  );
+  return extractJson(raw);
+};
+
+// Hand-checked links are trusted as-is: some of those sites (tcs.com) answer
+// automated requests with 404s, which would wrongly fail the live check.
+const WHITELISTED_LINKS = new Set(CORRECT_LINKS.map((r) => r.link));
+
+// Keep candidates whose link resolves; checks run in parallel.
+const withWorkingLinks = async (items) => {
+  const results = await Promise.all(items.map(async (it) =>
+    (WHITELISTED_LINKS.has(it.link) || (await verifyLink(it.link)) ? it : null)));
+  return results.filter(Boolean);
+};
+
+// Claim the next web-discovery run. False while another run is inside the
+// cooldown, so many students pressing Refresh cost one search, not dozens.
+const claimDiscoveryRun = async () => {
+  const now = new Date();
+  try {
+    await DiscoveryState.findOneAndUpdate(
+      { _id: 'discovery', $or: [{ lastRunAt: null }, { lastRunAt: { $lt: new Date(now.getTime() - DISCOVERY_COOLDOWN_MS) } }] },
+      { $set: { lastRunAt: now } },
+      { upsert: true },
+    );
+    return true;
+  } catch (e) {
+    if (e.code === 11000) return false; // the doc exists and was run recently
+    throw e;
+  }
+};
+
+/** When listings were last refreshed: the later of the last run and the newest listing. */
+export const getLastUpdated = async (newestListing) => {
+  const state = await DiscoveryState.findById('discovery').lean().catch(() => null);
+  const times = [state?.lastCompletedAt, newestListing?.updatedAt]
+    .filter(Boolean)
+    .map((d) => new Date(d).getTime());
+  return times.length ? new Date(Math.max(...times)) : null;
+};
+
+/**
+ * Find programs open right now via web search. Returns how many were added,
+ * or null when the search itself failed.
  */
 export const discoverNewPrograms = async () => {
-  console.log('[DISCOVERY] 🔍 Discovering new student programs via AI...');
-  
-  const prompt = `You are an AI agent that curates **currently active** student programs, internships, fellowships, and opportunities for B.Tech computer science students in India.
-
-Today's date: ${todayStr()}
-
-Generate exactly 5 NEW and CURRENTLY ACTIVE programs/opportunities. Focus on:
-- 🏢 MNC ambassador/campus programs (Google, Microsoft, Amazon, Meta, etc.)
-- 💼 Internship opportunities (tech companies hiring right now)
-- 🎓 Free AI/ML courses from MNCs
-- 🏆 Hackathons and coding competitions happening now
-- 🌟 Open source fellowship programs
-
-CRITICAL RULES:
-1. Only include programs that are REAL and CURRENTLY ACTIVE in ${new Date().getFullYear()}
-2. Provide REAL, working URLs (not made-up links)
-3. Do NOT repeat these existing programs: Google GDSC Lead, Microsoft Learn Student Ambassador, GSoC, MLH Fellowship, GitHub Campus Expert, AWS Educate, Google Cloud Arcade
-4. Focus on programs with upcoming deadlines or rolling applications
-5. Include specific Indian programs (AICTE, NPTEL, TCS, Infosys, Wipro, etc.)
-
-Return a JSON array of objects with these fields:
-{
-  "programs": [
-    {
-      "title": "Program Name",
-      "company": "Company Name",
-      "logo": "emoji",
-      "color": "#hex_color",
-      "category": "ambassador|fellowship|open-source|internship|placement|ai-course|hackathon|other",
-      "description": "2-3 sentence description",
-      "deadline": "Deadline info string",
-      "duration": "Duration string",
-      "link": "https://real-url.com",
-      "tags": ["Free", "Certificate", "Stipend", "Networking", "Leadership", "Swag", "Open Source", "AI/ML", "Internship"],
-      "eligibility": "Who can apply",
-      "benefits": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4"]
-    }
-  ]
-}`;
+  console.log('[DISCOVERY] 🔍 Searching the web for current student programs...');
+  const today = todayStr();
 
   try {
-    const raw = await getGroqChatCompletion([
-      { role: 'system', content: 'You are a student career advisor AI. Return ONLY valid JSON, no markdown.' },
-      { role: 'user', content: prompt }
-    ], true, 0.3);
+    const existing = await ProgramListing.find({}, { title: 1, company: 1 }).lean();
+    const known = new Set(existing.map((p) => dedupKey(p.company, p.title)));
+    const skip = existing.map((p) => `${p.company}: ${p.title}`).join('; ').slice(0, 2500);
 
-    const parsed = JSON.parse(raw);
-    const programs = parsed.programs || parsed;
+    const parsed = await searchWeb(`Today is ${today}. Search the web for up to 6 opportunities that B.Tech computer science students in India can apply to now: internships, hackathons, coding contests, fellowships, campus ambassador or open-source programs, and free AI/ML courses with certificates.
 
-    const activeList = await ProgramListing.find().lean();
-    const existingKeys = new Set(activeList.map(p => dedupKey(p.company, p.title)));
+Rules:
+- Only include opportunities whose application deadline is after ${today}, or that accept applications on a rolling basis.
+- "link" must be the official page you found (the company's or organiser's site), not a news article or aggregator.
+- Skip anything already listed here: ${skip}
+
+Answer with JSON only, shaped like:
+{"programs":[{"title":"","company":"","logo":"one emoji","color":"#hex","category":"${PROGRAM_CATEGORIES.join('|')}","description":"2 sentences","deadline":"human-readable deadline","deadlineDate":"YYYY-MM-DD or null","duration":"","link":"https://...","tags":["Free","Certificate","Stipend","Internship"],"eligibility":"","benefits":["",""]}]}`);
+
+    const now = Date.now();
+    const candidates = [];
+    for (const p of Array.isArray(parsed.programs) ? parsed.programs : []) {
+      if (!p?.company || !p?.title || !p?.link) continue;
+      const key = dedupKey(p.company, p.title);
+      if (known.has(key)) continue;
+      const expiresAt = parseDeadline(`${p.deadlineDate || ''} ${p.deadline || ''}`);
+      if (expiresAt && expiresAt.getTime() < now) continue; // already closed
+      known.add(key);
+      const { deadlineDate, ...fields } = p;
+      candidates.push({
+        ...fields,
+        link: sanitizeLink(p.link, p.company, p.title),
+        category: PROGRAM_CATEGORIES.includes(p.category) ? p.category : 'other',
+        expiresAt,
+      });
+    }
+
     let insertedCount = 0;
-    for (const program of programs) {
-      if (!program?.company || !program?.title) continue;
-
-      // Canonical-key dedup — catches company aliases and title variants.
-      const key = dedupKey(program.company, program.title);
-      if (existingKeys.has(key)) {
-        console.log(`[DISCOVERY] Skipping duplicate program: [${program.company}] ${program.title}`);
-        continue;
-      }
-      existingKeys.add(key);
-
-      program.link = sanitizeLink(program.link, program.company, program.title);
-
+    for (const program of await withWorkingLinks(candidates)) {
       try {
         await ProgramListing.findOneAndUpdate(
           { title: program.title, company: program.company },
-          {
-            ...program,
-            source: 'ai-generated',
-            status: 'active',
-            addedAt: new Date(),
-          },
-          { upsert: true, new: true }
+          { ...program, source: 'web-verified', status: 'active', addedAt: new Date() },
+          { upsert: true, new: true },
         );
         insertedCount++;
       } catch (e) {
-        // Duplicate key or validation error — skip
         if (e.code !== 11000) console.warn('[DISCOVERY] Program insert error:', e.message);
       }
     }
 
-    console.log(`[DISCOVERY] ✅ Inserted/updated ${insertedCount} programs`);
+    console.log(`[DISCOVERY] ✅ Added ${insertedCount} of ${candidates.length} new programs (the rest had dead links)`);
     return insertedCount;
   } catch (e) {
     console.error('[DISCOVERY] ❌ Program discovery failed:', e.message);
-    return 0;
+    return null;
   }
 };
 
@@ -694,85 +793,44 @@ const mapBenefitCategory = (cat) => {
 };
 
 /**
- * Discover new benefits using AI
+ * Find student benefits live right now via web search. Returns how many were
+ * added, or null when the search itself failed.
  */
 export const discoverNewBenefits = async () => {
-  console.log('[DISCOVERY] 🔍 Discovering new student benefits via AI...');
-
-  const prompt = `You are an AI agent that curates the best FREE student benefits, tools, discounts, internship portals, and AI courses for B.Tech computer science students in India.
-
-Today's date: ${todayStr()}
-
-Generate exactly 5 NEW and CURRENTLY AVAILABLE benefits/resources. Focus on:
-- 🤖 Free AI/ML courses from MNCs (Google, Microsoft, Meta, Amazon, NVIDIA, IBM, etc.)
-- 💼 Internship & placement portals with active hiring
-- 🎁 New student discount programs or free tools
-- 💰 Earning opportunities through coding/freelancing
-- 📚 Free certification programs
-
-CRITICAL RULES:
-1. Only include benefits that are REAL and ACTIVE in ${new Date().getFullYear()}
-2. Provide REAL, working URLs
-3. Do NOT repeat: GitHub Student Pack, JetBrains, Figma, Azure Students, Notion, Canva, LeetCode, Coursera, freeCodeCamp
-4. Include Indian-specific platforms (Coding Ninjas, Scaler, PrepInsta, etc.)
-
-Return a JSON array:
-{
-  "benefits": [
-    {
-      "name": "Benefit Name",
-      "provider": "Company Name",
-      "emoji": "emoji",
-      "category": "discounts|coding|ai-courses|internship|placement|earning",
-      "description": "2-3 sentence description",
-      "value": "Worth/Price string",
-      "link": "https://real-url.com",
-      "highlights": ["Point 1", "Point 2", "Point 3", "Point 4"]
-    }
-  ]
-}`;
+  console.log('[DISCOVERY] 🔍 Searching the web for current student benefits...');
+  const today = todayStr();
 
   try {
-    const raw = await getGroqChatCompletion([
-      { role: 'system', content: 'You are a student career advisor AI. Return ONLY valid JSON, no markdown.' },
-      { role: 'user', content: prompt }
-    ], true, 0.3);
+    const existing = await BenefitListing.find({}, { name: 1, provider: 1 }).lean();
+    const known = new Set(existing.map((b) => dedupKey(b.provider, b.name)));
+    const skip = existing.map((b) => `${b.provider}: ${b.name}`).join('; ').slice(0, 2500);
 
-    const parsed = JSON.parse(raw);
-    const benefits = parsed.benefits || parsed;
+    const parsed = await searchWeb(`Today is ${today}. Search the web for up to 6 free benefits available now to B.Tech computer science students in India: student developer packs and discounts, free AI/ML courses or certifications from tech companies, internship and placement portals, and coding or freelancing earning programs.
 
-    const activeList = await BenefitListing.find().lean();
-    const existingKeys = new Set(activeList.map(b => dedupKey(b.provider, b.name)));
+Rules:
+- Only include offers that are live today.
+- "link" must be the official page you found, not a news article or aggregator.
+- Skip anything already listed here: ${skip}
+
+Answer with JSON only, shaped like:
+{"benefits":[{"name":"","provider":"","emoji":"one emoji","category":"${VALID_BENEFIT_CATEGORIES.join('|')}","description":"2 sentences","value":"what it is worth","link":"https://...","highlights":["",""]}]}`);
+
+    const candidates = [];
+    for (const b of Array.isArray(parsed.benefits) ? parsed.benefits : []) {
+      if (!b?.name || !b?.provider || !b?.link) continue;
+      const key = dedupKey(b.provider, b.name);
+      if (known.has(key)) continue;
+      known.add(key);
+      candidates.push({ ...b, link: String(b.link).trim(), category: mapBenefitCategory(b.category) });
+    }
+
     let insertedCount = 0;
-    for (const benefit of benefits) {
-      if (!benefit?.name) continue;
-
-      // Canonical-key dedup — catches provider aliases and name variants.
-      const key = dedupKey(benefit.provider, benefit.name);
-      if (existingKeys.has(key)) {
-        console.log(`[DISCOVERY] Skipping duplicate benefit: [${benefit.provider}] ${benefit.name}`);
-        continue;
-      }
-      existingKeys.add(key);
-
-      // Ensure it has protocol
-      if (benefit.link && !benefit.link.startsWith('http://') && !benefit.link.startsWith('https://')) {
-        benefit.link = 'https://' + benefit.link.trim();
-      }
-
-      // Normalize category to schema enum values
-      benefit.category = mapBenefitCategory(benefit.category);
-
+    for (const benefit of await withWorkingLinks(candidates)) {
       try {
         await BenefitListing.findOneAndUpdate(
           { name: benefit.name, provider: benefit.provider },
-          {
-            ...benefit,
-            source: 'ai-generated',
-            status: 'active',
-            addedAt: new Date(),
-          },
-          { upsert: true, new: true }
+          { ...benefit, source: 'web-verified', status: 'active', addedAt: new Date() },
+          { upsert: true, new: true },
         );
         insertedCount++;
       } catch (e) {
@@ -780,11 +838,11 @@ Return a JSON array:
       }
     }
 
-    console.log(`[DISCOVERY] ✅ Inserted/updated ${insertedCount} benefits`);
+    console.log(`[DISCOVERY] ✅ Added ${insertedCount} of ${candidates.length} new benefits (the rest had dead links)`);
     return insertedCount;
   } catch (e) {
     console.error('[DISCOVERY] ❌ Benefit discovery failed:', e.message);
-    return 0;
+    return null;
   }
 };
 
@@ -801,7 +859,32 @@ export const markExpired = async () => {
     { expiresAt: { $lte: now }, status: 'active' },
     { $set: { status: 'expired' } }
   );
-  const total = (pResult.modifiedCount || 0) + (bResult.modifiedCount || 0);
+
+  // Older AI listings carry their deadline only as text ("Apply by July 15,
+  // 2026"), so expiresAt was never set and they stayed "active" for good. Read
+  // the date out of the text: past -> expire now, future -> set expiresAt so the
+  // listing lapses on time. Curated (verified) entries recur yearly; skip them.
+  const undated = await ProgramListing.find(
+    { status: 'active', expiresAt: null, source: { $ne: 'verified' } },
+    { deadline: 1 },
+  ).lean();
+  const ops = [];
+  let fromText = 0;
+  for (const p of undated) {
+    const due = parseDeadline(p.deadline);
+    if (!due) continue;
+    const lapsed = due <= now;
+    if (lapsed) fromText++;
+    ops.push({
+      updateOne: {
+        filter: { _id: p._id },
+        update: { $set: lapsed ? { status: 'expired', expiresAt: due } : { expiresAt: due } },
+      },
+    });
+  }
+  if (ops.length) await ProgramListing.bulkWrite(ops);
+
+  const total = (pResult.modifiedCount || 0) + (bResult.modifiedCount || 0) + fromText;
   if (total > 0) console.log(`[DISCOVERY] 🗑️ Marked ${total} entries as expired`);
   return total;
 };
@@ -839,22 +922,42 @@ export const seedIfEmpty = async () => {
 };
 
 /**
- * Full daily run: seed → expire → discover
+ * Full run: seed -> expire -> web discovery (at most once per cooldown).
+ * Resolves to { expired, programs, benefits, searched, cooldown, failed }.
  */
-export const runDailyDiscovery = async () => {
-  console.log('[DISCOVERY] 🚀 Starting daily discovery run...');
+export const runDailyDiscovery = async ({ force = false } = {}) => {
+  console.log('[DISCOVERY] 🚀 Starting discovery run...');
   await seedIfEmpty();
-  await markExpired();
+  const result = { expired: await markExpired(), programs: 0, benefits: 0, searched: false, cooldown: false, failed: false };
 
-  // AI auto-discovery is OFF by default. An LLM inventing "new" programs and
-  // URLs every day is what produced the duplicate, broken-link listings that
-  // erode trust. Only run it when explicitly enabled (and even then, results
-  // are deduped by canonical key and links are trust-checked at read time).
-  if (process.env.ENABLE_AI_DISCOVERY === 'true') {
-    await discoverNewPrograms();
-    await discoverNewBenefits();
-  } else {
-    console.log('[DISCOVERY] ⏸️  AI auto-discovery disabled (set ENABLE_AI_DISCOVERY=true to enable)');
+  // Grounded web discovery is on by default; ENABLE_AI_DISCOVERY=false turns it off.
+  if (process.env.ENABLE_AI_DISCOVERY === 'false') {
+    console.log('[DISCOVERY] ⏸️  Web discovery disabled (ENABLE_AI_DISCOVERY=false)');
+    return result;
   }
-  console.log('[DISCOVERY] ✅ Daily discovery complete');
+  if (!force && !(await claimDiscoveryRun())) {
+    console.log('[DISCOVERY] ⏳ Searched within the cooldown; skipping web discovery');
+    result.cooldown = true;
+    return result;
+  }
+
+  const [programs, benefits] = await Promise.all([discoverNewPrograms(), discoverNewBenefits()]);
+  Object.assign(result, {
+    programs: programs ?? 0,
+    benefits: benefits ?? 0,
+    searched: true,
+    failed: programs === null || benefits === null,
+  });
+
+  // A failed search releases the cooldown so the next Refresh can retry, and
+  // doesn't move "last updated", which would claim a refresh that didn't happen.
+  await DiscoveryState.updateOne(
+    { _id: 'discovery' },
+    result.failed
+      ? { $set: { lastRunAt: null, lastResult: result } }
+      : { $set: { lastCompletedAt: new Date(), lastResult: result } },
+    { upsert: true },
+  );
+  console.log('[DISCOVERY] ✅ Discovery run finished', result);
+  return result;
 };

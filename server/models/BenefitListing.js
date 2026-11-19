@@ -20,7 +20,7 @@ const benefitListingSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['verified', 'ai-generated'],
+    enum: ['verified', 'web-verified', 'ai-generated'],
     default: 'ai-generated'
   },
   addedAt: { type: Date, default: Date.now },

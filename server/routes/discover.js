@@ -2,7 +2,7 @@ import express from 'express';
 import { protect } from '../middleware/auth.js';
 import ProgramListing from '../models/ProgramListing.js';
 import BenefitListing from '../models/BenefitListing.js';
-import { runDailyDiscovery, sanitizeListingsForDisplay } from '../services/discoveryService.js';
+import { runDailyDiscovery, sanitizeListingsForDisplay, getLastUpdated } from '../services/discoveryService.js';
 
 const router = express.Router();
 
@@ -47,7 +47,7 @@ router.get('/programs', protect, async (req, res) => {
       expired: addFlags(expired),
       totalActive: active.length,
       totalExpired: expired.length,
-      lastUpdated: active.length > 0 ? active[0].updatedAt : null,
+      lastUpdated: await getLastUpdated(active[0]),
     });
   } catch (err) {
     console.error('Programs fetch error:', err);
@@ -96,7 +96,7 @@ router.get('/benefits', protect, async (req, res) => {
       all: addFlags(active),
       expired: addFlags(expired),
       totalActive: active.length,
-      lastUpdated: active.length > 0 ? active[0].updatedAt : null,
+      lastUpdated: await getLastUpdated(active[0]),
     });
   } catch (err) {
     console.error('Benefits fetch error:', err);
@@ -104,13 +104,14 @@ router.get('/benefits', protect, async (req, res) => {
   }
 });
 
-// @desc    Manually trigger AI discovery refresh
+// @desc    Expire lapsed listings and search the web for new ones (rate-limited
+//          to one search per cooldown across all users)
 // @route   POST /api/discover/refresh
 // @access  Private (any authenticated user can trigger)
 router.post('/refresh', protect, async (req, res) => {
   try {
-    await runDailyDiscovery();
-    res.json({ message: 'Discovery refresh complete', timestamp: new Date() });
+    const result = await runDailyDiscovery();
+    res.json({ message: 'Discovery refresh complete', ...result, timestamp: new Date() });
   } catch (err) {
     console.error('Manual discovery error:', err);
     res.status(500).json({ message: 'Discovery refresh failed' });

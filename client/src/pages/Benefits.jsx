@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { describeRefresh } from '../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gift, ExternalLink, ChevronDown, ChevronUp,
@@ -48,6 +49,7 @@ const Benefits = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [showExpired, setShowExpired] = useState(false);
+  const [refreshNote, setRefreshNote] = useState('');
 
   useEffect(() => {
     fetchBenefits();
@@ -69,11 +71,14 @@ const Benefits = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    setRefreshNote('');
     try {
-      await api.post('/discover/refresh');
+      const { data } = await api.post('/discover/refresh');
       await fetchBenefits();
+      setRefreshNote(describeRefresh(data, 'benefits'));
     } catch (e) {
       console.error('Refresh failed:', e);
+      setRefreshNote('Refresh failed. Please try again in a minute.');
     } finally {
       setRefreshing(false);
     }
@@ -137,9 +142,12 @@ const Benefits = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            {refreshing ? 'Searching the web…' : 'Refresh'}
           </button>
         </div>
+        {refreshNote && (
+          <p className="mt-2 text-xs text-muted-foreground" role="status">{refreshNote}</p>
+        )}
       </header>
 
       {/* Section Navigation */}
